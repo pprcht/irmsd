@@ -4,6 +4,7 @@ project(irmsd_fortran LANGUAGES C Fortran)
 # Build shared library with Fortran kernels
 add_library(irmsd_fortran SHARED
     fmods/linalg.f90
+    fmods/xyz_bridge.f90
 )
 
 set_target_properties(irmsd_fortran PROPERTIES
