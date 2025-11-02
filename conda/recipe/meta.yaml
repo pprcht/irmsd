@@ -1,4 +1,4 @@
-#{% set name = "yourpkg" %}
+#{% set name = "irmsd" %}
 #{% set version = "0.1.0" %}
 #
 #package:
@@ -26,12 +26,12 @@
 #
 #test:
 #  imports:
-#    - yourpkg
+#    - irmsd
 #  commands:
-#    - python -c "import yourpkg; print('ok')"
+#    - python -c "import irmsd; print('ok')"
 #
 #about:
-#  home: https://github.com/yourname/yourpkg
+#  home: https://github.com/yourname/irmsd
 #  license: BSD-3-Clause
-#  summary: "YourPkg: Python + Fortran acceleration"
+#  summary: "irmsd: Python + Fortran acceleration"
 

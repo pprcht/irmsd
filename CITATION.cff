@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite the following paper."
+title: "Conformational Pruning via the Permutation Invariant Root-Mean-Square Deviation of Atomic Positions"
+version: "1.0"  # version for your citation context—can be omitted or updated
+authors:
+  - family-names: "Pracht"
+    given-names: "Philipp"
+    orcid: "https://orcid.org/0000-0000-0000-0000"  # please update if available
+abstract: >
+  The Cartesian root-mean-square deviation (RMSD) of atomic coordinates is a fundamental metric
+  for comparing three-dimensional molecular structures. This work introduces the permutation-
+  invariant RMSD (iRMSD) to handle molecular symmetry and atom-permutations more robustly,
+  enabling efficient conformational pruning in automated computational chemistry workflows.
+date-released: "2025-05-12"
+url: "https://doi.org/10.1021/acs.jcim.4c02143"
+doi: "10.1021/acs.jcim.4c02143"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Pracht"
+      given-names: "Philipp"
+  title: "Conformational Pruning via the Permutation Invariant Root-Mean-Square Deviation of Atomic Positions"
+  journal: "Journal of Chemical Information and Modeling"
+  year: 2025
+  volume: "65"
+  issue: "9"
+  pages: "4501–4511"
+  doi: "10.1021/acs.jcim.4c02143"
+

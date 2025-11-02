@@ -5,14 +5,14 @@ from pathlib import Path
 
 def _lib_filename() -> str:
     return {
-        "win32": "yourpkg_fortran.dll",
-        "cygwin": "yourpkg_fortran.dll",
-        "darwin": "libyourpkg_fortran.dylib",
-    }.get(sys.platform, "libyourpkg_fortran.so")
+        "win32": "irmsd_fortran.dll",
+        "cygwin": "irmsd_fortran.dll",
+        "darwin": "libirmsd_fortran.dylib",
+    }.get(sys.platform, "libirmsd_fortran.so")
 
 def _find_lib() -> str:
     # standard location (works with wheels & redirect editables)
-    cand = files("yourpkg") / _lib_filename()
+    cand = files("irmsd") / _lib_filename()
     if cand.exists():
         return str(cand)
     # optional: remove fallback if your redirect setup is solid

@@ -1,5 +1,5 @@
 import numpy as np
-from yourpkg import saxpy
+from irmsd import saxpy
 
 def test_saxpy_basic():
     x = np.array([1.0, 2.0, 3.0, 4.0])

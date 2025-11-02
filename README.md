@@ -1,6 +1,6 @@
-# yourpkg
+# iRMSD
 
-Fortran-backed numerical routines exposed to Python via `iso_c_binding` and `scikit-build-core`.
+A package for the calculation of the permutation-invariant root-mean-square-deviation (RMSD) of atomic positions.
 
 ## Quick start
 
