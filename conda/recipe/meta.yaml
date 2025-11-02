@@ -1,0 +1,37 @@
+#{% set name = "yourpkg" %}
+#{% set version = "0.1.0" %}
+#
+#package:
+#  name: {{ name|lower }}
+#  version: {{ version }}
+#
+#source:
+#  path: ../..
+#
+#build:
+#  number: 0
+#  script: "{{ PYTHON }} -m pip install . -vv"
+#
+#requirements:
+#  host:
+#    - python
+#    - pip
+#    - numpy
+#    - scikit-build-core
+#    - cmake
+#    - ninja
+#  run:
+#    - python
+#    - numpy
+#
+#test:
+#  imports:
+#    - yourpkg
+#  commands:
+#    - python -c "import yourpkg; print('ok')"
+#
+#about:
+#  home: https://github.com/yourname/yourpkg
+#  license: BSD-3-Clause
+#  summary: "YourPkg: Python + Fortran acceleration"
+

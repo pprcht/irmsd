@@ -1,0 +1,28 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "numpy>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "yourpkg"
+version = "0.1.0"
+description = "YourPkg: Python + Fortran (iso_c_binding) via scikit-build-core"
+readme = "README.md"
+#license = { file = "LICENSE" }
+authors = [{ name = "Your Name" }]
+requires-python = ">=3.9"
+dependencies = ["numpy>=2.0"]
+
+[project.urls]
+Homepage = "https://github.com/yourname/yourpkg"
+Issues = "https://github.com/yourname/yourpkg/issues"
+
+[tool.scikit-build]
+build-dir = "build"
+editable.mode = "redirect"
+wheel.packages = ["src/yourpkg"]
+wheel.expand-macos-universal-tags = true
+
+[project.scripts]
+yourpkg = "yourpkg.cli:main"
+
+
