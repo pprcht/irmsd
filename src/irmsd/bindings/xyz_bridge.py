@@ -55,3 +55,56 @@ def xyz_to_fortran_raw(
 
     LIB.xyz_to_fortran(int(natoms), types, coords_flat, mat_3x3_F)
 
+
+# void xyz_to_fortran_pair(int n1, int* types1, double* coords1,
+#                          int n2, int* types2, double* coords2,
+#                          double* mat1(3x3 F), double* mat2(3x3 F))
+LIB.xyz_to_fortran_pair.argtypes = [
+    ct.c_int,
+    ndpointer(dtype=np.int32,   flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+    ct.c_int,
+    ndpointer(dtype=np.int32,   flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.float64, flags="F_CONTIGUOUS"),
+    ndpointer(dtype=np.float64, flags="F_CONTIGUOUS"),
+]
+LIB.xyz_to_fortran_pair.restype = None
+
+
+def xyz_to_fortran_pair_raw(
+    n1: int,
+    types1: np.ndarray,         # (n1,) int32 C
+    coords1_flat: np.ndarray,   # (3*n1,) float64 C
+    n2: int,
+    types2: np.ndarray,         # (n2,) int32 C
+    coords2_flat: np.ndarray,   # (3*n2,) float64 C
+    mat1_F: np.ndarray,         # (3,3) float64 F
+    mat2_F: np.ndarray,         # (3,3) float64 F
+) -> None:
+    # Validate buffers to catch ABI mismatches early
+    if types1.dtype != np.int32 or not types1.flags.c_contiguous:
+        raise TypeError("types1 must be int32 and C-contiguous")
+    if types2.dtype != np.int32 or not types2.flags.c_contiguous:
+        raise TypeError("types2 must be int32 and C-contiguous")
+
+    if coords1_flat.dtype != np.float64 or not coords1_flat.flags.c_contiguous:
+        raise TypeError("coords1_flat must be float64 and C-contiguous")
+    if coords2_flat.dtype != np.float64 or not coords2_flat.flags.c_contiguous:
+        raise TypeError("coords2_flat must be float64 and C-contiguous")
+
+    if mat1_F.dtype != np.float64 or mat1_F.shape != (3,3) or not mat1_F.flags.f_contiguous:
+        raise TypeError("mat1_F must be float64, shape (3,3), Fortran-contiguous")
+    if mat2_F.dtype != np.float64 or mat2_F.shape != (3,3) or not mat2_F.flags.f_contiguous:
+        raise TypeError("mat2_F must be float64, shape (3,3), Fortran-contiguous")
+
+    if types1.size != n1:        raise ValueError("types1 length must be n1")
+    if coords1_flat.size != 3*n1: raise ValueError("coords1_flat length must be 3*n1")
+    if types2.size != n2:        raise ValueError("types2 length must be n2")
+    if coords2_flat.size != 3*n2: raise ValueError("coords2_flat length must be 3*n2")
+
+    LIB.xyz_to_fortran_pair(
+        int(n1), types1, coords1_flat,
+        int(n2), types2, coords2_flat,
+        mat1_F, mat2_F
+    )    
