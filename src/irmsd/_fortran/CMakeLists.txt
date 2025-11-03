@@ -1,10 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
 project(irmsd_fortran LANGUAGES C Fortran)
 
+# Add srcs
+set(srcs)
+add_subdirectory("fmods")
+add_subdirectory("crest_mods")
+
 # Build shared library with Fortran kernels
 add_library(irmsd_fortran SHARED
-    fmods/linalg.f90
-    fmods/xyz_bridge.f90
+    ${srcs}
 )
 
 set_target_properties(irmsd_fortran PROPERTIES
