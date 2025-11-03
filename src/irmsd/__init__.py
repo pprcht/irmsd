@@ -1,4 +1,3 @@
-from .api.linalg import saxpy
 from .api.xyz_bridge import xyz_to_fortran, xyz_to_fortran_pair
 
 # Try to expose ase_to_fortran if ASE is present; otherwise export a stub that errors nicely.
@@ -11,7 +10,6 @@ except Exception:
         )
 
 __all__ = [
-    "saxpy",
     "xyz_to_fortran",
     "xyz_to_fortran_pair",
     "ase_to_fortran",
