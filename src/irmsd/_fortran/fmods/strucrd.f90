@@ -7,6 +7,8 @@
 module strucrd
   use,intrinsic :: iso_fortran_env,only:wp => real64
   use,intrinsic :: iso_c_binding
+  use crest_cn_module,only:calculate_CN
+  use miscdata,only:PSE
   implicit none
 
 !>--- private module variables and parameters
@@ -18,6 +20,7 @@ module strucrd
 
   !>--- selected public exports of the module
   public :: coord
+  public :: i2e
 
 !=========================================================================================!
   !coord class. contains a single structure
@@ -54,17 +57,13 @@ module strucrd
 
   contains
     procedure :: deallocate => deallocate_coord !> clear memory space
-!    procedure :: open => opencoord              !> read an coord file
-!    procedure :: write => writecoord            !> write
-!    procedure :: dist => coord_getdistance      !> calculate distance between two atoms
-!    procedure :: angle => coord_getangle        !> calculate angle between three atoms
-!    procedure :: dihedral => coord_getdihedral  !> calculate dihedral angle between four atoms
-!    procedure :: get_CN => coord_get_CN         !> calculate coordination number
-!    procedure :: get_z => coord_get_z           !> calculate nuclear charge
-!    procedure :: cn_to_bond => coord_cn_to_bond !> generate neighbour matrix from CN
+    procedure :: get_CN => coord_get_CN         !> calculate coordination number
+    procedure :: get_z => coord_get_z           !> calculate nuclear charge
+    procedure :: cn_to_bond => coord_cn_to_bond !> generate neighbour matrix from CN
     procedure :: swap => atswp                  !> swap two atoms coordinates and their at() entries
     procedure :: C_to_mol
     procedure :: mol_to_C
+    procedure :: append
   end type coord
 !=========================================================================================!
 
@@ -118,7 +117,7 @@ contains   !> MODULE PROCEDURES START HERE
       self%at(i) = int(at_c(i))
       do j = 1,3
         k = k+1
-        self%xyz(j,i) = real(xyz_c(k),wp) * convert
+        self%xyz(j,i) = real(xyz_c(k),wp)*convert
       end do
     end do
   end subroutine C_to_mol
@@ -145,7 +144,7 @@ contains   !> MODULE PROCEDURES START HERE
     do i = 1,self%nat
       do j = 1,3
         k = k+1
-        xyz_c(k) = self%xyz(j,i) * convert
+        xyz_c(k) = self%xyz(j,i)*convert
       end do
     end do
   end subroutine mol_to_C
@@ -166,5 +165,111 @@ contains   !> MODULE PROCEDURES START HERE
     self%xyz(1:3,atj) = xyztmp(1:3)
     self%at(atj) = attmp
   end subroutine atswp
+
+!==================================================================!
+
+  subroutine coord_get_CN(self,cn,cn_type,cn_thr,dcndr)
+    implicit none
+    class(coord) :: self
+    real(wp),intent(out),allocatable :: cn(:)
+    real(wp),intent(in),optional :: cn_thr
+    character(len=*),intent(in),optional :: cn_type
+    real(wp),intent(out),optional :: dcndr(3,self%nat,self%nat)
+    if (self%nat <= 0) return
+    if (.not.allocated(self%xyz).or..not.allocated(self%at)) return
+    allocate (cn(self%nat),source=0.0_wp)
+    call calculate_CN(self%nat,self%at,self%xyz,cn, &
+    & cntype=cn_type,cnthr=cn_thr,dcndr=dcndr)
+  end subroutine coord_get_CN
+
+!==================================================================!
+
+  subroutine coord_get_z(self,z)
+    implicit none
+    class(coord) :: self
+    real(wp),intent(out),allocatable :: z(:)
+    integer :: i,j,k
+    if (self%nat <= 0) return
+    if (.not.allocated(self%xyz).or..not.allocated(self%at)) return
+    allocate (z(self%nat),source=0.0_wp)
+    do i = 1,self%nat
+      z(i) = real(self%at(i),wp)-real(ncore(self%at(i)))
+      if (self%at(i) > 57.and.self%at(i) < 72) z(i) = 3.0_wp
+    end do
+  end subroutine coord_get_z
+
+!==================================================================!
+
+  subroutine coord_cn_to_bond(self,cn,bond,cn_type,cn_thr)
+    implicit none
+    class(coord) :: self
+    real(wp),intent(out),allocatable :: cn(:)
+    real(wp),intent(out),allocatable,optional :: bond(:,:)
+    real(wp),intent(in),optional :: cn_thr
+    character(len=*),intent(in),optional :: cn_type
+    if (self%nat <= 0) return
+    if (.not.allocated(self%xyz).or..not.allocated(self%at)) return
+    allocate (cn(self%nat),source=0.0_wp)
+    call calculate_CN(self%nat,self%at,self%xyz,cn, &
+    & cntype=cn_type,cnthr=cn_thr,bond=bond)
+  end subroutine coord_cn_to_bond
+
+!=============================================================!
+
+  pure elemental integer function ncore(at)
+    integer,intent(in) :: at
+    if (at .le. 2) then
+      ncore = 0
+    elseif (at .le. 10) then
+      ncore = 2
+    elseif (at .le. 18) then
+      ncore = 10
+    elseif (at .le. 29) then   !zn
+      ncore = 18
+    elseif (at .le. 36) then
+      ncore = 28
+    elseif (at .le. 47) then
+      ncore = 36
+    elseif (at .le. 54) then
+      ncore = 46
+    elseif (at .le. 71) then
+      ncore = 54
+    elseif (at .le. 79) then
+      ncore = 68
+    elseif (at .le. 86) then
+      ncore = 78
+    end if
+  end function ncore
+
+!==============================================================================!
+
+  subroutine append(self,iunit,filename)
+    implicit none
+    class(coord) :: self
+    integer,intent(in) :: iunit
+    character(len=*),intent(in),optional :: filename
+    integer :: i,iunit_loc
+    if (present(filename)) then
+      open (newunit=iunit_loc,file=filename)
+    else
+      iunit_loc = iunit
+    end if
+    write (iunit_loc,'(1x,i0)') self%nat
+    !write (iunit_loc,'(1x,a,F20.10)') 'Energy=',self%energy
+    write (iunit_loc,*)
+    do i = 1,self%nat
+      write (iunit_loc,'(a,1x,3F25.10)') PSE(self%at(i)),self%xyz(1:3,i)*bohr
+    end do
+    if (present(filename)) close (iunit_loc)
+  end subroutine append
+
+!============================================================================!
+
+  function i2e(iat,spec) result(esym)
+    integer,intent(in) :: iat
+    character(len=*),intent(in),optional :: spec  !> this is ignored, legacy arg
+    character(len=:),allocatable :: esym
+    esym = PSE(iat)
+  end function i2e
 
 end module strucrd

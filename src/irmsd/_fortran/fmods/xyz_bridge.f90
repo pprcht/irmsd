@@ -42,9 +42,11 @@ contains
     !>--- add to mol (for tests)
     call mol%C_to_mol(natoms,types,coords,.true.)
     write (*,*) 'Hello from Fortran. These are your coords:'
-    do i = 1,mol%nat
-      write (*,'(i5,3f20.10)') mol%at(i),mol%xyz(1:3,i)*0.52917726_wp
-    end do
+    !do i = 1,mol%nat
+    !  write (*,'(i5,3f20.10)') mol%at(i),mol%xyz(1:3,i)*0.52917726_wp
+    !end do
+    !call mol%append(0,'dummy.xyz')
+    call mol%append(6)
     write (*,*)
 
     ! --- Dummy computation on coordinates: translate everything by +1.0 Å
