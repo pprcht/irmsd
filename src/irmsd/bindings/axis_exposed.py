@@ -20,7 +20,7 @@ LIB.get_axis0_fortran.argtypes = [
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
-    ct.c_double,
+    ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
 ]
 LIB.get_axis0_fortran.restype = None
@@ -31,7 +31,7 @@ def get_axis_fortran_raw(
     types: np.ndarray,
     coords_flat: np.ndarray,
     rot: np.ndarray,
-    avmom: float,
+    avmom: np.ndarray,
     evec: np.ndarray,
 ) -> None:
     """Low-level call that matches the Fortran signature exactly. Operates IN-
@@ -56,9 +56,11 @@ def get_axis_fortran_raw(
         raise TypeError("rot must be float64, C-contiguous, shape (3)")
     if evec.dtype != np.float64 or not evec.flags.c_contiguous or evec.shape != (3, 3):
         raise TypeError("evec must be float64, C-contiguous, shape (3, 3)")
+    if avmom.dtype != np.float64 or not evec.flags.c_contiguous or avmom.size != 1:
+        raise TypeError("avmom must be float64, C-contiguous, size 1")
     if coords_flat.size != 3 * natoms:
         raise ValueError("coords_flat length must be 3*natoms")
     if types.size != natoms:
         raise ValueError("types length must be natoms")
 
-    LIB.get_axis0_fortran(int(natoms), types, coords_flat, rot, float(avmom), evec)
+    LIB.get_axis0_fortran(int(natoms), types, coords_flat, rot, avmom, evec)

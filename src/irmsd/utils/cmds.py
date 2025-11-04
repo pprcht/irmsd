@@ -47,11 +47,11 @@ def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
 
 def compute_axis_and_print(
     atoms_list: List["Atoms"],
-) -> List[Tuple[np.ndarray, float, np.ndarray]]:
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
 
-    results: List[Tuple[np.ndarray, float, np.ndarray]] = []
+    results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     for i, atoms in enumerate(atoms_list, start=1):
         if get_cn_ase is not None:
             rot, avmom, evec = get_axis_ase(atoms)
@@ -59,6 +59,6 @@ def compute_axis_and_print(
             rot, avmom, evec = None, None, None
         results.append((rot, avmom, evec))
         print_array(f"Rotational constants (MHz) for structure {i}", rot)
-        print(f"Average momentum (a.u.) for structure {i}: {avmom}")
+        print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
         print_array(f"Rotation matrix for structure {i}", evec)
     return results

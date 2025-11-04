@@ -9,7 +9,7 @@ from ..bindings import axis_exposed as _F
 
 def get_axis_fortran(
     atom_numbers: np.ndarray, positions: np.ndarray
-) -> Tuple[np.ndarray, float, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Core API: call the Fortran routine to calculate CN
 
@@ -34,7 +34,7 @@ def get_axis_fortran(
     coords_flat = pos.reshape(-1).copy(order="C")
 
     rot = np.ascontiguousarray(np.zeros(3), dtype=np.float64)
-    avmom = 0.0
+    avmom = np.ascontiguousarray(np.zeros(1), dtype=np.float64)
     evec = np.ascontiguousarray(np.zeros((3, 3)), dtype=np.float64)
 
     _F.get_axis_fortran_raw(n, atom_numbers, coords_flat, rot, avmom, evec)
