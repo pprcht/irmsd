@@ -1,10 +1,13 @@
 import argparse
 import sys
 from typing import List, Optional
+
 import numpy as np
+
 import irmsd
 
 # --- CLI ---------------------------------------------------------------------
+
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
@@ -27,6 +30,11 @@ def build_parser() -> argparse.ArgumentParser:
             "Calculate coordination numbers for each structure and print them as numpy arrays. "
         ),
     )
+    p.add_argument(
+        "--rot",
+        action="store_true",
+        help=("Calculate the rotational constants. "),
+    )
 
     return p
 
@@ -43,6 +51,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         irmsd.compute_cn_and_print(atoms_list)
         ran_any = True
 
+    if args.rot:
+        irmsd.compute_axis_and_print(atoms_list)
+        ran_any = True
+
     if not ran_any:
         parser.print_help()
         return 1
@@ -52,4 +64,3 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

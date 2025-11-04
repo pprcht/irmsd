@@ -1,20 +1,21 @@
 from __future__ import annotations
 
-from typing import List, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Tuple
 
 import numpy as np
 
 try:
-    from .ase_io import get_cn_ase
+    from .ase_io import get_axis_ase, get_cn_ase
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
+    get_axis_ase = None  # type: ignore
 
 from .utils import print_array, require_ase
 
 if TYPE_CHECKING:
     from ase import Atoms  # type: ignore
 
-__all__ = ["compute_cn_and_print"]
+__all__ = ["compute_cn_and_print", "compute_axis_and_print"]
 
 
 def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
@@ -43,3 +44,21 @@ def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
         print_array(f"CN[ structure {i} ] (n={len(atoms)})", cn_vec)
     return results
 
+
+def compute_axis_and_print(
+    atoms_list: List["Atoms"],
+) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+
+    results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+    for i, atoms in enumerate(atoms_list, start=1):
+        if get_cn_ase is not None:
+            rot, avmom, evec = get_axis_ase(atoms)
+        else:
+            rot, avmom, evec = None, None, None
+        results.append((rot, avmom, evec))
+        print_array(f"Rotational constants (MHz) for structure {i}", rot)
+        print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
+        print_array(f"Rotation matrix for structure {i}", evec)
+    return results
