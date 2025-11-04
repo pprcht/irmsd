@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 from typing import Tuple
+
 import numpy as np
 
 from .utils import require_ase
+
 
 def ase_to_fortran(atoms) -> Tuple["Atoms", np.ndarray]:
     """
@@ -11,15 +14,15 @@ def ase_to_fortran(atoms) -> Tuple["Atoms", np.ndarray]:
       - the 3×3 matrix.
     """
 
-    require_ase()    
+    require_ase()
 
     from ..api.xyz_bridge import xyz_to_fortran
 
     if not isinstance(atoms, Atoms):
         raise TypeError("ase_to_fortran expects an ase.Atoms object")
 
-    Z = atoms.get_atomic_numbers()            # (N,)
-    pos = atoms.get_positions()               # (N, 3) float64
+    Z = atoms.get_atomic_numbers()  # (N,)
+    pos = atoms.get_positions()  # (N, 3) float64
 
     new_pos, mat = xyz_to_fortran(Z, pos)
 
@@ -27,7 +30,9 @@ def ase_to_fortran(atoms) -> Tuple["Atoms", np.ndarray]:
     new_atoms.set_positions(new_pos, apply_constraint=False)
     return new_atoms, mat
 
+
 ###############################################################################
+
 
 def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray]:
     """
@@ -61,10 +66,10 @@ def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray
     if not isinstance(atoms1, Atoms) or not isinstance(atoms2, Atoms):
         raise TypeError("ase_to_fortran_pair expects two ase.Atoms objects")
 
-    Z1 = atoms1.get_atomic_numbers()          # (N1,)
-    P1 = atoms1.get_positions()               # (N1, 3)
-    Z2 = atoms2.get_atomic_numbers()          # (N2,)
-    P2 = atoms2.get_positions()               # (N2, 3)
+    Z1 = atoms1.get_atomic_numbers()  # (N1,)
+    P1 = atoms1.get_positions()  # (N1, 3)
+    Z2 = atoms2.get_atomic_numbers()  # (N2,)
+    P2 = atoms2.get_positions()  # (N2, 3)
 
     new_P1, new_P2, M1, M2 = xyz_to_fortran_pair(Z1, P1, Z2, P2)
 
@@ -74,25 +79,51 @@ def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray
 
     return new_atoms2, M1, M2
 
+
 #####################################################################################
 
-def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:                             
-    """                                                                              
+
+def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:
+    """
     Optional utility: accepts ASE Atoms, adapts to core get_cn_fortran, and
     returns a numpy array with the coordination numbers per atom
-    """                                                                              
-                                                                                     
-    require_ase()                                                                    
-                                            
+    """
+
+    require_ase()
+
     from ase import Atoms
-    from ..api.cn_exposed import get_cn_fortran 
-                                                                                     
-    if not isinstance(atoms, Atoms):                                                 
-        raise TypeError("get_cn_ase expects an ase.Atoms object")                
-                                                                                     
-    Z = atoms.get_atomic_numbers()            # (N,)                                 
-    pos = atoms.get_positions()               # (N, 3) float64                       
-                                                                                     
-    new_cn = get_cn_fortran(Z, pos)                                            
-                                                                                     
+
+    from ..api.cn_exposed import get_cn_fortran
+
+    if not isinstance(atoms, Atoms):
+        raise TypeError("get_cn_ase expects an ase.Atoms object")
+
+    Z = atoms.get_atomic_numbers()  # (N,)
+    pos = atoms.get_positions()  # (N, 3) float64
+
+    new_cn = get_cn_fortran(Z, pos)
+
     return new_cn
+
+
+def get_axis_ase(atoms) -> Tuple[np.ndarray, float, np.ndarray]:
+    """
+    Optional utility: accepts ASE Atoms, adapts to core get_axis_fortran, and
+    returns a numpy array with the rotation constants in Mhz, the average  momentum in a.u.
+    and the rot. matrix.
+    """
+    require_ase()
+
+    from ase import Atoms
+
+    from ..api.axis_exposed import get_axis_fortran
+
+    if not isinstance(atoms, Atoms):
+        raise TypeError("get_cn_ase expects an ase.Atoms object")
+
+    Z = atoms.get_atomic_numbers()  # (N,)
+    pos = atoms.get_positions()  # (N, 3) float64
+
+    rot, avmom, evec = get_axis_fortran(Z, pos)
+
+    return rot, avmom, evec
