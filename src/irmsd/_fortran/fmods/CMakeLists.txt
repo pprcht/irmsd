@@ -4,6 +4,7 @@ list(APPEND srcs
   "${dir}/xyz_bridge.f90"
   "${dir}/strucrd.f90"
   "${dir}/utilities.f90"
+  "${dir}/cn_exposed.f90"
 )
 
 set(srcs ${srcs} PARENT_SCOPE)

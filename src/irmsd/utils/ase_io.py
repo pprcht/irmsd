@@ -2,21 +2,16 @@ from __future__ import annotations
 from typing import Tuple
 import numpy as np
 
+from .utils import require_ase
+
 def ase_to_fortran(atoms) -> Tuple["Atoms", np.ndarray]:
     """
     Optional utility: accepts ASE Atoms, adapts to core xyz_to_fortran, and returns:
       - a NEW Atoms with updated positions
       - the 3×3 matrix.
-
-    Raises a helpful ImportError if ASE is not available.
     """
-    try:
-        from ase import Atoms  # type: ignore
-    except Exception as exc:
-        raise ImportError(
-            "ASE is required for `ase_to_fortran(atoms)`. "
-            "Install the optional extra: pip install 'irmsd[ase]'"
-        ) from exc
+
+    require_ase()    
 
     from ..api.xyz_bridge import xyz_to_fortran
 
@@ -55,19 +50,11 @@ def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray
 
     Notes
     -----
-    - ASE is an optional dependency. If it's not installed, this function raises ImportError
-      suggesting to install the extra: `pip install 'irmsd[ase]'`.
     - The corresponding core API is `irmsd.api.xyz_bridge.xyz_to_fortran_pair`, which takes
       plain NumPy arrays and has no ASE dependency.
     """
-    # Lazy import to keep ASE optional
-    try:
-        from ase import Atoms  # type: ignore
-    except Exception as exc:
-        raise ImportError(
-            "ASE is required for `ase_to_fortran_pair(atoms1, atoms2)`. "
-            "Install the optional extra: pip install 'irmsd[ase]'"
-        ) from exc
+
+    require_ase()
 
     from ..api.xyz_bridge import xyz_to_fortran_pair
 
@@ -87,3 +74,25 @@ def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray
 
     return new_atoms2, M1, M2
 
+#####################################################################################
+
+def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:                             
+    """                                                                              
+    Optional utility: accepts ASE Atoms, adapts to core get_cn_fortran, and
+    returns a numpy array with the coordination numbers per atom
+    """                                                                              
+                                                                                     
+    require_ase()                                                                    
+                                            
+    from ase import Atoms
+    from ..api.cn_exposed import get_cn_fortran 
+                                                                                     
+    if not isinstance(atoms, Atoms):                                                 
+        raise TypeError("get_cn_ase expects an ase.Atoms object")                
+                                                                                     
+    Z = atoms.get_atomic_numbers()            # (N,)                                 
+    pos = atoms.get_positions()               # (N, 3) float64                       
+                                                                                     
+    new_cn = get_cn_fortran(Z, pos)                                            
+                                                                                     
+    return new_cn
