@@ -16,6 +16,25 @@ A package for the calculation of the permutation-invariant root-mean-square-devi
 
 ```bash
 python -m pip install -U pip
-pip install -e .[test]
+pip install -e .
 pytest -q
+```
+
+## Code exposed from Fortran 
+
+- [x] CN calculation (D4/cov CN)
+- [x] axis0 to get rotational constants
+- [ ] "canonical" atom identifiers
+- [ ] Quaternion RMSD calculator
+- [ ] Hungarian/LSAP calculator
+- [ ] two/multiple structure iRMSD procedure (full)
+- [ ] Ensemble sorter
+
+### Other TODOs
+
+- [ ] Clean up & unify printouts
+- [ ] Think about functions for the cli
+- [ ] Write tests (pytest)
+- [ ] Write documentation
+- [ ] PyPi and conda(-forge) publishing
 
