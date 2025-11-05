@@ -11,27 +11,33 @@ from .._lib import LIB
 #   get_axis_fortran(natoms: c_int,
 #                  types: int32[C_CONTIGUOUS](natoms),
 #                  coords: float64[C_CONTIGUOUS](3*natoms),
-#                  rot: float64[F_CONTIGUOUS](3))
-#                  avmom: c_double)
-#                  evec: float64[F_CONTIGUOUS](3,3))
-LIB.get_axis0_fortran.argtypes = [
+#                  wbo: float64[F_CONTIGUOUS](natoms,natoms))
+#                  invtype:
+#                  heavy: boolean
+#                  rank: int32[C_CONTIGUOUS](natoms),
+#                  invariants: int32[C_CONTIGUOUS](natoms),
+LIB.get_canonical_sorter_fortran.argtypes = [
     ct.c_int,
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
-    ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
-    ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+    ct.c_char_p,
+    ct.c_bool,
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
 ]
-LIB.get_axis0_fortran.restype = None
+LIB.get_canonical_sorter_fortran.restype = None
 
 
-def get_axis_fortran_raw(
+def get_canonical_sorter_fortran_raw(
     natoms: int,
     types: np.ndarray,
     coords_flat: np.ndarray,
-    rot: np.ndarray,
-    avmom: np.ndarray,
-    evec: np.ndarray,
+    wbo: np.ndarray,
+    invtype: str,
+    heavy: bool,
+    rank: np.ndarray,
+    invariants: np.ndarray,
 ) -> None:
     """Low-level call that matches the Fortran signature exactly. Operates IN-
     PLACE on cn_flat.
@@ -51,15 +57,32 @@ def get_axis_fortran_raw(
         raise TypeError("types must be int32 and C-contiguous")
     if coords_flat.dtype != np.float64 or not coords_flat.flags.c_contiguous:
         raise TypeError("coords_flat must be float64 and C-contiguous")
-    if rot.dtype != np.float64 or not rot.flags.c_contiguous or rot.size != 3:
-        raise TypeError("rot must be float64, C-contiguous, shape (3)")
-    if evec.dtype != np.float64 or not evec.flags.c_contiguous or evec.shape != (3, 3):
-        raise TypeError("evec must be float64, C-contiguous, shape (3, 3)")
-    if avmom.dtype != np.float64 or not evec.flags.c_contiguous or avmom.size != 1:
-        raise TypeError("avmom must be float64, C-contiguous, size 1")
+    if (
+        wbo.dtype != np.float64
+        or not wbo.flags.c_contiguous
+        or wbo.shape != (natoms, natoms)
+    ):
+        raise TypeError("wbo must be float64, C-contiguous, shape (natoms, natoms)")
+    if rank.dtype != np.int32 or not rank.flags.c_contiguous or rank.size != natoms:
+        raise TypeError("rank must be int32, C-contiguous, size natoms")
+    if (
+        invariants.dtype != np.int32
+        or not invariants.flags.c_contiguous
+        or invariants.size != natoms
+    ):
+        raise TypeError("invariants must be int32, C-contiguous, size natoms")
     if coords_flat.size != 3 * natoms:
         raise ValueError("coords_flat length must be 3*natoms")
     if types.size != natoms:
         raise ValueError("types length must be natoms")
 
-    LIB.get_axis0_fortran(int(natoms), types, coords_flat, rot, avmom, evec)
+    LIB.get_canonical_sorter_fortran(
+        int(natoms),
+        types,
+        coords_flat,
+        wbo,
+        str(invtype).encode("utf-8"),
+        bool(heavy),
+        rank,
+        invariants,
+    )

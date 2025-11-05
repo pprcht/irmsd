@@ -6,6 +6,7 @@ list(APPEND srcs
   "${dir}/utilities.f90"
   "${dir}/cn_exposed.f90"
   "${dir}/axis_exposed.f90"
+  "${dir}/canonical_exposed.f90"
 )
 
 set(srcs ${srcs} PARENT_SCOPE)

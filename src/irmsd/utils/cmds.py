@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 
 try:
-    from .ase_io import get_axis_ase, get_cn_ase
+    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
     get_axis_ase = None  # type: ignore
+    get_canonical_ase = None  # type: ignore
 
 from .utils import print_array, require_ase
 
@@ -53,7 +54,7 @@ def compute_axis_and_print(
 
     results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     for i, atoms in enumerate(atoms_list, start=1):
-        if get_cn_ase is not None:
+        if get_axis_ase is not None:
             rot, avmom, evec = get_axis_ase(atoms)
         else:
             rot, avmom, evec = None, None, None
@@ -61,4 +62,22 @@ def compute_axis_and_print(
         print_array(f"Rotational constants (MHz) for structure {i}", rot)
         print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
         print_array(f"Rotation matrix for structure {i}", evec)
+    return results
+
+
+def compute_canonical_and_print(
+    atoms_list: List["Atoms"],
+):
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+
+    results: List[Tuple[np.ndarray, np.ndarray]] = []
+    for i, atoms in enumerate(atoms_list, start=1):
+        if get_canonical_ase is not None:
+            rank, invariants = get_canonical_ase(atoms)
+        else:
+            rank, invariants = None, None
+        results.append((rank, invariants))
+        print_array(f"Canonical rank for structure {i}", rank)
+        print_array(f"Canonical invariants for structure {i}", invariants)
     return results

@@ -1,6 +1,8 @@
 # src/irmsd/__init__.py
 from __future__ import annotations
 
+from .api.axis_exposed import get_axis_fortran
+from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 
 # ---- Core API (what you already had) ----------------------------------------
@@ -12,6 +14,7 @@ try:
         ase_to_fortran,
         ase_to_fortran_pair,
         get_axis_ase,
+        get_canonical_ase,
         get_cn_ase,
     )
 except Exception:
@@ -32,7 +35,8 @@ from .utils.utils import print_array, read_structures
 
 # ---- Optional: command helpers ----------
 try:
-    from .utils.cmds import compute_axis_and_print, compute_cn_and_print  # noqa: F401
+    from .utils.cmds import compute_axis_and_print  # noqa: F401
+    from .utils.cmds import compute_canonical_and_print, compute_cn_and_print
 except Exception:
     # Safe to ignore so `import irmsd` never breaks due to optional pieces.
     pass
@@ -44,11 +48,16 @@ __all__ = [
     "ase_to_fortran",
     "ase_to_fortran_pair",
     "get_cn_fortran",
+    "get_axis_fortran",
+    "get_canonical_fortran",
     "get_cn_ase",
+    "get_axis_ase",
+    "get_canonical_ase",
     # utils
     "read_structures",
     "print_array",
     # optional cmds
     "compute_cn_and_print",
     "compute_axis_and_print",
+    "compute_canonical_and_print",
 ]
