@@ -27,7 +27,7 @@ contains
 
     ! Fortran pointer views of the incoming C buffers
     integer(c_int),pointer :: types(:)
-    real(c_double),pointer :: coords(:)     ! length 3*natoms, flat
+    real(c_double),pointer :: coords(:)
     real(c_double),pointer :: mat(:,:)      ! shape (3,3), column-major
 
     integer :: i
@@ -40,7 +40,7 @@ contains
     call c_f_pointer(mat_ptr,mat, [3,3])
 
     !>--- add to mol (for tests)
-    call mol%C_to_mol(natoms,types,coords,.true.)
+    call mol%C_to_mol(natoms,types_ptr,coords_ptr,.true._c_bool)
     write (*,*) 'Hello from Fortran. These are your coords:'
     !do i = 1,mol%nat
     !  write (*,'(i5,3f20.10)') mol%at(i),mol%xyz(1:3,i)*0.52917726_wp

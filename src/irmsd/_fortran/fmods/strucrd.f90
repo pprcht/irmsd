@@ -90,7 +90,7 @@ contains   !> MODULE PROCEDURES START HERE
     return
   end subroutine deallocate_coord
 
-  subroutine C_to_mol(self,natoms_c,at_c,xyz_c,convert_to_Bohr)
+  subroutine C_to_mol(self,natoms_c,at_ptr,xyz_ptr,convert_to_Bohr_c)
     !***************************************************
     !* Pass number of atoms and coordinats from C types
     !* and allocate coord object in fortran types
@@ -98,11 +98,22 @@ contains   !> MODULE PROCEDURES START HERE
     implicit none
     class(coord) :: self
     integer(c_int),value :: natoms_c
+
+    type(c_ptr),value :: at_ptr
+    type(c_ptr),value :: xyz_ptr
+    logical(c_bool),value,intent(in) :: convert_to_Bohr_c
+
     integer(c_int),pointer :: at_c(:)
     real(c_double),pointer :: xyz_c(:)
-    logical,intent(in) :: convert_to_Bohr
+    logical :: convert_to_Bohr
     integer :: i,j,k
     real(wp) :: convert
+
+    convert_to_Bohr = convert_to_Bohr_c
+    call c_f_pointer(at_ptr,at_c, [natoms_c])
+    call c_f_pointer(xyz_ptr,xyz_c, [3*natoms_c])
+
+
     call self%deallocate()
     if (convert_to_Bohr) then
       convert = 1.0_wp/bohr  !> Input in Ang, convert to Bohr

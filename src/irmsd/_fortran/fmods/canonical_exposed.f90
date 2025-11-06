@@ -16,14 +16,11 @@ contains
     type(c_ptr),value :: rank_ptr
     character(kind=c_char), dimension(*) :: invtype_ptr
     logical(c_bool),value :: heavy
+    logical :: heavy_f
     
     ! Fortran pointer views of the incoming C buffers
-    integer(c_int),pointer :: types(:)
-    real(c_double),pointer :: coords(:)     ! length 3*natoms, flat
     real(c_double),pointer :: wbo(:,:)      ! length natoms x natoms
     integer(c_int),pointer :: rank(:)       ! length natoms
-
-    logical :: heavy_f
 
     type(coord) :: mol
     type(canonical_sorter) :: canonical
@@ -33,8 +30,6 @@ contains
 
 
     heavy_f = heavy 
-    call c_f_pointer(types_ptr,types, [natoms])
-    call c_f_pointer(coord_ptr,coords, [3*natoms])
 
 
     ! TODO: refactor string handling into a utility function?
@@ -52,7 +47,7 @@ contains
     invtype_f = transfer(invtype_ptr(1:n), invtype_f)
 
 
-    call mol%C_to_mol(natoms,types,coords,.true.) ! last arguments indicates convert to bohr
+    call mol%C_to_mol(natoms,types_ptr,coord_ptr,.true._c_bool) ! last arguments indicates convert to bohr
     if (c_associated(wbo_ptr)) then
       call c_f_pointer(wbo_ptr,wbo, [natoms, natoms])
       call canonical%init(mol,wbo,invtype_f,heavy_f)

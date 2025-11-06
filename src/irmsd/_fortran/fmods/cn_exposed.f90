@@ -14,8 +14,6 @@ contains
     type(c_ptr),value :: cn_ptr
 
     ! Fortran pointer views of the incoming C buffers
-    integer(c_int),pointer :: types(:)
-    real(c_double),pointer :: coords(:)     ! length 3*natoms, flat
     real(c_double),pointer :: cn(:)         ! length natoms
     
     integer :: i
@@ -24,12 +22,10 @@ contains
     real(wp),allocatable :: cn_f(:)
 
     ! Map raw C pointers to Fortran pointers with explicit shapes
-    call c_f_pointer(types_ptr,types, [natoms])
-    call c_f_pointer(coords_ptr,coords, [3*natoms])
     call c_f_pointer(cn_ptr,cn, [natoms])
 
     !>--- add to mol object
-    call mol%C_to_mol(natoms,types,coords,.true.)
+    call mol%C_to_mol(natoms,types_ptr,coords_ptr,.true._c_bool)
 
     !>--- get CN
     call mol%get_CN(cn_f,cn_type="cov")
