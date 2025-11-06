@@ -15,8 +15,8 @@ def get_canonical_fortran(
     atom_numbers: np.ndarray,
     positions: np.ndarray,
     wbo: np.ndarray | None = None,
-    invtype: str = "cangen",
-    heavy: bool = True,
+    invtype: str = "apsp+",
+    heavy: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Core API: call the Fortran routine to calculate CN
@@ -41,13 +41,18 @@ def get_canonical_fortran(
 
     coords_flat = pos.reshape(-1).copy(order="C")
 
-    # FIXME: get coorect wbo somehow not just identity
-    wbo = np.ascontiguousarray(np.identity(n), dtype=np.float64)
     rank = np.ascontiguousarray(np.zeros(n), dtype=np.int32)
     invariants = np.ascontiguousarray(np.zeros(n), dtype=np.int32)
 
     _F.get_canonical_sorter_fortran_raw(
-        n, atom_numbers, coords_flat, wbo, invtype, heavy, rank, invariants
+        n,
+        atom_numbers,
+        coords_flat,
+        rank,
+        invariants,
+        heavy=heavy,
+        wbo=wbo,
+        invtype=invtype,
     )
 
     return rank, invariants

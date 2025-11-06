@@ -65,9 +65,7 @@ def compute_axis_and_print(
     return results
 
 
-def compute_canonical_and_print(
-    atoms_list: List["Atoms"],
-):
+def compute_canonical_and_print(atoms_list: List["Atoms"]):
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
 
@@ -79,5 +77,4 @@ def compute_canonical_and_print(
             rank, invariants = None, None
         results.append((rank, invariants))
         print_array(f"Canonical rank for structure {i}", rank)
-        print_array(f"Canonical invariants for structure {i}", invariants)
     return results

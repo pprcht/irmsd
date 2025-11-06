@@ -129,7 +129,9 @@ def get_axis_ase(atoms) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     return rot, avmom, evec
 
 
-def get_canonical_ase(atoms, heavy: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+def get_canonical_ase(
+    atoms, wbo=None, invtype="apsp+", heavy: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Optional utility: accepts ASE Atoms, adapts to core get_canonical_fortran, and
     returns rank and invariants arrays.
@@ -147,6 +149,8 @@ def get_canonical_ase(atoms, heavy: bool = True) -> Tuple[np.ndarray, np.ndarray
     Z = atoms.get_atomic_numbers()  # (N,)
     pos = atoms.get_positions()  # (N, 3) float64
 
-    rank, invariants = get_canonical_fortran(Z, pos, heavy=heavy)
+    rank, invariants = get_canonical_fortran(
+        Z, pos, wbo=wbo, invtype=invtype, heavy=heavy
+    )
 
     return rank, invariants
