@@ -61,3 +61,47 @@ def get_canonical_fortran(
     )
 
     return rank
+
+
+def get_canonical_from_connect_fortran(                                                                              
+    atom_numbers: np.ndarray,                                                                           
+    connectivity: np.ndarray,                                                                      
+    heavy: bool = False,                                                                                
+) -> np.ndarray:                                                                                        
+    """                                                                                                 
+    Core API: call the Fortran routine to calculate CN                                                  
+                                                                                                        
+    Parameters                                                                                          
+    ----------                                                                                          
+    atom_numbers : (N,) int32-like                                                                      
+        Atomic numbers (or types).                                                                      
+    connectivity : (N, N) int32-like                                                                     
+        Connectivity matrix 
+    heavy : bool, optional                                                                              
+        Whether to consider only heavy atoms (default: False).                                          
+                                                                                                        
+    Returns                                                                                             
+    -------                                                                                             
+    rank : (N,) int32                                                                                   
+        Rank array.                                                                                     
+    """                                                                                                 
+    atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)                                   
+    connect = np.ascontiguousarray(connectivity, dtype=np.float64)                                             
+            
+    n = int(connect.shape[0])
+    if connect.ndim != 2 or connect.shape[1] != n: 
+        raise ValueError("Connectivity must have shape (N, N)")                                            
+                                                                                                        
+    connect_flat = connect.reshape(-1).copy(order="F")                                                       
+                                                                                                        
+    rank = np.ascontiguousarray(np.zeros(n), dtype=np.int32)                                            
+                                                                                                        
+    _F.get_canonical_sorter_fortran_raw(                                                                
+        n,                                                                                              
+        atom_numbers,                                                                                   
+        connect_flat,                                                                                    
+        rank,                                                                                           
+        heavy=heavy,                                                                                    
+    )                                                                                                   
+                                                                                                        
+    return rank                                                                                         
