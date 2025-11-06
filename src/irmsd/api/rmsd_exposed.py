@@ -41,8 +41,9 @@ def get_quaternion_rmsd_fortran(
     M2 = np.zeros((3, 3), dtype=np.float64, order="F")
     rmsdval = np.zeros(1, dtype=np.float64)  # 1-element array to hold the result
 
-    _F.get_quaternion_rmsd_fortran_raw(n1, Z1, c1, n2, Z2, c2, rmsdval, M2)
-
+    rmsdval = _F.get_quaternion_rmsd_fortran_raw(n1, Z1, c1, n2, Z2, c2, M2)
+    
     new_P2 = c2.reshape(n2, 3)
-    return float(rmsdval[0]), new_P2, M2
+
+    return rmsdval, new_P2, M2
 

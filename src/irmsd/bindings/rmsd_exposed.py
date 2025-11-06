@@ -27,9 +27,8 @@ def get_quaternion_rmsd_fortran_raw(
     n2: int,
     types2: np.ndarray,         # (n2,) int32 C
     coords2_flat: np.ndarray,   # (3*n2,) float64 C
-    rmsd: np.float64,
     Umat_F: np.ndarray,         # (3,3) float64 F
-) -> None:
+) -> float:
     # Validate buffers to catch ABI mismatches early
     if types1.dtype != np.int32 or not types1.flags.c_contiguous:
         raise TypeError("types1 must be int32 and C-contiguous")
@@ -55,3 +54,4 @@ def get_quaternion_rmsd_fortran_raw(
         int(n2), types2, coords2_flat,
         rmsd, Umat_F
     )    
+    return rmsd[0]

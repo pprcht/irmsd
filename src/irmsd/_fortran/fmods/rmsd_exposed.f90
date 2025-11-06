@@ -18,7 +18,7 @@ contains
     type(c_ptr),value :: types1_ptr,coords1_ptr
     type(c_ptr),value :: types2_ptr,coords2_ptr
     type(c_ptr),value :: Umat_ptr
-    real(c_double),value :: rmsd_c
+    real(c_double),intent(out) :: rmsd_c
     !> LOCAL
     real(c_double),pointer :: Umat(:,:)        ! (3,3) each
 
