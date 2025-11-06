@@ -103,7 +103,16 @@ def get_canonical_sorter_fortran_raw(
         Atomic numbers (or type IDs).
     coords_flat : (3*natoms,) float64, C-contiguous
         Flat coordinates [x1,y1,z1,x2,y2,z2,...].
-    TODO
+    rank : (natoms,) int32, C-contiguous
+        Output array for rank.
+    invariants : (natoms,) int32, C-contiguous
+        Output array for invariants.
+    heavy : bool, optional
+        Whether to consider only heavy atoms (default: False).
+    wbo: (natoms, natoms) float64, C-contiguous, optional
+        Optional Wiberg bond order matrix.
+    invtype : str, optional
+        alogrithm type for invariants calculation (default: None <=> apsp+), alternativly 'cangen'.
     """
     # light validation to catch mismatches early
     if types.dtype != np.int32 or not types.flags.c_contiguous:

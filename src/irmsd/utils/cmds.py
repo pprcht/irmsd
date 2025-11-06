@@ -49,6 +49,20 @@ def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
 def compute_axis_and_print(
     atoms_list: List["Atoms"],
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Compute rotational constants, averge momentum and rotation matrix for
+    each structure and prints them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze.
+
+    Returns
+    -------
+    list[np.ndarray, np.ndarray, np.ndarray]
+        One float array with the 3 rotational constants, one float with the average momentum
+        and one float array with the rotation matrix (3, 3) per structure, same order as ``atoms_list``.
+    """
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
 
@@ -65,16 +79,29 @@ def compute_axis_and_print(
     return results
 
 
-def compute_canonical_and_print(atoms_list: List["Atoms"]):
+def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
+    """Computes the canonical atom identifiers for each structure and prints
+    them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze.
+
+    Returns
+    -------
+    list[np.ndarray]
+        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+    """
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
 
-    results: List[Tuple[np.ndarray, np.ndarray]] = []
+    results: List[np.ndarray] = []
     for i, atoms in enumerate(atoms_list, start=1):
         if get_canonical_ase is not None:
             rank, invariants = get_canonical_ase(atoms)
         else:
             rank, invariants = None, None
-        results.append((rank, invariants))
+        results.append(rank)
         print_array(f"Canonical rank for structure {i}", rank)
     return results

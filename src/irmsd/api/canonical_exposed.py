@@ -27,10 +27,19 @@ def get_canonical_fortran(
         Atomic numbers (or types).
     positions : (N, 3) float64-like
         Cartesian coordinates in Å.
+    heavy : bool, optional
+        Whether to consider only heavy atoms (default: False).
+    wbo: (natoms, natoms) float64, C-contiguous, optional
+        Optional Wiberg bond order matrix.
+    invtype : str, optional
+        alogrithm type for invariants calculation (default: None <=> apsp+), alternativly 'cangen'.
 
     Returns
     -------
-    TODO
+    rank : (N,) int32
+        Rank array.
+    invariants : (N,) int32
+        Invariants array.
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     pos = np.ascontiguousarray(positions, dtype=np.float64)
