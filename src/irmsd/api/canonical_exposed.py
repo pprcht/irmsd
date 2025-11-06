@@ -17,7 +17,7 @@ def get_canonical_fortran(
     wbo: np.ndarray | None = None,
     invtype: str = "apsp+",
     heavy: bool = False,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """
     Core API: call the Fortran routine to calculate CN
 
@@ -30,16 +30,14 @@ def get_canonical_fortran(
     heavy : bool, optional
         Whether to consider only heavy atoms (default: False).
     wbo: (natoms, natoms) float64, C-contiguous, optional
-        Optional Wiberg bond order matrix.
+        Optional Wiberg bond order matrix, required if invtype is 'cangen', ignored in case of 'apsp+'.
     invtype : str, optional
-        alogrithm type for invariants calculation (default: None <=> apsp+), alternativly 'cangen'.
+        alogrithm type for invariants calculation (default: apsp+), alternativly 'cangen'.
 
     Returns
     -------
     rank : (N,) int32
         Rank array.
-    invariants : (N,) int32
-        Invariants array.
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     pos = np.ascontiguousarray(positions, dtype=np.float64)
@@ -51,17 +49,15 @@ def get_canonical_fortran(
     coords_flat = pos.reshape(-1).copy(order="C")
 
     rank = np.ascontiguousarray(np.zeros(n), dtype=np.int32)
-    invariants = np.ascontiguousarray(np.zeros(n), dtype=np.int32)
 
     _F.get_canonical_sorter_fortran_raw(
         n,
         atom_numbers,
         coords_flat,
         rank,
-        invariants,
         heavy=heavy,
         wbo=wbo,
         invtype=invtype,
     )
 
-    return rank, invariants
+    return rank

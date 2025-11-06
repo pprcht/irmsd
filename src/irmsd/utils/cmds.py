@@ -99,9 +99,9 @@ def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
     results: List[np.ndarray] = []
     for i, atoms in enumerate(atoms_list, start=1):
         if get_canonical_ase is not None:
-            rank, invariants = get_canonical_ase(atoms)
+            rank = get_canonical_ase(atoms)
         else:
-            rank, invariants = None, None
+            rank = None
         results.append(rank)
         print_array(f"Canonical rank for structure {i}", rank)
     return results
