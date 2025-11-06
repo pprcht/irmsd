@@ -1,0 +1,48 @@
+from __future__ import annotations
+from typing import Tuple
+import numpy as np
+from ..bindings import rmsd_exposed as _F
+
+def get_quaternion_rmsd_fortran(
+    atom_numbers1: np.ndarray, positions1: np.ndarray,
+    atom_numbers2: np.ndarray, positions2: np.ndarray,
+) -> Tuple[np.float64, np.ndarray, np.ndarray]:
+    """
+    Pair API: call the Fortran routine on TWO structures.
+
+    Parameters
+    ----------
+    atom_numbers1 : (N1,) int32-like
+    positions1    : (N1, 3) float64-like
+    atom_numbers2 : (N2,) int32-like
+    positions2    : (N2, 3) float64-like
+
+    Returns
+    -------
+    rmsdval        : float64 
+    new_positions2 : (N2, 3) float64
+    Umat           : (3, 3) float64 (Fortran-ordered)
+    """
+    Z1 = np.ascontiguousarray(atom_numbers1, dtype=np.int32)
+    Z2 = np.ascontiguousarray(atom_numbers2, dtype=np.int32)
+
+    P1 = np.ascontiguousarray(positions1, dtype=np.float64)
+    P2 = np.ascontiguousarray(positions2, dtype=np.float64)
+
+    if P1.ndim != 2 or P1.shape[1] != 3:
+        raise ValueError("positions1 must have shape (N1, 3)")
+    if P2.ndim != 2 or P2.shape[1] != 3:
+        raise ValueError("positions2 must have shape (N2, 3)")
+
+    n1 = int(P1.shape[0]); n2 = int(P2.shape[0])
+
+    c1 = P1.reshape(-1).copy(order="C")
+    c2 = P2.reshape(-1).copy(order="C")
+    M2 = np.zeros((3, 3), dtype=np.float64, order="F")
+    rmsdval = np.zeros(1, dtype=np.float64)  # 1-element array to hold the result
+
+    _F.get_quaternion_rmsd_fortran_raw(n1, Z1, c1, n2, Z2, c2, rmsdval, M2)
+
+    new_P2 = c2.reshape(n2, 3)
+    return float(rmsdval[0]), new_P2, M2
+
