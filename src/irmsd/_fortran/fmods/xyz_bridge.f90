@@ -40,7 +40,7 @@ contains
     call c_f_pointer(mat_ptr,mat, [3,3])
 
     !>--- add to mol (for tests)
-    call mol%C_to_mol(natoms,types,coords,.true.)
+    call mol%C_to_mol(natoms,types_ptr,coords_ptr,.true.)
     write (*,*) 'Hello from Fortran. These are your coords:'
     !do i = 1,mol%nat
     !  write (*,'(i5,3f20.10)') mol%at(i),mol%xyz(1:3,i)*0.52917726_wp

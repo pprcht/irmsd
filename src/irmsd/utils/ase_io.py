@@ -106,7 +106,7 @@ def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:
     return new_cn
 
 
-def get_axis_ase(atoms) -> Tuple[np.ndarray, float, np.ndarray]:
+def get_axis_ase(atoms) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Optional utility: accepts ASE Atoms, adapts to core get_axis_fortran, and
     returns a numpy array with the rotation constants in Mhz, the average  momentum in a.u.
@@ -127,3 +127,28 @@ def get_axis_ase(atoms) -> Tuple[np.ndarray, float, np.ndarray]:
     rot, avmom, evec = get_axis_fortran(Z, pos)
 
     return rot, avmom, evec
+
+
+def get_canonical_ase(
+    atoms, wbo=None, invtype="apsp+", heavy: bool = False
+) -> np.ndarray:
+    """
+    Optional utility: accepts ASE Atoms, adapts to core get_canonical_fortran, and
+    returns rank and invariants arrays.
+    """
+
+    require_ase()
+
+    from ase import Atoms
+
+    from ..api.canonical_exposed import get_canonical_fortran
+
+    if not isinstance(atoms, Atoms):
+        raise TypeError("get_canonical_ase expects an ase.Atoms object")
+
+    Z = atoms.get_atomic_numbers()  # (N,)
+    pos = atoms.get_positions()  # (N, 3) float64
+
+    rank = get_canonical_fortran(Z, pos, wbo=wbo, invtype=invtype, heavy=heavy)
+
+    return rank

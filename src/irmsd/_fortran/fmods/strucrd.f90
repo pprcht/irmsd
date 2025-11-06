@@ -19,7 +19,7 @@ module strucrd
   real(wp),parameter :: autokcal = 627.509541_wp
 
   !>--- selected public exports of the module
-  public :: coord
+  public :: coord, C_to_ensemble
   public :: i2e
 
 !=========================================================================================!
@@ -90,19 +90,27 @@ contains   !> MODULE PROCEDURES START HERE
     return
   end subroutine deallocate_coord
 
-  subroutine C_to_mol(self,natoms_c,at_c,xyz_c,convert_to_Bohr)
+  subroutine C_to_mol(self,natoms_c,at_ptr,xyz_ptr,convert_to_Bohr)
     !***************************************************
-    !* Pass number of atoms and coordinats from C types
+    !* Pass number of atoms and coordinats as ptrs from C
     !* and allocate coord object in fortran types
     !***************************************************
     implicit none
     class(coord) :: self
     integer(c_int),value :: natoms_c
+
+    type(c_ptr),value :: at_ptr
+    type(c_ptr),value :: xyz_ptr
+    logical,intent(in) :: convert_to_Bohr
+
     integer(c_int),pointer :: at_c(:)
     real(c_double),pointer :: xyz_c(:)
-    logical,intent(in) :: convert_to_Bohr
     integer :: i,j,k
     real(wp) :: convert
+
+    call c_f_pointer(at_ptr,at_c, [natoms_c])
+    call c_f_pointer(xyz_ptr,xyz_c, [3*natoms_c])
+
     call self%deallocate()
     if (convert_to_Bohr) then
       convert = 1.0_wp/bohr  !> Input in Ang, convert to Bohr
@@ -121,6 +129,61 @@ contains   !> MODULE PROCEDURES START HERE
       end do
     end do
   end subroutine C_to_mol
+
+  subroutine C_to_ensemble(structures,nstructures_c,many_natoms_ptr, &
+  &                        many_at_ptr,many_xyz_ptr,convert_to_Bohr_c)
+    !***************************************************
+    !* Retrieve a long list of coordinates and atom types
+    !* and return an array of coord objectas
+    !***************************************************
+    implicit none
+    !> IN-/OUTPUTS
+    type(coord),allocatable,intent(out) :: structures(:)
+    integer(c_int),value :: nstructures_c
+    type(c_ptr),value :: many_natoms_ptr
+    type(c_ptr),value :: many_at_ptr
+    type(c_ptr),value :: many_xyz_ptr
+    logical(c_bool),value,intent(in) :: convert_to_Bohr_c
+    !> LOCAL
+    integer(c_int),pointer :: many_natoms_c(:)
+    integer(c_int),pointer :: many_at_c(:)
+    real(c_double),pointer :: many_xyz_c(:)
+    logical :: convert_to_Bohr
+    integer :: i,j,k,fulllength,nat,k1,k2
+    real(wp) :: convert
+
+    convert_to_Bohr = convert_to_Bohr_c
+    call c_f_pointer(many_natoms_ptr,many_natoms_c, [nstructures_c])
+    fulllength = 0
+    do i = 1,nstructures_c
+      fulllength = fulllength+many_natoms_c(i)
+    end do
+    call c_f_pointer(many_at_ptr,many_at_c, [fulllength])
+    call c_f_pointer(many_xyz_ptr,many_xyz_c, [3*fulllength])
+
+    allocate (structures(nstructures_c))
+    if (convert_to_Bohr) then
+      convert = 1.0_wp/bohr  !> Input in Ang, convert to Bohr
+    else
+      convert = 1.0_wp  !> Input already in Bohr
+    end if
+    k1 = 0
+    k2 = 0
+    do i = 1,nstructures_c
+      nat = many_natoms_c(i)
+      allocate (structures(i)%xyz(3,nat),source=0.0_wp)
+      allocate (structures(i)%at(nat),source=0)
+      structures(i)%nat = nat
+      do j = 1,nat
+         k1=k1+1
+         structures(i)%at(j) = many_at_c(k1)
+         do k=1,3
+           k2=k2+1
+           structures(i)%xyz(k,j) = many_xyz_c(k2)
+         enddo
+      end do
+    end do
+  end subroutine C_to_ensemble
 
   subroutine mol_to_C(self,at_c,xyz_c,convert_to_Ang)
     implicit none

@@ -5,10 +5,11 @@ from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 
 try:
-    from .ase_io import get_axis_ase, get_cn_ase
+    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
     get_axis_ase = None  # type: ignore
+    get_canonical_ase = None  # type: ignore
 
 from .utils import print_array, require_ase
 
@@ -48,12 +49,26 @@ def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
 def compute_axis_and_print(
     atoms_list: List["Atoms"],
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Compute rotational constants, averge momentum and rotation matrix for
+    each structure and prints them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze.
+
+    Returns
+    -------
+    list[np.ndarray, np.ndarray, np.ndarray]
+        One float array with the 3 rotational constants, one float with the average momentum
+        and one float array with the rotation matrix (3, 3) per structure, same order as ``atoms_list``.
+    """
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
 
     results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     for i, atoms in enumerate(atoms_list, start=1):
-        if get_cn_ase is not None:
+        if get_axis_ase is not None:
             rot, avmom, evec = get_axis_ase(atoms)
         else:
             rot, avmom, evec = None, None, None
@@ -61,4 +76,32 @@ def compute_axis_and_print(
         print_array(f"Rotational constants (MHz) for structure {i}", rot)
         print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
         print_array(f"Rotation matrix for structure {i}", evec)
+    return results
+
+
+def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
+    """Computes the canonical atom identifiers for each structure and prints
+    them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze.
+
+    Returns
+    -------
+    list[np.ndarray]
+        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+    """
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+
+    results: List[np.ndarray] = []
+    for i, atoms in enumerate(atoms_list, start=1):
+        if get_canonical_ase is not None:
+            rank = get_canonical_ase(atoms)
+        else:
+            rank = None
+        results.append(rank)
+        print_array(f"Canonical rank for structure {i}", rank)
     return results

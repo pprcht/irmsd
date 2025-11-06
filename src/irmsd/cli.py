@@ -35,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=("Calculate the rotational constants. "),
     )
+    p.add_argument(
+        "--canonical",
+        action="store_true",
+        help=("Calculate the canonical identifiers and invariants. "),
+    )
 
     return p
 
@@ -53,6 +58,10 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     if args.rot:
         irmsd.compute_axis_and_print(atoms_list)
+        ran_any = True
+
+    if args.canonical:
+        irmsd.compute_canonical_and_print(atoms_list)
         ran_any = True
 
     if not ran_any:

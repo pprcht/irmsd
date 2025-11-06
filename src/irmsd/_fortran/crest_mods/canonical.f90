@@ -21,7 +21,7 @@ module canonical_mod
   use strucrd
   use adjacency
   use geo
-  use utilities, only: nth_prime
+  use utilities,only:nth_prime
   implicit none
   private
 
@@ -51,6 +51,7 @@ module canonical_mod
     procedure :: deallocate => deallocate_canonical_sorter
     procedure :: shrink => shrink_canonical_sorter
     procedure :: init => init_canonical_sorter
+    procedure :: init_connect => init_canonical_sorter_connect
     procedure :: update_ranks
     procedure :: update_invariants
     procedure :: iterate
@@ -141,7 +142,7 @@ contains  !> MODULE PROCEDURES START HERE
     else
       include_H = .false.
     end if
-    anyH = any(mol%at(:).eq.1)
+    anyH = any(mol%at(:) .eq. 1)
 
 !>--- all atoms of the full mol. graph are nodes
     nodes = mol%nat
@@ -161,16 +162,19 @@ contains  !> MODULE PROCEDURES START HERE
     if (.not.allocated(self%rank)) allocate (self%rank(k),source=1)
     if (.not.allocated(self%hadjac)) allocate (self%hadjac(k,k),source=0)
 
+    if (present(wbo)) then
+!>--- get connectivity. Easiest is just via WBO (allocates Amat)
+      call wbo2adjacency(nodes,wbo,Amat,0.02_wp)
+    else
 !>--- determine number of subgraphs via CN
-    call mol%cn_to_bond(cn,Bmat,'cov')
-    call wbo2adjacency(nodes,Bmat,Amat,0.02_wp)
+      call mol%cn_to_bond(cn,Bmat,'cov')
+      call wbo2adjacency(nodes,Bmat,Amat,0.02_wp)
+      deallocate (Bmat)
+    end if
     allocate (frag(nodes),source=0)
     call setup_fragments(nodes,Amat,frag)
     self%nfrag = maxval(frag(:),1)
-    deallocate (frag,cn,Bmat)
-
-!>--- get connectivity. Easiest is just via WBO (allocates Amat)
-!    call wbo2adjacency(nodes,wbo,Amat,0.02_wp)
+    deallocate (frag,cn)
 
 !>--- documment neighbour list
     maxnei = 0
@@ -291,13 +295,37 @@ contains  !> MODULE PROCEDURES START HERE
     call self%iterate(mol) !> iterate recursively until ranking doesn't change
 
 !>--- finally, if required, add H atoms
-    if (include_H .and. anyH) then
+    if (include_H.and.anyH) then
       !> sinc H's will have been added with rank 1, shift all ranks
       self%rank(:) = self%rank(:)-1
       call self%add_h_ranks(mol)
     end if
 
   end subroutine init_canonical_sorter
+
+ subroutine init_canonical_sorter_connect(self,at,wbo,invtype,heavy)
+!*****************************************************************
+!* Initializes the canonical_sorter provided only atom types and
+!* connectivity. No CN calculation etc.
+!*****************************************************************
+    implicit none
+    !> IN-/OUTPUTS
+    class(canonical_sorter),intent(inout) :: self
+    integer,intent(in) :: at(:)
+    real(wp),intent(in) :: wbo(size(at,1),size(at,1))
+    character(len=*),intent(in),optional :: invtype
+    logical,intent(in),optional :: heavy
+    !> LOCAL
+    integer :: nat
+    type(coord) :: tmpmol
+
+    nat = size(at,1)
+    allocate(tmpmol%at(nat))
+    tmpmol%at(:) = at(:)
+
+    call self%init(tmpmol,wbo=wbo,invtype=invtype,heavy=heavy)
+end subroutine init_canonical_sorter_connect
+
 
 !========================================================================================!
 
