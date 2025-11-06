@@ -47,7 +47,7 @@ contains
     invtype_f = transfer(invtype_ptr(1:n), invtype_f)
 
 
-    call mol%C_to_mol(natoms,types_ptr,coord_ptr,.true._c_bool) ! last arguments indicates convert to bohr
+    call mol%C_to_mol(natoms,types_ptr,coord_ptr,.true.) ! last arguments indicates convert to bohr
     if (c_associated(wbo_ptr)) then
       call c_f_pointer(wbo_ptr,wbo, [natoms, natoms])
       call canonical%init(mol,wbo,invtype_f,heavy_f)

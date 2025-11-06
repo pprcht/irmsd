@@ -25,7 +25,7 @@ contains
     call c_f_pointer(cn_ptr,cn, [natoms])
 
     !>--- add to mol object
-    call mol%C_to_mol(natoms,types_ptr,coords_ptr,.true._c_bool)
+    call mol%C_to_mol(natoms,types_ptr,coords_ptr,.true.)
 
     !>--- get CN
     call mol%get_CN(cn_f,cn_type="cov")
