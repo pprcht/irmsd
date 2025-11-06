@@ -11,7 +11,7 @@ from .._lib import LIB
 #   get_canonical_sorter_fortran_allargs(natoms: c_int,
 #                  types: int32[C_CONTIGUOUS](natoms),
 #                  coords: float64[C_CONTIGUOUS](3*natoms),
-#                  wbo: float64[F_CONTIGUOUS](natoms,natoms))
+#                  wbo: float64[F_CONTIGUOUS](natoms,natoms) or None,
 #                  invtype:
 #                  heavy: boolean
 #                  rank: int32[C_CONTIGUOUS](natoms),
@@ -20,7 +20,6 @@ LIB.get_canonical_sorter_fortran.argtypes = [
     ct.c_int,
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
-    # ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ct.POINTER(ct.c_double),  # wbo can be None
     ct.c_char_p,
     ct.c_bool,

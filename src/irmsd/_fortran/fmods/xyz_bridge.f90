@@ -27,7 +27,7 @@ contains
 
     ! Fortran pointer views of the incoming C buffers
     integer(c_int),pointer :: types(:)
-    real(c_double),pointer :: coords(:)
+    real(c_double),pointer :: coords(:)     ! length 3*natoms, flat
     real(c_double),pointer :: mat(:,:)      ! shape (3,3), column-major
 
     integer :: i

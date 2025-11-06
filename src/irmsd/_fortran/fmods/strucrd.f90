@@ -92,7 +92,7 @@ contains   !> MODULE PROCEDURES START HERE
 
   subroutine C_to_mol(self,natoms_c,at_ptr,xyz_ptr,convert_to_Bohr_c)
     !***************************************************
-    !* Pass number of atoms and coordinats from C types
+    !* Pass number of atoms and coordinats as ptrs from C 
     !* and allocate coord object in fortran types
     !***************************************************
     implicit none
