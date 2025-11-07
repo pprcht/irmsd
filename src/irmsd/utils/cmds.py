@@ -5,12 +5,7 @@ from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 
 try:
-    from .ase_io import (
-        get_axis_ase, 
-        get_canonical_ase,
-        get_cn_ase,
-        get_rmsd_ase,
-    )
+    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase, get_rmsd_ase
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
     get_axis_ase = None  # type: ignore
@@ -112,24 +107,24 @@ def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
     return results
 
 
-def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"]) -> None:                 
+def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"]) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
-    and print the RMSD in Angström between them.                                                                                       
-                                                                                                
-    Parameters                                                                                  
-    ----------                                                                                  
-    atoms_list : list[ase.Atoms]                                                                
+    and print the RMSD in Angström between them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
         Structures to analyze. Must contain exactly two strucutres
-                                                                                                
-    Returns                                                                                     
-    -------                                                                                     
-    list[np.ndarray]                                                                            
-        One integer array with the canonical ranks per structure, same order as ``atoms_list``. 
-    """                                                                                         
-    # Ensure ASE is present only when this command is actually invoked                          
-    require_ase()                                                                               
-                                                                                                
+
+    Returns
+    -------
+    list[np.ndarray]
+        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+    """
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+
     print(len(atoms_list))
-    rmsd,_,_ = get_rmsd_ase(atoms_list[0],atoms_list[1])
+    rmsd, _, _ = get_rmsd_ase(atoms_list[0], atoms_list[1])
 
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
