@@ -40,11 +40,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=("Calculate the canonical identifiers and invariants. "),
     )
-    p.add_argument(                                                    
-        "--rmsd",                                                 
-        action="store_true",                                           
-        help=("Calculate the Cartesian RMSD between two given structures via a quaternion algorithm. "), 
-    )                                                                  
+    p.add_argument(
+        "--rmsd",
+        nargs="?",
+        const="all",
+        default=None,
+        choices=["all", "heavy"],
+        help=(
+            "Calculate the Cartesian RMSD between two given structures via a quaternion algorithm. "
+        ),
+    )
 
     return p
 
@@ -68,9 +73,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.canonical:
         irmsd.compute_canonical_and_print(atoms_list)
         ran_any = True
-    
+
     if args.rmsd:
-        irmsd.compute_quaternion_rmsd_and_print(atoms_list)
+        heavy = False
+        if args.rmsd == "heavy":
+            heavy = True
+        irmsd.compute_quaternion_rmsd_and_print(atoms_list, heavy=heavy)
         ran_any = True
 
     if not ran_any:

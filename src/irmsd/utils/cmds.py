@@ -107,7 +107,7 @@ def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
     return results
 
 
-def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"]) -> None:
+def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], heavy=False) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
 
@@ -129,7 +129,11 @@ def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"]) -> None:
     print_structur(atoms_list[0])
     print("Structure to align:")
     print_structur(atoms_list[1])
-    rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1])
+    if heavy:
+        mask0 = atoms_list[0].get_atomic_numbers() > 1
+    else:
+        mask0 = None
+    rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1], mask=mask0)
 
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
     print_array("U matrix (Fortran order)", umat)
