@@ -23,12 +23,12 @@ def get_quaternion_rmsd_fortran(
     positions1    : (N1, 3) float64-like
     atom_numbers2 : (N2,) int32-like
     positions2    : (N2, 3) float64-like
-    mask         : (N1,) bool-like or None
+    mask          : (N1,) bool-like or None
 
     Returns
     -------
     rmsdval        : float64
-    new_positions2 : (N2, 3) float64
+    new_positions2 : (N2, 3) float64, (positions2 @ Umat.T)
     Umat           : (3, 3) float64 (Fortran-ordered)
     """
     Z1 = np.ascontiguousarray(atom_numbers1, dtype=np.int32)
@@ -57,6 +57,6 @@ def get_quaternion_rmsd_fortran(
 
     rmsdval = _F.get_quaternion_rmsd_fortran_raw(n1, Z1, c1, n2, Z2, c2, M2, mask=mask)
 
-    new_P2 = c2.reshape(n2, 3)
+    new_P2 = c2.reshape(n2, 3) @ M2.T
 
     return rmsdval, new_P2, M2

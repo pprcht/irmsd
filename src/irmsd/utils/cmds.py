@@ -11,7 +11,7 @@ except Exception:  # pragma: no cover
     get_axis_ase = None  # type: ignore
     get_canonical_ase = None  # type: ignore
 
-from .utils import print_array, require_ase
+from .utils import print_array, print_structur, require_ase
 
 if TYPE_CHECKING:
     from ase import Atoms  # type: ignore
@@ -125,6 +125,13 @@ def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"]) -> None:
     require_ase()
 
     print(len(atoms_list))
-    rmsd, _, _ = get_rmsd_ase(atoms_list[0], atoms_list[1])
+    print("Reference structure:")
+    print_structur(atoms_list[0])
+    print("Structure to align:")
+    print_structur(atoms_list[1])
+    rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1])
 
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
+    print_array("U matrix (Fortran order)", umat)
+    print("Aligned structure:")
+    print_structur(new_atoms)

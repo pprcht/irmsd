@@ -37,16 +37,6 @@ contains
         error stop 'both molecules need to have the same number of atoms'
     end if 
     !> the quaternion rmsd, converted to angström
-    !************************************************************************
-    !* function rmsd
-    !* Calculate the molecular RMSD via a quaternion algorithm
-    !*
-    !* Optional arguments are
-    !*   mask - boolean array to select a substructure for RMSD calculation
-    !*   scratch - workspace to create the substructures
-    !*   rotmat  - rotation matrix as return argument
-    !*   gradient - Cartesian gradient of the RMSD
-    !************************************************************************
     if (c_associated(mask_ptr)) then
         call c_f_pointer(mask_ptr,mask_c, [natoms1]) ! at this point of the code natoms1 == natoms2
         ! Convert to standard logical
