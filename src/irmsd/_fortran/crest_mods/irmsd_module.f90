@@ -319,14 +319,14 @@ contains  !> MODULE PROCEDURES START HERE
       y_norm = 0.0_wp
       rnat = 1.0_wp/real(nat,wp)
       do i = 1,3
-        xi(:) = x(i,:)
-        yi(:) = y(i,:)
+        xi(:nat) = x(i,:nat)
+        yi(:nat) = y(i,:nat)
         x_center(i) = sum(xi(1:nat))*rnat
         y_center(i) = sum(yi(1:nat))*rnat
-        xi(:) = xi(:)-x_center(i)
-        yi(:) = yi(:)-y_center(i)
-        x(i,:) = xi(:)
-        y(i,:) = yi(:)
+        xi(:nat) = xi(:nat)-x_center(i)
+        yi(:nat) = yi(:nat)-y_center(i)
+        x(i,:nat) = xi(:nat)
+        y(i,:nat) = yi(:nat)
         x_norm = x_norm+dot_product(xi,xi)
         y_norm = y_norm+dot_product(yi,yi)
       end do
@@ -334,7 +334,7 @@ contains  !> MODULE PROCEDURES START HERE
       !> calculate the R matrix
       do i = 1,3
         do j = 1,3
-          Rmatrix(i,j) = dot_product(x(i,:),y(j,:))
+          Rmatrix(i,j) = dot_product(x(i,:nat),y(j,:nat))
         end do
       end do
 
