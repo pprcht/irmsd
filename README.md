@@ -25,7 +25,7 @@ pytest -q
 - [x] CN calculation (D4/cov CN)
 - [x] axis0 to get rotational constants
 - [x] "canonical" atom identifiers
-- [ ] Quaternion RMSD calculator
+- [x] Quaternion RMSD calculator
 - [ ] ~~Hungarian/LSAP calculator~~
 - [ ] two/multiple structure iRMSD procedure (full)
 - [ ] Ensemble sorter
