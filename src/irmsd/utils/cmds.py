@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 
 try:
-    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase
+    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase, get_rmsd_ase
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
     get_axis_ase = None  # type: ignore
     get_canonical_ase = None  # type: ignore
 
-from .utils import print_array, require_ase
+from .utils import print_array, print_structur, require_ase
 
 if TYPE_CHECKING:
     from ase import Atoms  # type: ignore
@@ -79,7 +79,9 @@ def compute_axis_and_print(
     return results
 
 
-def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
+def compute_canonical_and_print(
+    atoms_list: List["Atoms"], heavy=False
+) -> List[np.ndarray]:
     """Computes the canonical atom identifiers for each structure and prints
     them.
 
@@ -99,9 +101,50 @@ def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
     results: List[np.ndarray] = []
     for i, atoms in enumerate(atoms_list, start=1):
         if get_canonical_ase is not None:
-            rank = get_canonical_ase(atoms)
+            rank = get_canonical_ase(atoms, heavy=heavy)
         else:
             rank = None
         results.append(rank)
         print_array(f"Canonical rank for structure {i}", rank)
     return results
+
+
+def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], 
+                                      heavy=False, outfile=None
+                                      ) -> None:
+    """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
+    and print the RMSD in Angström between them.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze. Must contain exactly two strucutres
+
+    Returns
+    -------
+    list[np.ndarray]
+        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+    """
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+    from ase.io import write as asewrite
+
+    print("Reference structure:")
+    print_structur(atoms_list[0])
+    print("Structure to align:")
+    print_structur(atoms_list[1])
+    if heavy:
+        mask0 = atoms_list[0].get_atomic_numbers() > 1
+    else:
+        mask0 = None
+    rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1], mask=mask0)
+
+    if outfile is not None:
+       print(f"\nAligned structure written to {outfile}")
+       asewrite(outfile,new_atoms) 
+    else:
+        print("Aligned structure:")
+        print_structur(new_atoms)
+
+    print_array("\nU matrix (Fortran order)", umat) 
+    print(f"Cartesian RMSD: {rmsd:.10f} Å") 

@@ -152,3 +152,35 @@ def get_canonical_ase(
     rank = get_canonical_fortran(Z, pos, wbo=wbo, invtype=invtype, heavy=heavy)
 
     return rank
+
+
+#########################################################################################
+
+
+def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple["Atoms", np.ndarray, np.ndarray]:
+    """
+    Optional ASE utility: operate on TWO ASE Atoms. Returns the RMSD in Angström,
+    the modified second Atoms plus the 3×3 rotation matrix produced by
+    the Fortran routine.
+    """
+
+    require_ase()
+    from ase import Atoms
+
+    from ..api.rmsd_exposed import get_quaternion_rmsd_fortran
+
+    if not isinstance(atoms1, Atoms) or not isinstance(atoms2, Atoms):
+        raise TypeError("ase_quaternion_rmsd expects two ase.Atoms objects")
+
+    Z1 = atoms1.get_atomic_numbers()  # (N1,)
+    P1 = atoms1.get_positions()  # (N1, 3)
+    Z2 = atoms2.get_atomic_numbers()  # (N2,)
+    P2 = atoms2.get_positions()  # (N2, 3)
+
+    rmsdval, new_P2, umat = get_quaternion_rmsd_fortran(Z1, P1, Z2, P2, mask=mask)
+
+    # Return ONLY the modified second structure, as requested
+    new_atoms2 = atoms2.copy()
+    new_atoms2.set_positions(new_P2, apply_constraint=False)
+
+    return rmsdval, new_atoms2, umat

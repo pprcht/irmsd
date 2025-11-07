@@ -8,7 +8,7 @@ call `require_ase()` first and then perform local (late) imports.
 """
 
 import sys
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional
 
 import numpy as np
 
@@ -25,6 +25,7 @@ __all__ = [
 # -----------------------------------------------------------------------------
 # Dependency guard
 # -----------------------------------------------------------------------------
+
 
 def require_ase() -> None:
     """Ensure ASE is importable; raise a helpful ImportError otherwise.
@@ -44,10 +45,9 @@ def require_ase() -> None:
 # I/O helpers
 # -----------------------------------------------------------------------------
 
+
 def check_frames(obj: "Atoms | List[Atoms]", src: str) -> "Atoms":
-    """
-    Check how many frames are in a provided atoms list
-    """
+    """Check how many frames are in a provided atoms list."""
     # Late import to avoid hard dependency unless called
     from ase import Atoms  # type: ignore
 
@@ -80,9 +80,9 @@ def read_structures(paths: List[str]) -> List["Atoms"]:
             frames = ase_read(p, index=":")
             atoms = check_frames(frames, p)
             if isinstance(atoms, list):
-                atoms_list.extend(atoms)   # add elements individually
+                atoms_list.extend(atoms)  # add elements individually
             else:
-                atoms_list.append(atoms)   # add a single Atoms object
+                atoms_list.append(atoms)  # add a single Atoms object
         except Exception as e:  # pragma: no cover
             print(f"❌ Failed to read '{p}': {e}", file=sys.stderr)
             raise
@@ -93,6 +93,7 @@ def read_structures(paths: List[str]) -> List["Atoms"]:
 # Small utilities
 # -----------------------------------------------------------------------------
 
+
 def print_array(title: str, arr: np.ndarray) -> None:
     """Pretty-print a numpy array with a header and spacing."""
     print(title)
@@ -101,3 +102,14 @@ def print_array(title: str, arr: np.ndarray) -> None:
     print()
 
 
+def print_structur(atom) -> None:
+    """Print basic information about an ASE Atoms object."""
+    require_ase()
+    from ase import Atoms  # type: ignore
+
+    if not isinstance(atom, Atoms):
+        raise TypeError("print_structur expects an ase.Atoms object")
+
+    print(f"{len(atom)}\n")
+    for sym, pos in zip(atom.get_chemical_symbols(), atom.get_positions()):
+        print(f"{sym:2} {pos[0]:12.6f} {pos[1]:12.6f} {pos[2]:12.6f}")
