@@ -79,7 +79,9 @@ def compute_axis_and_print(
     return results
 
 
-def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
+def compute_canonical_and_print(
+    atoms_list: List["Atoms"], heavy=False
+) -> List[np.ndarray]:
     """Computes the canonical atom identifiers for each structure and prints
     them.
 
@@ -99,7 +101,7 @@ def compute_canonical_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
     results: List[np.ndarray] = []
     for i, atoms in enumerate(atoms_list, start=1):
         if get_canonical_ase is not None:
-            rank = get_canonical_ase(atoms)
+            rank = get_canonical_ase(atoms, heavy=heavy)
         else:
             rank = None
         results.append(rank)
