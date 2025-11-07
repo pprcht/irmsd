@@ -54,7 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
             "When calculating RMSD or canonical atom identifier, consider only heavy atoms. "
         ),
     )
-
+    p.add_argument(
+        "-o", "--output",
+        type=str,
+        default=None,
+        help="Output file name (optional). If not provided, nothing is written."
+    )
     return p
 
 
@@ -81,7 +86,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         ran_any = True
 
     if args.rmsd:
-        irmsd.compute_quaternion_rmsd_and_print(atoms_list, heavy=heavy)
+        irmsd.compute_quaternion_rmsd_and_print(atoms_list, heavy=heavy,outfile=args.output)
         ran_any = True
 
     if not ran_any:

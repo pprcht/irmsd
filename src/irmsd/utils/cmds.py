@@ -109,7 +109,9 @@ def compute_canonical_and_print(
     return results
 
 
-def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], heavy=False) -> None:
+def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], 
+                                      heavy=False, outfile=None
+                                      ) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
 
@@ -125,8 +127,8 @@ def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], heavy=False) ->
     """
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
+    from ase.io import write as asewrite
 
-    print(len(atoms_list))
     print("Reference structure:")
     print_structur(atoms_list[0])
     print("Structure to align:")
@@ -137,7 +139,12 @@ def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], heavy=False) ->
         mask0 = None
     rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1], mask=mask0)
 
-    print(f"Cartesian RMSD: {rmsd:.10f} Å")
-    print_array("U matrix (Fortran order)", umat)
-    print("Aligned structure:")
-    print_structur(new_atoms)
+    if outfile is not None:
+       print(f"\nAligned structure written to {outfile}")
+       asewrite(outfile,new_atoms) 
+    else:
+        print("Aligned structure:")
+        print_structur(new_atoms)
+
+    print_array("\nU matrix (Fortran order)", umat) 
+    print(f"Cartesian RMSD: {rmsd:.10f} Å") 
