@@ -157,7 +157,7 @@ def get_canonical_ase(
 #########################################################################################
 
 
-def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple["Atoms", np.ndarray, np.ndarray]:
+def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "Atoms", np.ndarray]:
     """
     Optional ASE utility: operate on TWO ASE Atoms. Returns the RMSD in Angström,
     the modified second Atoms plus the 3×3 rotation matrix produced by
