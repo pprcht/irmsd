@@ -169,12 +169,12 @@ contains  !> MODULE PROCEDURES START HERE
 !>--- determine number of subgraphs via CN
       call mol%cn_to_bond(cn,Bmat,'cov')
       call wbo2adjacency(nodes,Bmat,Amat,0.02_wp)
-      deallocate (Bmat)
+      deallocate (Bmat,cn)
     end if
     allocate (frag(nodes),source=0)
     call setup_fragments(nodes,Amat,frag)
     self%nfrag = maxval(frag(:),1)
-    deallocate (frag,cn)
+    deallocate (frag)
 
 !>--- documment neighbour list
     maxnei = 0
@@ -322,6 +322,7 @@ contains  !> MODULE PROCEDURES START HERE
     nat = size(at,1)
     allocate(tmpmol%at(nat))
     tmpmol%at(:) = at(:)
+    tmpmol%nat = nat
 
     call self%init(tmpmol,wbo=wbo,invtype=invtype,heavy=heavy)
 end subroutine init_canonical_sorter_connect
