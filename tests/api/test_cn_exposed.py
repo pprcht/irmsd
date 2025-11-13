@@ -13,4 +13,4 @@ def test_get_cn_fortran(caffeine_cn_test_data):
         positions1,
     )
 
-    assert pytest.approx(cn, abs=1e-6) == expected_cn
+    assert pytest.approx(expected_cn, abs=1e-6) == cn

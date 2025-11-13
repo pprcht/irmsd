@@ -16,6 +16,6 @@ def test_get_axis_fortran(caffeine_axis_test_data):
         positions1,
     )
 
-    assert pytest.approx(rot, abs=1e-6) == expected_rot
-    assert pytest.approx(avmom, abs=1e-6) == expected_avmom
-    assert pytest.approx(evec, abs=1e-6) == expected_evec
+    assert pytest.approx(expected_rot, abs=1e-6) == rot
+    assert pytest.approx(expected_avmom, abs=1e-6) == avmom
+    assert pytest.approx(expected_evec, abs=1e-6) == evec

@@ -26,6 +26,6 @@ def test_get_quaternion_rmsd_fortran(caffeine_rmsd_test_data):
         mask,
     )
 
-    assert pytest.approx(rmsd, abs=1e-6) == expected_rmsd
-    assert pytest.approx(new_positions, abs=1e-6) == expected_positions
-    assert pytest.approx(umat, abs=1e-6) == expected_Umat
+    assert pytest.approx(expected_rmsd, abs=1e-6) == rmsd
+    assert pytest.approx(expected_positions, abs=1e-6) == new_positions
+    assert pytest.approx(expected_Umat, abs=1e-6) == umat

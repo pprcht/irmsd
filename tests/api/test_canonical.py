@@ -72,7 +72,7 @@ def test_get_canonical_fortran(caffeine_canonical_test_data):
         positions1,
         heavy=heavy,
     )
-    assert all(canonical_atom_id == expected_canonical_atom_id)
+    assert all(expected_canonical_atom_id == canonical_atom_id)
 
 
 def test_get_canonical_from_connect_fortran(caffeine_canonical_from_connect_test_data):
@@ -87,4 +87,4 @@ def test_get_canonical_from_connect_fortran(caffeine_canonical_from_connect_test
         connectivity,
         heavy=heavy,
     )
-    assert all(canonical_atom_id == expected_canonical_atom_id)
+    assert all(expected_canonical_atom_id == canonical_atom_id)
