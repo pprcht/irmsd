@@ -1,3 +1,5 @@
+from random import shuffle
+
 import numpy as np
 import pytest
 
@@ -258,3 +260,39 @@ def caffeine_cn_test_data(request):
 )
 def caffeine_canonical_test_data(request):
     return request.param
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        # Conformer1, Conformer2, mask, rmsd, aligned_conformer, Umat
+        (
+            CAFFEINE_XTB,
+            CAFFEINE_XTB,
+            0.00000000,
+            CAFFEINE_XTB,
+        ),
+        (
+            CAFFEINE_XTB,
+            CAFFEINE_XTB_ROTATED,
+            0.00000042,
+            CAFFEINE_XTB,
+        ),
+        (
+            CAFFEINE_XTB,
+            CAFFEINE_OBABEL,
+            0.13939435,
+            CAFFEINE_OBABEL_ALIGNED,
+        ),
+    ],
+)
+def caffeine_irmsd_test_data(request):
+    conformer1, conformer2, expected_irmsd, expected_aligned_conformer = request.param
+    conformer2_list = conformer2.splitlines()
+    conformer2_header = conformer2_list[:2]
+    conformer2_molecule = conformer2_list[2:]
+    shuffle(conformer2_molecule)
+    conformer2_shuffled = conformer2_header + conformer2_molecule
+
+    conformer2 = "\n".join(conformer2_shuffled)
+    return conformer1, conformer2, expected_irmsd, expected_aligned_conformer
