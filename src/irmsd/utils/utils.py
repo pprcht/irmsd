@@ -41,6 +41,20 @@ def require_ase() -> None:
         ) from e
 
 
+def require_rdkit() -> None:
+    """Ensure rdkit is importable; raise a helpful ImportError otherwise.
+
+    Use this at the *start* of any function that depends on ASE. We keep this
+    separate so that importing `irmsd` does not immediately require ASE.
+    """
+    try:
+        import rdkit  # noqa: F401
+    except Exception as e:  # pragma: no cover
+        raise ImportError(
+            "rdkit is required for this function. Install optional extra: pip install 'irmsd[rdkit]'"
+        ) from e
+
+
 # -----------------------------------------------------------------------------
 # I/O helpers
 # -----------------------------------------------------------------------------
