@@ -18,6 +18,8 @@ def test_get_quaternion_rmsd_fortran(caffeine_rmsd_test_data):
     atom_numbers2, positions2 = get_atom_num_and_pos_from_xyz(conformer2)
     expected_positions = get_atom_num_and_pos_from_xyz(expected_aligned_conformer)[1]
 
+    breakpoint()
+
     rmsd, new_positions, umat = get_quaternion_rmsd_fortran(
         atom_numbers1,
         positions1,

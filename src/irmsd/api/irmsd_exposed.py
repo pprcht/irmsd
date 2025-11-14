@@ -53,4 +53,10 @@ def get_irmsd_fortran(
     P3 = c3.reshape(n1, 3)
     P4 = c4.reshape(n2, 3)
 
+    center3 = P3.mean(axis=0)
+    center4 = P4.mean(axis=0)
+
+    P3 -= center3
+    P4 -= center4
+
     return rmsdval, Z3, P3, Z4, P4
