@@ -16,6 +16,7 @@ try:
         get_axis_ase,
         get_canonical_ase,
         get_cn_ase,
+        get_irmsd_ase,
         get_rmsd_ase,
     )
 except Exception:
@@ -36,9 +37,13 @@ from .utils.utils import print_array, read_structures
 
 # ---- Optional: command helpers ----------
 try:
-    from .utils.cmds import compute_axis_and_print  # noqa: F401
-    from .utils.cmds import compute_canonical_and_print, compute_cn_and_print
-    from .utils.cmds import compute_quaternion_rmsd_and_print
+    from .utils.cmds import (
+        compute_axis_and_print,
+        compute_canonical_and_print,
+        compute_cn_and_print,
+        compute_irmsd_and_print,
+        compute_quaternion_rmsd_and_print,
+    )
 except Exception:
     # Safe to ignore so `import irmsd` never breaks due to optional pieces.
     pass
@@ -56,7 +61,7 @@ __all__ = [
     "get_cn_ase",
     "get_axis_ase",
     "get_canonical_ase",
-    "get_rmsd_ase"
+    "get_rmsd_ase" "get_irmsd_ase",
     # utils
     "read_structures",
     "print_array",
@@ -65,4 +70,5 @@ __all__ = [
     "compute_axis_and_print",
     "compute_canonical_and_print",
     "compute_quaternion_rmsd_and_print",
+    "compute_irmsd_and_print",
 ]

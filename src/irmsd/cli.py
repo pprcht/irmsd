@@ -1,5 +1,6 @@
 import argparse
 import sys
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -48,6 +49,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--irmsd",
+        action="store_true",
+        help=("Calculate the invariant Cartesian RMSD between two given structures. "),
+    )
+    p.add_argument(
         "--heavy",
         action="store_true",
         help=(
@@ -55,10 +61,11 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
-        "-o", "--output",
-        type=str,
+        "-o",
+        "--output",
+        type=Path,
         default=None,
-        help="Output file name (optional). If not provided, nothing is written."
+        help="Output file name (optional). If not provided, nothing is written.",
     )
     return p
 
@@ -86,7 +93,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         ran_any = True
 
     if args.rmsd:
-        irmsd.compute_quaternion_rmsd_and_print(atoms_list, heavy=heavy,outfile=args.output)
+        irmsd.compute_quaternion_rmsd_and_print(
+            atoms_list, heavy=heavy, outfile=args.output
+        )
+        ran_any = True
+
+    if args.irmsd:
+        irmsd.compute_irmsd_and_print(atoms_list, outfile=args.output)
         ran_any = True
 
     if not ran_any:

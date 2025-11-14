@@ -184,3 +184,35 @@ def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "Atoms", np.ndarray]
     new_atoms2.set_positions(new_P2, apply_constraint=False)
 
     return rmsdval, new_atoms2, umat
+
+
+def get_irmsd_ase(atoms1, atoms2) -> Tuple[float, "Atoms", "Atoms"]:
+    """
+    Optional ASE utility: operate on TWO ASE Atoms. Returns the iRMSD in Angström,
+    the modified second Atoms plus the 3×3 rotation matrix produced by
+    the Fortran routine.
+    """
+
+    require_ase()
+    from ase import Atoms
+
+    from ..api.irmsd_exposed import get_irmsd_fortran
+
+    if not isinstance(atoms1, Atoms) or not isinstance(atoms2, Atoms):
+        raise TypeError("ase_quaternion_rmsd expects two ase.Atoms objects")
+
+    Z1 = atoms1.get_atomic_numbers()  # (N1,)
+    P1 = atoms1.get_positions()  # (N1, 3)
+    Z2 = atoms2.get_atomic_numbers()  # (N2,)
+    P2 = atoms2.get_positions()  # (N2, 3)
+
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(Z1, P1, Z2, P2)
+    new_atoms1 = atoms1.copy()
+    new_atoms1.set_atomic_numbers(new_Z1)
+    new_atoms1.set_positions(new_P1, apply_constraint=False)
+    # Return ONLY the modified second structure, as requested
+    new_atoms2 = atoms2.copy()
+    new_atoms2.set_atomic_numbers(new_Z2)
+    new_atoms2.set_positions(new_P2, apply_constraint=False)
+
+    return irmsdval, new_atoms1, new_atoms2
