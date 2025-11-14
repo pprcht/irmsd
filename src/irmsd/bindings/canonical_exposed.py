@@ -91,60 +91,60 @@ def get_canonical_sorter_fortran_raw(
     )
 
 
-# We expose the canonical function as:                                                                  
-#   get_ids_from_connect_fortran(natoms: c_int,                                                 
-#                  types: int32[C_CONTIGUOUS](natoms),                                                  
-#                  connectivity_flat: int32[F_CONTIGUOUS](natoms,natoms) or None,                                   
-#                  heavy: boolean                                                                       
+# We expose the canonical function as:
+#   get_ids_from_connect_fortran(natoms: c_int,
+#                  types: int32[C_CONTIGUOUS](natoms),
+#                  connectivity_flat: int32[F_CONTIGUOUS](natoms,natoms) or None,
+#                  heavy: boolean
 #                  rank: int32[C_CONTIGUOUS](natoms)
-LIB.get_ids_from_connect_fortran.argtypes = [                                                           
-    ct.c_int,                                                                                           
-    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),                                                    
-    ndpointer(dtype=np.int32, flags="F_CONTIGUOUS"),                                                  
-    ct.c_bool,                                                                                          
-    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),                                                    
-]                                                                                                       
-LIB.get_ids_from_connect_fortran.restype = None                                                         
-                                                                                                        
-                                                                                                        
-def get_ids_from_connect_fortran_raw(                                                                   
-    natoms: int,                                                                                        
-    types: np.ndarray,                                                                                  
-    connectivity_flat: np.ndarray,                                                                            
-    rank: np.ndarray,                                                                                   
-    heavy: bool = False,                                                                                
-) -> None:                                                                                              
+LIB.get_ids_from_connect_fortran.argtypes = [
+    ct.c_int,
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.int32, flags="F_CONTIGUOUS"),
+    ct.c_bool,
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
+]
+LIB.get_ids_from_connect_fortran.restype = None
+
+
+def get_ids_from_connect_fortran_raw(
+    natoms: int,
+    types: np.ndarray,
+    connectivity_flat: np.ndarray,
+    rank: np.ndarray,
+    heavy: bool = False,
+) -> None:
     """Low-level call that matches the Fortran signature exactly.
-                                                                                                        
-    Parameters                                                                                          
-    ----------                                                                                          
-    natoms : int                                                                                        
-        Number of atoms (must be consistent with array lengths).                                        
-    types : (natoms,) int32, C-contiguous                                                               
-        Atomic numbers (or type IDs).                                                                   
-    connectivity_flat : (natoms*natoms,) int32, F-contiguous                                                     
+
+    Parameters
+    ----------
+    natoms : int
+        Number of atoms (must be consistent with array lengths).
+    types : (natoms,) int32, C-contiguous
+        Atomic numbers (or type IDs).
+    connectivity_flat : (natoms*natoms,) int32, F-contiguous
         indicates whether a bond between two atoms exists
-    rank : (natoms,) int32, C-contiguous                                                                
-        Output array for rank.                                                                          
-    heavy : bool, optional                                                                              
-        Whether to consider only heavy atoms (default: False).                                          
-    """                                                                                                 
-    # light validation to catch mismatches early                                                        
-    if types.dtype != np.int32 or not types.flags.c_contiguous:                                         
-        raise TypeError("types must be int32 and C-contiguous")                                         
-    if connectivity_flat.dtype != np.int32 or not connectivity_flat.flags.f_contiguous:                           
-        raise TypeError("connectivity_flat must be int32 and F-contiguous")                                 
-    if connectivity_flat.size != natoms * natoms:                                                                  
-        raise ValueError("connectivity_flat length must be natoms*natoms")                                         
-    if types.size != natoms:                                                                            
-        raise ValueError("types length must be natoms")                                                 
-    if rank.dtype != np.int32 or not rank.flags.c_contiguous or rank.size != natoms:                    
-        raise TypeError("rank must be int32, C-contiguous, size natoms")                                
-                                                                                                        
-    LIB.get_ids_from_connect_fortran_fortran(                                                                   
-        int(natoms),                                                                                    
-        types,                                                                                          
-        connectivity_flat,                                                                                    
-        bool(heavy),                                                                                    
-        rank,                                                                                           
-    )                                                                                                   
+    rank : (natoms,) int32, C-contiguous
+        Output array for rank.
+    heavy : bool, optional
+        Whether to consider only heavy atoms (default: False).
+    """
+    # light validation to catch mismatches early
+    if types.dtype != np.int32 or not types.flags.c_contiguous:
+        raise TypeError("types must be int32 and C-contiguous")
+    if connectivity_flat.dtype != np.int32 or not connectivity_flat.flags.f_contiguous:
+        raise TypeError("connectivity_flat must be int32 and F-contiguous")
+    if connectivity_flat.size != natoms * natoms:
+        raise ValueError("connectivity_flat length must be natoms*natoms")
+    if types.size != natoms:
+        raise ValueError("types length must be natoms")
+    if rank.dtype != np.int32 or not rank.flags.c_contiguous or rank.size != natoms:
+        raise TypeError("rank must be int32, C-contiguous, size natoms")
+
+    LIB.get_ids_from_connect_fortran(
+        int(natoms),
+        types,
+        connectivity_flat,
+        bool(heavy),
+        rank,
+    )

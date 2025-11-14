@@ -59,4 +59,8 @@ def get_quaternion_rmsd_fortran(
 
     new_P2 = c2.reshape(n2, 3) @ M2.T
 
+    bc1 = P1.mean(axis=0)        # barycenter of reference structure
+    bc2 = new_P2.mean(axis=0)    # barycenter of rotated structure
+    new_P2 = new_P2 + (bc1 - bc2)
+
     return rmsdval, new_P2, M2
