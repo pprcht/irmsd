@@ -24,4 +24,4 @@ def test_get_irmsd_fortran(caffeine_irmsd_test_data):
         atom_numbers1, positions1, atom_numbers2, positions2, iinversion=1
     )
 
-    assert pytest.approx(rmsd, abs=1e-6) == expected_irmsd
+    assert pytest.approx(expected_irmsd, abs=1e-6) == rmsd
