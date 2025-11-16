@@ -61,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument(
+        "--inversion",
+        choices=["on", "off", "auto"],
+        default="auto",
+        help="Control coordinate inversion in irmsd runtypes: 'on', 'off', or 'auto' (default: auto).",
+    )
+    p.add_argument(
         "-o",
         "--output",
         type=Path,
@@ -99,7 +105,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         ran_any = True
 
     if args.irmsd:
-        irmsd.compute_irmsd_and_print(atoms_list, outfile=args.output)
+        irmsd.compute_irmsd_and_print(atoms_list, 
+                                      inversion=args.inversion, 
+                                      outfile=args.output)
         ran_any = True
 
     if not ran_any:

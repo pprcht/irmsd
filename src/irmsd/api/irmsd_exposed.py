@@ -12,7 +12,7 @@ def get_irmsd_fortran(
     positions1: np.ndarray,
     atom_numbers2: np.ndarray,
     positions2: np.ndarray,
-    iinversion: int = 1,
+    iinversion: int = 0,
 ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     Z1 = np.ascontiguousarray(atom_numbers1, dtype=np.int32)
     Z2 = np.ascontiguousarray(atom_numbers2, dtype=np.int32)

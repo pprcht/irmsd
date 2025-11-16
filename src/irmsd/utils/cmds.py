@@ -156,7 +156,7 @@ def compute_quaternion_rmsd_and_print(
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
 
 
-def compute_irmsd_and_print(atoms_list: List["Atoms"], outfile=None) -> None:
+def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=None) -> None:
     """Computes the iRMSD between a SINGLE PAIR of molecules and print the
     iRMSD value.
 
@@ -164,6 +164,8 @@ def compute_irmsd_and_print(atoms_list: List["Atoms"], outfile=None) -> None:
     ----------
     atoms_list : list[ase.Atoms]
         Structures to analyze. Must contain exactly two strucutres
+    inversion : 
+        parameter to instruct inversion in iRMSD routine
 
     Returns
     -------
@@ -173,13 +175,20 @@ def compute_irmsd_and_print(atoms_list: List["Atoms"], outfile=None) -> None:
     require_ase()
     from ase.io import write as asewrite
 
+
+    if inversion is not None:
+        print(f"Inversion check: {inversion}\n")
+
     print("Reference structure:")
     print_structur(atoms_list[0])
     print("Structure to align:")
     print_structur(atoms_list[1])
 
+    if inversion is not None:
+        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+
     irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_ase(
-        atoms_list[0], atoms_list[1]
+        atoms_list[0], atoms_list[1], iinversion=iinversion
     )
 
     if outfile is not None:

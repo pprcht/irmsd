@@ -62,12 +62,12 @@ contains
     call canref%shrink()
     if (debug) write (stdout,*) 'false enantiomers possible?: ',rcache%stereocheck
     select case (iinversion)
-    case (0)
+    case (0)  !> whatever rcache%stereocheck says
       mirror = .true.
-    case (1)
+    case (1)  !> force on
       mirror = .true.
       rcache%stereocheck = .true.
-    case (2)
+    case (2) !> force off
       mirror = .false.
       rcache%stereocheck = .false.
     end select

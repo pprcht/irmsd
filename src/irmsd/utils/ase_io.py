@@ -186,7 +186,7 @@ def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "Atoms", np.ndarray]
     return rmsdval, new_atoms2, umat
 
 
-def get_irmsd_ase(atoms1, atoms2) -> Tuple[float, "Atoms", "Atoms"]:
+def get_irmsd_ase(atoms1, atoms2, iinversion=0) -> Tuple[float, "Atoms", "Atoms"]:
     """
     Optional ASE utility: operate on TWO ASE Atoms. Returns the iRMSD in Angström,
     the modified second Atoms plus the 3×3 rotation matrix produced by
@@ -206,7 +206,7 @@ def get_irmsd_ase(atoms1, atoms2) -> Tuple[float, "Atoms", "Atoms"]:
     Z2 = atoms2.get_atomic_numbers()  # (N2,)
     P2 = atoms2.get_positions()  # (N2, 3)
 
-    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(Z1, P1, Z2, P2)
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(Z1, P1, Z2, P2, iinversion=iinversion)
     new_atoms1 = atoms1.copy()
     new_atoms1.set_atomic_numbers(new_Z1)
     new_atoms1.set_positions(new_P1, apply_constraint=False)
