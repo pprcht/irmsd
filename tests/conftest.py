@@ -250,7 +250,7 @@ def caffeine_molecule_xyz_obabel():
 @pytest.fixture(
     scope="session",
     params=[
-        # Conformer1, Conformer2, mask, rmsd, aligned_conformer, Umat
+        # Conformer1, Conformer2, rmsd, aligned_conformer, Umat
         (
             CAFFEINE_XTB,
             CAFFEINE_XTB_ROTATED,

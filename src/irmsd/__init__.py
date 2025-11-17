@@ -32,6 +32,28 @@ except Exception:
         )
 
 
+try:
+    from .utils.rdkit_io import (
+        get_axis_rdkit,
+        get_canonical_rdkit,
+        get_cn_rdkit,
+        get_rmsd_rdkit,
+        rdkit_to_fortran,
+        rdkit_to_fortran_pair,
+    )
+except Exception:
+
+    def rdkit_to_fortran(*args, **kwargs):
+        raise ImportError(
+            "RDKit-based helper not available. Install optional extra: pip install 'irmsd[rdkit]'"
+        )
+
+    def rdkit_to_fortran_pair(*args, **kwargs):
+        raise ImportError(
+            "RDKit-based helper not available. Install optional extra: pip install 'irmsd[rdkit]'"
+        )
+
+
 # ---- New: re-export Python utilities ----------------------------------------
 from .utils.utils import print_array, read_structures
 
@@ -58,10 +80,17 @@ __all__ = [
     "get_axis_fortran",
     "get_canonical_fortran",
     "get_quaternion_rmsd_fortran",
+    # ase utils
     "get_cn_ase",
     "get_axis_ase",
     "get_canonical_ase",
-    "get_rmsd_ase" "get_irmsd_ase",
+    "get_irmsd_ase",
+    "get_rmsd_ase"
+    # rdkit utils
+    "get_cn_rdkit",
+    "get_axis_rdkit",
+    "get_canonical_rdkit",
+    "get_rmsd_rdkit",
     # utils
     "read_structures",
     "print_array",
