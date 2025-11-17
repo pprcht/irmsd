@@ -27,14 +27,15 @@ pytest -q
 - [x] "canonical" atom identifiers
 - [x] Quaternion RMSD calculator
 - [ ] ~~Hungarian/LSAP calculator~~
-- [ ] two/multiple structure iRMSD procedure (full)
-- [ ] Ensemble sorter
+- [x] two structure iRMSD procedure (full)
+- [ ] Multiple structure iRMSD/Ensemble sorter
 
 ### Other TODOs
 
 - [ ] Clean up & unify printouts
 - [ ] Think about functions for the cli
 - [ ] Write tests (pytest)
+- [ ] codecov (?)
 - [ ] Write documentation
 - [ ] PyPi and conda(-forge) publishing
 
