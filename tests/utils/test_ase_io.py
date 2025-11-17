@@ -7,7 +7,13 @@ pytest.importorskip("ase")
 import ase
 from ase.io import read as ase_read
 
-from irmsd.utils.ase_io import get_axis_ase, get_canonical_ase, get_cn_ase, get_rmsd_ase
+from irmsd.utils.ase_io import (
+    get_axis_ase,
+    get_canonical_ase,
+    get_cn_ase,
+    get_irmsd_ase,
+    get_rmsd_ase,
+)
 from irmsd.utils.utils import read_structures
 
 
@@ -66,3 +72,20 @@ def test_get_rmsd_ase(caffeine_rmsd_test_data):
         == expected_aligned.get_positions()
     )
     assert pytest.approx(Umat, abs=1e-6) == expected_Umat
+
+
+def test_get_irmsd_ase(caffeine_irmsd_test_data):
+    caffeine_xzy_1, caffeine_xzy_2, expected_irmsd, expected_aligned_conformer = (
+        caffeine_irmsd_test_data
+    )
+    caffeine_file_1 = StringIO(caffeine_xzy_1)
+    caffeine_file_2 = StringIO(caffeine_xzy_2)
+    # expected_aligned_file = StringIO(expected_aligned)
+
+    atoms1 = ase_read(caffeine_file_1, format="xyz")
+    atoms2 = ase_read(caffeine_file_2, format="xyz")
+    # expected_aligned = ase_read(expected_aligned_file, format="xyz")
+
+    irmsd, atoms_aligned1, atoms_aligned2 = get_irmsd_ase(atoms1, atoms2)
+
+    assert pytest.approx(irmsd, abs=1e-6) == expected_irmsd

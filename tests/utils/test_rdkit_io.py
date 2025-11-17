@@ -8,6 +8,7 @@ from irmsd.utils.rdkit_io import (
     get_axis_rdkit,
     get_canonical_rdkit,
     get_cn_rdkit,
+    get_irmsd_rdkit,
     get_rmsd_rdkit,
 )
 
@@ -55,5 +56,19 @@ def test_get_rmsd_rdkit(caffeine_rmsd_test_data):
     assert pytest.approx(expected_Umat, abs=1e-6) == Umat
     assert (
         pytest.approx(expected_aligned_mol.GetConformer().GetPositions(), abs=1e-6)
-        == aligned_mol.GetConformer().GetPositions()
+        == aligned_mol.GetConformer(1).GetPositions()
     )
+
+
+def test_get_irmsd_rdkit(caffeine_irmsd_test_data):
+    conformer1, conformer2, expected_irmsd, expected_aligned_conformer = (
+        caffeine_irmsd_test_data
+    )
+
+    mol1 = Chem.MolFromXYZBlock(conformer1)
+    mol2 = Chem.MolFromXYZBlock(conformer2)
+    expected_aligned_mol = Chem.MolFromXYZBlock(expected_aligned_conformer)
+
+    rmsd, aligned_mol = get_irmsd_rdkit(mol1, mol2, iinversion=1)
+
+    assert pytest.approx(expected_irmsd, abs=1e-6) == rmsd

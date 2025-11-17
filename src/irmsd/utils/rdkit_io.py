@@ -126,6 +126,7 @@ def get_cn_rdkit(molecule, conf_id: None | int | Sequence = None) -> np.ndarray:
 def get_axis_rdkit(
     molecule, conf_id: None | int | Sequence = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Optional RDKit utility: compute principal axes for one or more conformers of a molecule"""
     require_rdkit()
 
     from rdkit import Chem
@@ -167,6 +168,7 @@ def get_canonical_rdkit(
     invtype="apsp+",
     heavy: bool = False,
 ) -> np.ndarray:
+    """Optional RDKit utility: compute canonical ranks for one or more conformers of a molecule"""
     require_rdkit()
 
     from rdkit import Chem
@@ -196,6 +198,9 @@ def get_canonical_rdkit(
 def get_rmsd_rdkit(
     molecule_ref, molecule_align, conf_id_ref=-1, conf_id_align=-1, mask=None
 ) -> Tuple[float, "Mol", np.ndarray]:
+    """Optional Rdkit utility: operate on two Rdkit Molecules. Returns the RMSD in Angström,
+    the molecule object with both Conformers aligned.
+    """
 
     require_rdkit()
 
@@ -222,9 +227,51 @@ def get_rmsd_rdkit(
 
     rmsdval, new_P2, umat = get_quaternion_rmsd_fortran(Z1, P1, Z2, P2, mask=mask)
 
-    # Also what do we want to return? A new conformer object? Or a full new molecule?
-    # better a copied molecule
-    molecule_ret = copy.deepcopy(molecule_align)
-    molecule_ret.GetConformer(conf_id_align).SetPositions(new_P2)
+    molecule_ret = Chem.Mol(molecule_ref, confId=conf_id_ref)
+    align_id = molecule_ret.AddConformer(conformer_align, assignId=True)
+    molecule_ret.GetConformer(align_id).SetPositions(new_P2)
 
     return rmsdval, molecule_ret, umat
+
+
+def get_irmsd_rdkit(
+    molecule_ref, molecule_align, conf_id_ref=-1, conf_id_align=-1, iinversion: int = 0
+) -> Tuple[float, "Mol"]:
+    """
+    Optional Rdkit utility: operate on TWO Rdkit Molecules. Returns the iRMSD in Angström,
+    the molecule object with both Conformers permuted and aligned.
+    """
+    require_rdkit()
+
+    from rdkit import Chem
+
+    from ..api.irmsd_exposed import get_irmsd_fortran
+
+    if not isinstance(molecule_ref, Chem.Mol) or not isinstance(
+        molecule_align, Chem.Mol
+    ):
+        raise TypeError("get_rmsd_rdkit expects rdkit.Chem.Mol objects")
+
+    conformer_ref = molecule_ref.GetConformer(conf_id_ref)
+    conformer_align = molecule_align.GetConformer(conf_id_align)
+
+    if not conformer_ref.Is3D() or not conformer_align.Is3D():
+        raise ValueError("get_rmsd_rdkit expects 3D conformers")
+
+    Z1 = get_atom_numbers_rdkit(molecule_ref)
+    P1 = conformer_ref.GetPositions()
+
+    Z2 = get_atom_numbers_rdkit(molecule_align)
+    P2 = conformer_align.GetPositions()
+
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(
+        Z1, P1, Z2, P2, iinversion=iinversion
+    )
+
+    molecule_ret = Chem.Mol(molecule_ref, confId=conf_id_ref)
+    molecule_ret.GetConformer(conf_id_ref).SetPositions(new_P1)
+
+    align_id = molecule_ret.AddConformer(conformer_align, assignId=True)
+    molecule_ret.GetConformer(align_id).SetPositions(new_P2)
+
+    return irmsdval, molecule_ret
