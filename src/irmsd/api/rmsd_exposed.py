@@ -13,7 +13,7 @@ def get_quaternion_rmsd_fortran(
     atom_numbers2: np.ndarray,
     positions2: np.ndarray,
     mask: np.ndarray | None = None,
-) -> Tuple[np.float64, np.ndarray, np.ndarray]:
+) -> Tuple[float, np.ndarray, np.ndarray]:
     """
     Pair API: call the Fortran routine on TWO structures.
 
@@ -53,14 +53,13 @@ def get_quaternion_rmsd_fortran(
     c1 = P1.reshape(-1).copy(order="C")
     c2 = P2.reshape(-1).copy(order="C")
     M2 = np.zeros((3, 3), dtype=np.float64, order="F")
-    rmsdval = np.zeros(1, dtype=np.float64)  # 1-element array to hold the result
 
     rmsdval = _F.get_quaternion_rmsd_fortran_raw(n1, Z1, c1, n2, Z2, c2, M2, mask=mask)
 
     new_P2 = c2.reshape(n2, 3) @ M2.T
 
-    bc1 = P1.mean(axis=0)        # barycenter of reference structure
-    bc2 = new_P2.mean(axis=0)    # barycenter of rotated structure
+    bc1 = P1.mean(axis=0)  # barycenter of reference structure
+    bc2 = new_P2.mean(axis=0)  # barycenter of rotated structure
     new_P2 = new_P2 + (bc1 - bc2)
 
     return rmsdval, new_P2, M2

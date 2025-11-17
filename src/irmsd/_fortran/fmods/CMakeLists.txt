@@ -8,6 +8,7 @@ list(APPEND srcs
   "${dir}/axis_exposed.f90"
   "${dir}/canonical_exposed.f90"
   "${dir}/rmsd_exposed.f90"
+  "${dir}/irmsd_exposed.f90"
 )
 
 set(srcs ${srcs} PARENT_SCOPE)

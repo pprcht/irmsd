@@ -5,7 +5,13 @@ from typing import TYPE_CHECKING, List, Tuple
 import numpy as np
 
 try:
-    from .ase_io import get_axis_ase, get_canonical_ase, get_cn_ase, get_rmsd_ase
+    from .ase_io import (
+        get_axis_ase,
+        get_canonical_ase,
+        get_cn_ase,
+        get_irmsd_ase,
+        get_rmsd_ase,
+    )
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
     get_axis_ase = None  # type: ignore
@@ -109,9 +115,9 @@ def compute_canonical_and_print(
     return results
 
 
-def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"], 
-                                      heavy=False, outfile=None
-                                      ) -> None:
+def compute_quaternion_rmsd_and_print(
+    atoms_list: List["Atoms"], heavy=False, outfile=None
+) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
 
@@ -140,11 +146,65 @@ def compute_quaternion_rmsd_and_print(atoms_list: List["Atoms"],
     rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1], mask=mask0)
 
     if outfile is not None:
-       print(f"\nAligned structure written to {outfile}")
-       asewrite(outfile,new_atoms) 
+        print(f"\nAligned structure written to {outfile}")
+        asewrite(outfile, new_atoms)
     else:
         print("Aligned structure:")
         print_structur(new_atoms)
 
-    print_array("\nU matrix (Fortran order)", umat) 
-    print(f"Cartesian RMSD: {rmsd:.10f} Å") 
+    print_array("\nU matrix (Fortran order)", umat)
+    print(f"Cartesian RMSD: {rmsd:.10f} Å")
+
+
+def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=None) -> None:
+    """Computes the iRMSD between a SINGLE PAIR of molecules and print the
+    iRMSD value.
+
+    Parameters
+    ----------
+    atoms_list : list[ase.Atoms]
+        Structures to analyze. Must contain exactly two strucutres
+    inversion : 
+        parameter to instruct inversion in iRMSD routine
+
+    Returns
+    -------
+    None
+    """
+    # Ensure ASE is present only when this command is actually invoked
+    require_ase()
+    from ase.io import write as asewrite
+
+
+    if inversion is not None:
+        print(f"Inversion check: {inversion}\n")
+
+    print("Reference structure:")
+    print_structur(atoms_list[0])
+    print("Structure to align:")
+    print_structur(atoms_list[1])
+
+    if inversion is not None:
+        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+
+    irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_ase(
+        atoms_list[0], atoms_list[1], iinversion=iinversion
+    )
+
+    if outfile is not None:
+        print(f"\nAligned reference structure written to {outfile}")
+        outfile_ref = outfile
+        outfile_ref.stem += "_ref"
+        asewrite(outfile_ref, new_atoms_ref)
+        print(f"\nAligned probe structure written to {outfile}")
+        outfile_aligned = outfile
+        outfile_aligned.stem += "_ref"
+        asewrite(outfile_aligned, new_atoms_aligned)
+    else:
+        print("Aligned reference structure:")
+        print_structur(new_atoms_ref)
+        print()
+        print("Aligned probe structure:")
+        print_structur(new_atoms_aligned)
+
+    print(f"\niRMSD: {irmsd_value:.10f} Å")
