@@ -1,8 +1,10 @@
-# python/bindings/xyz_bridge.py
 from __future__ import annotations
-from numpy.ctypeslib import ndpointer
+
 import ctypes as ct
+
 import numpy as np
+from numpy.ctypeslib import ndpointer
+
 from .._lib import LIB
 
 # We expose the CN as:
@@ -12,7 +14,7 @@ from .._lib import LIB
 #                  cn: float64[F_CONTIGUOUS](natoms))
 LIB.get_cn_fortran.argtypes = [
     ct.c_int,
-    ndpointer(dtype=np.int32,   flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
 ]
@@ -25,9 +27,8 @@ def get_cn_fortran_raw(
     coords_flat: np.ndarray,
     cn_flat: np.ndarray,
 ) -> None:
-    """
-    Low-level call that matches the Fortran signature exactly.
-    Operates IN-PLACE on cn_flat.
+    """Low-level call that matches the Fortran signature exactly. Operates IN-
+    PLACE on cn_flat.
 
     Parameters
     ----------
@@ -45,7 +46,11 @@ def get_cn_fortran_raw(
         raise TypeError("types must be int32 and C-contiguous")
     if coords_flat.dtype != np.float64 or not coords_flat.flags.c_contiguous:
         raise TypeError("coords_flat must be float64 and C-contiguous")
-    if cn_flat.dtype != np.float64 or not cn_flat.flags.c_contiguous or cn_flat.size != natoms:
+    if (
+        cn_flat.dtype != np.float64
+        or not cn_flat.flags.c_contiguous
+        or cn_flat.size != natoms
+    ):
         raise TypeError("cn_flat must be float64, C-contiguous, shape (natoms)")
     if coords_flat.size != 3 * natoms:
         raise ValueError("coords_flat length must be 3*natoms")
