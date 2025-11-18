@@ -11,108 +11,96 @@ import irmsd
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
+    structures_parser = argparse.ArgumentParser(add_help=False)
+    structures_parser.add_argument(
+        "structures",
+        nargs="+",
+        help="Paths to structure files (e.g. .xyz, .pdb, .cif). You can pass many.",
+    )
+
+    heavy_parser = argparse.ArgumentParser(add_help=False)
+    heavy_parser.add_argument(
+        "--heavy",
+        action="store_true",
+        help="When calculating RMSD or canonical atom identifier, consider only heavy atoms. ",
+    )
+    outfile_parser = argparse.ArgumentParser(add_help=False)
+    outfile_parser.add_argument(
+        "-o",
+        "--output",
+        dest="outfile",
+        type=Path,
+        default=None,
+        help="Output file name (optional). If not provided, nothing is written.",
+    )
+
+    main_parser = argparse.ArgumentParser(
         prog="irmsd",
         description=(
             "CLI to read an arbitrary number of structures with ASE and run "
             "selected analysis commands on them."
         ),
     )
-    p.add_argument(
-        "structures",
-        nargs="+",
-        help="Paths to structure files (e.g. .xyz, .pdb, .cif). You can pass many.",
+
+    subparsers = main_parser.add_subparsers()
+    rmsd_parser = subparsers.add_parser(
+        "rmsd",
+        help="Calculate RMSD between structures.",
+        parents=[structures_parser, outfile_parser, heavy_parser],
     )
-    # Commands (flags). Multiple can be combined; they run in the order defined here.
-    p.add_argument(
-        "--cn",
-        action="store_true",
-        help=(
-            "Calculate coordination numbers for each structure and print them as numpy arrays. "
-        ),
+    rmsd_parser.set_defaults(func=irmsd.compute_quaternion_rmsd_and_print)
+    irmsd_parser = subparsers.add_parser(
+        "irmsd",
+        help="Calculate invariant RMSD between structures.",
+        parents=[structures_parser, outfile_parser],
     )
-    p.add_argument(
-        "--rot",
-        action="store_true",
-        help=("Calculate the rotational constants. "),
+    irmsd_parser.set_defaults(func=irmsd.compute_irmsd_and_print)
+    cn_parser = subparsers.add_parser(
+        "cn",
+        help="Calculate coordination numbers for structures.",
+        parents=[structures_parser],
     )
-    p.add_argument(
-        "--canonical",
-        action="store_true",
-        help=("Calculate the canonical identifiers. "),
+    cn_parser.set_defaults(func=irmsd.compute_cn_and_print)
+    canonical_parser = subparsers.add_parser(
+        "canonical",
+        help="Calculate canonical identifiers for structures.",
+        parents=[structures_parser, heavy_parser],
     )
-    p.add_argument(
-        "--rmsd",
-        action="store_true",
-        help=(
-            "Calculate the Cartesian RMSD between two given structures via a quaternion algorithm. "
-        ),
+    canonical_parser.set_defaults(func=irmsd.compute_canonical_and_print)
+    rot_parser = subparsers.add_parser(
+        "rot",
+        help="Calculate rotational constants for structures.",
+        parents=[structures_parser],
     )
-    p.add_argument(
-        "--irmsd",
-        action="store_true",
-        help=("Calculate the invariant Cartesian RMSD between two given structures. "),
-    )
-    p.add_argument(
-        "--heavy",
-        action="store_true",
-        help=(
-            "When calculating RMSD or canonical atom identifier, consider only heavy atoms. "
-        ),
-    )
-    p.add_argument(
+    rot_parser.set_defaults(func=irmsd.compute_axis_and_print)
+
+    irmsd_parser.add_argument(
         "--inversion",
         choices=["on", "off", "auto"],
         default="auto",
         help="Control coordinate inversion in irmsd runtypes: 'on', 'off', or 'auto' (default: auto).",
     )
-    p.add_argument(
-        "-o",
-        "--output",
-        type=Path,
-        default=None,
-        help="Output file name (optional). If not provided, nothing is written.",
-    )
-    return p
+    return main_parser
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    atoms_list = irmsd.read_structures(args.structures)
-
-    ran_any = False
-
-    heavy = args.heavy
-
-    if args.cn:
-        irmsd.compute_cn_and_print(atoms_list)
-        ran_any = True
-
-    if args.rot:
-        irmsd.compute_axis_and_print(atoms_list)
-        ran_any = True
-
-    if args.canonical:
-        irmsd.compute_canonical_and_print(atoms_list, heavy=heavy)
-        ran_any = True
-
-    if args.rmsd:
-        irmsd.compute_quaternion_rmsd_and_print(
-            atoms_list, heavy=heavy, outfile=args.output
+    def wrapper_func(args):
+        atoms_list = irmsd.read_structures(args.structures)
+        tmp_args = vars(args).copy()
+        tmp_args = {
+            key: val
+            for key, val in tmp_args.items()
+            if key not in ["structures", "func"]
+        }
+        return args.func(
+            atoms_list,
+            **tmp_args,
         )
-        ran_any = True
 
-    if args.irmsd:
-        irmsd.compute_irmsd_and_print(atoms_list, 
-                                      inversion=args.inversion, 
-                                      outfile=args.output)
-        ran_any = True
-
-    if not ran_any:
-        parser.print_help()
-        return 1
+    wrapper_func(args)
 
     return 0
 
