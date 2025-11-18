@@ -10,14 +10,14 @@ from numpy.ctypeslib import ndpointer
 
 from .._lib import LIB
 
-_get_sorter_exposed_xyz_fortran: ct._CFuncPtr | None = None
+_sorter_exposed_xyz_fortran: ct._CFuncPtr | None = None
 
 
 def _get_sorter_exposed_xyz_fortran() -> ct._CFuncPtr:
-    global _get_sorter_exposed_xyz_fortran
+    global _sorter_exposed_xyz_fortran
     if LIB is None:
         raise RuntimeError("Library handle not set; call set_library(...) first.")
-    if _get_sorter_exposed_xyz_fortran is None:
+    if _sorter_exposed_xyz_fortran is None:
         f = LIB.sorter_exposed_xyz_fortran
         f.argtypes = [
             ct.c_int,
@@ -40,4 +40,6 @@ def sorter_exposed_xyz_fortran_raw(
 ) -> None:
     """Low-level wrapper for C symbol 'sorter_exposed_xyz_fortran'."""
     f = _get_sorter_exposed_xyz_fortran()
+
+    print('entering Fortran code next\n\n')
     f(nat, nall, xyzall, atall, groups, rthresh, iinversion, allcanon, printlvl)

@@ -68,6 +68,7 @@ try:
         compute_cn_and_print,
         compute_irmsd_and_print,
         compute_quaternion_rmsd_and_print,
+        sort_structures_and_print,
     )
 except Exception:
     # Safe to ignore so `import irmsd` never breaks due to optional pieces.
@@ -106,4 +107,5 @@ __all__ = [
     "compute_canonical_and_print",
     "compute_quaternion_rmsd_and_print",
     "compute_irmsd_and_print",
+    "sort_structures_and_print",
 ]

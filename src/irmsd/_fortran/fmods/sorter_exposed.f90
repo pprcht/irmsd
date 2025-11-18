@@ -23,7 +23,7 @@ contains
     type(c_ptr),value :: atall_ptr
     type(c_ptr),value :: groups_ptr
     real(c_double),value :: rthresh
-    integer(c_int), value :: iinversion
+    integer(c_int),value :: iinversion
     logical(c_bool),value :: allcanon_c
     integer(c_int),value :: printlvl
 
@@ -43,11 +43,22 @@ contains
     call c_f_pointer(groups_ptr,groups, [nall])
     allcanon = allcanon_c
 
+    write (*,*) "Hello from Fortran!"
+    write (*,*) "We have this info:"
+    write (*,'(a,i0)') "xyzall with length ",size(xyzall,1)
+    write (*,'(a,i0)') "atall with length ",size(atall,1)
+    write (*,'(a,i0)') "groups with length ",size(groups,1)
+    write(*,*) "rthr",rthresh
+    write(*,*) "iinversion",iinversion
+    write(*,*) "allcanon",allcanon
+    write(*,*) "printlvl",printlvl
+
     ! Call original Fortran routine
     allocate (structures(nall))
     k1 = 0
     k2 = 0
     do i = 1,nall
+      structures(i)%nat = nat 
       allocate (structures(i)%at(nat),source=0)
       allocate (structures(i)%xyz(3,nat),source=0.0_wp)
       do j = 1,nat
@@ -58,10 +69,16 @@ contains
           structures(i)%xyz(l,j) = xyzall(k2)*aatoau  !> Angström to BOHR
         end do
       end do
+      call structures(i)%append(6)
     end do
 
+    stop "something is broken in the following call, stopping here"
     call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion,allcanon,printlvl)
 
+    write(*,*)
+    write(*,*) "groups:"
+    write(*,*) groups(1:nall)
+    stop
     !> coordinates for each structure have been aligned and sorted,
     !> so we need to pass them back
 
@@ -79,7 +96,7 @@ contains
     end do
 
     !> free memory
-    deallocate(structures) 
+    deallocate (structures)
 
     !> group assignment (== unique conformers) on "groups" array
 
@@ -130,14 +147,14 @@ contains
 
 !>--- set up parallelization
 !     ...
-    T = 1 !> doing it serial for now 
+    T = 1 !> doing it serial for now
 
 !>--- set up parameters (note we are working with BOHR internally)
     RTHR = RTHRESH*aatoau
 
 !>--- print some sorting data
     if (prlvl > 0) then
-      write (stdout,'(a)') 'CREGEN> Info for iRMSD sorting:'
+      write (stdout,'(a)') 'Info for iRMSD sorting:'
       write (stdout,'(2x,a,i9)') 'number of structures  :',nall
       write (stdout,'(2x,a,f9.5,a)') 'RTHR (RMSD threshold) :',RTHR*autoaa,' Å'
       write (stdout,'(2x,a,i9)') 'OpenMP threads        :',T

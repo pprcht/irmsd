@@ -11,6 +11,7 @@ try:
         get_cn_ase,
         get_irmsd_ase,
         get_rmsd_ase,
+        sorter_irmsd_ase,
     )
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
 __all__ = ["compute_cn_and_print", "compute_axis_and_print"]
 
 
-def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
+def compute_cn_and_print(atoms_list: Sequence["Atoms"]) -> List[np.ndarray]:
     """Compute coordination numbers for each structure and print them.
 
     Parameters
@@ -53,7 +54,7 @@ def compute_cn_and_print(atoms_list: List["Atoms"]) -> List[np.ndarray]:
 
 
 def compute_axis_and_print(
-    atoms_list: List["Atoms"],
+    atoms_list: Sequence["Atoms"],
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Compute rotational constants, averge momentum and rotation matrix for
     each structure and prints them.
@@ -86,7 +87,7 @@ def compute_axis_and_print(
 
 
 def compute_canonical_and_print(
-    atoms_list: List["Atoms"], heavy=False
+    atoms_list: Sequence["Atoms"], heavy=False
 ) -> List[np.ndarray]:
     """Computes the canonical atom identifiers for each structure and prints
     them.
@@ -116,7 +117,7 @@ def compute_canonical_and_print(
 
 
 def compute_quaternion_rmsd_and_print(
-    atoms_list: List["Atoms"], heavy=False, outfile=None
+    atoms_list: Sequence["Atoms"], heavy=False, outfile=None
 ) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
@@ -156,7 +157,9 @@ def compute_quaternion_rmsd_and_print(
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
 
 
-def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=None) -> None:
+def compute_irmsd_and_print(
+    atoms_list: Sequence["Atoms"], inversion=None, outfile=None
+) -> None:
     """Computes the iRMSD between a SINGLE PAIR of molecules and print the
     iRMSD value.
 
@@ -164,7 +167,7 @@ def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=N
     ----------
     atoms_list : list[ase.Atoms]
         Structures to analyze. Must contain exactly two strucutres
-    inversion : 
+    inversion :
         parameter to instruct inversion in iRMSD routine
 
     Returns
@@ -174,7 +177,6 @@ def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=N
     # Ensure ASE is present only when this command is actually invoked
     require_ase()
     from ase.io import write as asewrite
-
 
     if inversion is not None:
         print(f"Inversion check: {inversion}\n")
@@ -208,3 +210,57 @@ def compute_irmsd_and_print(atoms_list: List["Atoms"], inversion=None, outfile=N
         print_structur(new_atoms_aligned)
 
     print(f"\niRMSD: {irmsd_value:.10f} Å")
+
+
+def sort_structures_and_print(
+    atoms_list: Sequence["Atoms"],
+    rthr: float,
+    inversion: str = None,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    outfile: str | None = None,
+) -> None:
+    """
+    Convenience wrapper around sorter_irmsd_ase:
+
+    - Calls sorter_irmsd_ase on the given list of ASE Atoms.
+    - Prints the resulting groups array.
+    - Optionally writes all resulting structures to `outfile` via ASE.
+
+    Parameters
+    ----------
+    atoms_list : sequence of ase.Atoms
+        Input structures.
+    rthresh : float
+        Distance threshold for sorter_irmsd_ase.
+    iinversion : int, optional
+        Inversion symmetry flag, passed through.
+    allcanon : bool, optional
+        Canonicalization flag, passed through.
+    printlvl : int, optional
+        Verbosity level, passed through.
+    outfile : str or None, optional
+        If not None, write all resulting structures to this file
+        (e.g. 'sorted.xyz') using ASE's write function.
+    """
+    require_ase()
+    from ase.io import write  # local import after require_ase
+
+    if inversion is not None:
+        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+
+    # Call the ASE-level sorter
+    groups, new_atoms_list = sorter_irmsd_ase(
+        atoms_list=atoms_list,
+        rthr=rthr,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+    )
+
+    # Print groups to screen
+    print("Groups:", groups)
+
+    # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
+    if outfile is not None:
+        write(outfile, new_atoms_list)

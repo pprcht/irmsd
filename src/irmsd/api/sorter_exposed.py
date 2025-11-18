@@ -10,7 +10,7 @@ def sorter_irmsd(
     atom_numbers_list: Sequence[np.ndarray],
     positions_list: Sequence[np.ndarray],
     nat: int,
-    rthresh: float,
+    rthr: float,
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
@@ -27,7 +27,7 @@ def sorter_irmsd(
     nat : int
         Number of atoms for which the groups array is defined.
         Must satisfy 1 <= nat <= N.
-    rthresh : float
+    rthr : float
         Distance threshold for the Fortran sorter.
     iinversion : int
         Inversion symmetry flag.
@@ -88,6 +88,9 @@ def sorter_irmsd(
     # Allocate groups
     groups = np.empty(nat, dtype=np.int32)
 
+    print(xyzall)
+    print('entering low-level binding next')
+
     # ---- Raw Fortran call ----
     _F.sorter_exposed_xyz_fortran_raw(
         int(nat),
@@ -95,7 +98,7 @@ def sorter_irmsd(
         xyzall,      # flattened buffer (nall*N*3)
         atall,       # flattened buffer (nall*N)
         groups,      # length nat
-        float(rthresh),
+        float(rthr),
         int(iinversion),
         bool(allcanon),
         int(printlvl),

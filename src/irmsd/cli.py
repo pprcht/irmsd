@@ -124,7 +124,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort.add_argument(
         "--rthr",
         type=float,
-        required=True,
+        required=False,
         default=0.125,  # empirical defualt for typical molecules
         help=(
             "Inter-structure RMSD threshold for sorting in Angström. "
@@ -219,13 +219,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         atoms_list = irmsd.read_structures(args.structures)
 
         # TODO:
-        # irmsd.sort_structures_and_print(
-        #    atoms_list,
-        #    rthr=args.rthr,
-        #    inversion=args.inversion,
+        irmsd.sort_structures_and_print(
+            atoms_list,
+            rthr=args.rthr,
+            inversion=args.inversion,
         #    heavy=heavy,
-        #    outfile=args.output,
-        # )
+            outfile=args.output,
+        )
 
         return 0
 

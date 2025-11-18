@@ -223,7 +223,7 @@ def get_irmsd_ase(atoms1, atoms2, iinversion=0) -> Tuple[float, "Atoms", "Atoms"
 ####################################################################################
 def sorter_irmsd_ase(
     atoms_list: Sequence["Atoms"],
-    rthresh: float,
+    rthr: float,
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
@@ -235,7 +235,7 @@ def sorter_irmsd_ase(
     ----------
     atoms_list : sequence of ase.Atoms
         List/sequence of ASE Atoms objects. All must have the same number of atoms.
-    rthresh : float
+    rthr : float
         Distance threshold for sorter_irmsd.
     iinversion : int, optional
         Inversion symmetry flag, passed through.
@@ -296,12 +296,16 @@ def sorter_irmsd_ase(
         atom_numbers_list.append(Z)
         positions_list.append(P)
 
+    print(atom_numbers_list)    
+    print(positions_list)
+    print("entering API level next\n\n")
+
     # --- Call the Fortran-backed sorter_irmsd ---
     groups, xyz_structs, Z_structs = sorter_irmsd(
         atom_numbers_list=atom_numbers_list,
         positions_list=positions_list,
         nat=nat,
-        rthresh=rthresh,
+        rthr=rthr,
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
