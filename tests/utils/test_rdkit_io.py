@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 pytest.importorskip("rdkit")
@@ -43,15 +44,26 @@ def test_get_canonical_rdkit(caffeine_canonical_test_data):
 
 
 def test_get_rmsd_rdkit(caffeine_rmsd_test_data):
-    caffeine_xyz1, caffeine_xyz2, expected_rmsd, caffeine_aligned, expected_Umat = (
-        caffeine_rmsd_test_data
-    )
+    (
+        caffeine_xyz1,
+        caffeine_xyz2,
+        heavy,
+        expected_rmsd,
+        caffeine_aligned,
+        expected_Umat,
+    ) = caffeine_rmsd_test_data
 
     caffeine_rdkit_1 = Chem.MolFromXYZBlock(caffeine_xyz1)
     caffeine_rdkit_2 = Chem.MolFromXYZBlock(caffeine_xyz2)
     expected_aligned_mol = Chem.MolFromXYZBlock(caffeine_aligned)
 
-    rmsd, aligned_mol, Umat = get_rmsd_rdkit(caffeine_rdkit_1, caffeine_rdkit_2)
+    atomic_numbers = np.asarray(
+        [atom.GetAtomicNum() for atom in caffeine_rdkit_1.GetAtoms()]
+    )
+    mask = atomic_numbers != 1 if heavy else None  # exclude hydrogens
+    rmsd, aligned_mol, Umat = get_rmsd_rdkit(
+        caffeine_rdkit_1, caffeine_rdkit_2, mask=mask
+    )
     assert pytest.approx(expected_rmsd, abs=1e-6) == rmsd
     assert pytest.approx(expected_Umat, abs=1e-6) == Umat
     assert (

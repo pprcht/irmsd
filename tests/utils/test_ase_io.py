@@ -53,9 +53,14 @@ def test_get_canonical_ase(caffeine_canonical_test_data):
 
 
 def test_get_rmsd_ase(caffeine_rmsd_test_data):
-    caffeine_xzy_1, caffeine_xzy_2, expected_rmsd, expected_aligned, expected_Umat = (
-        caffeine_rmsd_test_data
-    )
+    (
+        caffeine_xzy_1,
+        caffeine_xzy_2,
+        heavy,
+        expected_rmsd,
+        expected_aligned,
+        expected_Umat,
+    ) = caffeine_rmsd_test_data
     caffeine_file_1 = StringIO(caffeine_xzy_1)
     caffeine_file_2 = StringIO(caffeine_xzy_2)
     expected_aligned_file = StringIO(expected_aligned)
@@ -64,7 +69,8 @@ def test_get_rmsd_ase(caffeine_rmsd_test_data):
     atoms2 = ase_read(caffeine_file_2, format="xyz")
     expected_aligned = ase_read(expected_aligned_file, format="xyz")
 
-    rmsd, atoms_aligned, Umat = get_rmsd_ase(atoms1, atoms2)
+    mask = atoms1.get_atomic_numbers() != 1 if heavy else None  # exclude hydrogens
+    rmsd, atoms_aligned, Umat = get_rmsd_ase(atoms1, atoms2, mask=mask)
 
     assert pytest.approx(rmsd, abs=1e-6) == expected_rmsd
     assert (
