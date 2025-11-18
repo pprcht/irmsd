@@ -11,30 +11,7 @@ import irmsd
 
 
 def build_parser() -> argparse.ArgumentParser:
-    structures_parser = argparse.ArgumentParser(add_help=False)
-    structures_parser.add_argument(
-        "structures",
-        nargs="+",
-        help="Paths to structure files (e.g. .xyz, .pdb, .cif). You can pass many.",
-    )
-
-    heavy_parser = argparse.ArgumentParser(add_help=False)
-    heavy_parser.add_argument(
-        "--heavy",
-        action="store_true",
-        help="When calculating RMSD or canonical atom identifier, consider only heavy atoms. ",
-    )
-    outfile_parser = argparse.ArgumentParser(add_help=False)
-    outfile_parser.add_argument(
-        "-o",
-        "--output",
-        dest="outfile",
-        type=Path,
-        default=None,
-        help="Output file name (optional). If not provided, nothing is written.",
-    )
-
-    main_parser = argparse.ArgumentParser(
+    p = argparse.ArgumentParser(
         prog="irmsd",
         description=(
             "CLI to read an arbitrary number of structures with ASE and run "
@@ -42,67 +19,218 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
-    subparsers = main_parser.add_subparsers()
-    rmsd_parser = subparsers.add_parser(
-        "rmsd",
-        help="Calculate RMSD between structures.",
-        parents=[structures_parser, outfile_parser, heavy_parser],
-    )
-    rmsd_parser.set_defaults(func=irmsd.compute_quaternion_rmsd_and_print)
-    irmsd_parser = subparsers.add_parser(
-        "irmsd",
-        help="Calculate invariant RMSD between structures.",
-        parents=[structures_parser, outfile_parser],
-    )
-    irmsd_parser.set_defaults(func=irmsd.compute_irmsd_and_print)
-    cn_parser = subparsers.add_parser(
-        "cn",
-        help="Calculate coordination numbers for structures.",
-        parents=[structures_parser],
-    )
-    cn_parser.set_defaults(func=irmsd.compute_cn_and_print)
-    canonical_parser = subparsers.add_parser(
-        "canonical",
-        help="Calculate canonical identifiers for structures.",
-        parents=[structures_parser, heavy_parser],
-    )
-    canonical_parser.set_defaults(func=irmsd.compute_canonical_and_print)
-    rot_parser = subparsers.add_parser(
-        "rot",
-        help="Calculate rotational constants for structures.",
-        parents=[structures_parser],
-    )
-    rot_parser.set_defaults(func=irmsd.compute_axis_and_print)
+    # Global arguments
 
-    irmsd_parser.add_argument(
+    subparsers = p.add_subparsers(
+        dest="command",
+        required=True,
+        help="Subcommand to run.",
+    )
+
+    # p.add_argument(
+    #    "structures",
+    #    nargs="+",
+    #    help="Paths to structure files (e.g. .xyz, .pdb, .cif).",
+    # )
+
+    # -------------------------------------------------------------------------
+    # prop subparser: structural properties (CN, rotational constants, canonical IDs)
+    # -------------------------------------------------------------------------
+    p_prop = subparsers.add_parser(
+        "prop",
+        help="Compute structural properties (CN, rotational constants, canonical IDs).",
+    )
+    p_prop.add_argument(
+        "structures",
+        nargs="+",
+        help="Paths to structure files (e.g. .xyz, .pdb, .cif).",
+    )
+    p_prop.add_argument(
+        "--cn",
+        action="store_true",
+        help=(
+            "Calculate coordination numbers for each structure and print them as numpy arrays."
+        ),
+    )
+    p_prop.add_argument(
+        "--rot",
+        action="store_true",
+        help="Calculate the rotational constants.",
+    )
+    p_prop.add_argument(
+        "--canonical",
+        action="store_true",
+        help="Calculate the canonical identifiers.",
+    )
+    p_prop.add_argument(
+        "--heavy",
+        action="store_true",
+        help=(
+            "When calculating canonical atom identifiers, consider only heavy atoms."
+        ),
+    )
+
+    # -------------------------------------------------------------------------
+    # compare subparser: compare (exactly) two structures
+    # -------------------------------------------------------------------------
+    p_compare = subparsers.add_parser(
+        "compare",
+        help="Compare structures via iRMSD (default) or quaternion RMSD.",
+    )
+    p_compare.add_argument(
+        "structures",
+        nargs="+",
+        help="Paths to structure files (e.g. .xyz, .pdb, .cif).",
+    )
+    p_compare.add_argument(
+        "--quaternion",
+        action="store_true",
+        help=("Use the quaternion-based Cartesian RMSD instead of the invariant RMSD."),
+    )
+    p_compare.add_argument(
         "--inversion",
         choices=["on", "off", "auto"],
         default="auto",
-        help="Control coordinate inversion in irmsd runtypes: 'on', 'off', or 'auto' (default: auto).",
+        help=(
+            "Control coordinate inversion in iRMSD runtypes: 'on', 'off', or 'auto' "
+            "(default: auto). Used only for iRMSD."
+        ),
     )
-    return main_parser
+    p_compare.add_argument(
+        "--heavy",
+        action="store_true",
+        help=("When comparing structures, consider only heavy atoms."),
+    )
+    p_compare.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file name (optional). If not provided, results are only printed.",
+    )
+
+    # -------------------------------------------------------------------------
+    # sort subparser: sort / cluster structures based on RMSD threshold
+    # -------------------------------------------------------------------------
+    p_sort = subparsers.add_parser(
+        "sort",
+        help="Sort or cluster structures based on inter-structure RMSD.",
+    )
+    p_sort.add_argument(
+        "structures",
+        nargs="+",
+        help="Paths to structure files (e.g. .xyz, .pdb, .cif).",
+    )
+    p_sort.add_argument(
+        "--rthr",
+        type=float,
+        required=True,
+        help=(
+            "Inter-structure RMSD threshold for sorting in Angström. "
+            "Structures closer than this threshold are treated as similar."
+        ),
+    )
+    p_sort.add_argument(
+        "--inversion",
+        choices=["on", "off", "auto"],
+        default="auto",
+        help=(
+            "Control coordinate inversion when evaluating RMSDs during sorting: "
+            "'on', 'off', or 'auto' (default: auto)."
+        ),
+    )
+    p_sort.add_argument(
+        "--heavy",
+        action="store_true",
+        help=("When sorting structures, consider only heavy atoms."),
+    )
+    p_sort.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional output file for sorted / clustered results.",
+    )
+
+    return p
 
 
 def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    def wrapper_func(args):
+    heavy = args.heavy  # exists in all subparsers
+
+    # -------------------------------------------------------------------------
+    # prop
+    # -------------------------------------------------------------------------
+    if args.command == "prop":
         atoms_list = irmsd.read_structures(args.structures)
-        tmp_args = vars(args).copy()
-        tmp_args = {
-            key: val
-            for key, val in tmp_args.items()
-            if key not in ["structures", "func"]
-        }
-        return args.func(
-            atoms_list,
-            **tmp_args,
-        )
 
-    wrapper_func(args)
+        ran_any = False
 
-    return 0
+        if args.cn:
+            irmsd.compute_cn_and_print(atoms_list)
+            ran_any = True
+
+        if args.rot:
+            irmsd.compute_axis_and_print(atoms_list)
+            ran_any = True
+
+        if args.canonical:
+            irmsd.compute_canonical_and_print(atoms_list, heavy=heavy)
+            ran_any = True
+
+        if not ran_any:
+            # No specific property selected: show help for the whole CLI
+            parser.print_help()
+            return 1
+
+        return 0
+
+    # -------------------------------------------------------------------------
+    # compare
+    # -------------------------------------------------------------------------
+    if args.command == "compare":
+        atoms_list = irmsd.read_structures(args.structures)
+
+        if args.quaternion:
+            # Quaternion RMSD (old --rmsd behavior)
+            irmsd.compute_quaternion_rmsd_and_print(
+                atoms_list,
+                heavy=heavy,
+                outfile=args.output,
+            )
+        else:
+            # Default: iRMSD (old --irmsd behavior)
+            irmsd.compute_irmsd_and_print(
+                atoms_list,
+                inversion=args.inversion,
+                outfile=args.output,
+            )
+
+        return 0
+
+    # -------------------------------------------------------------------------
+    # sort
+    # -------------------------------------------------------------------------
+    if args.command == "sort":
+        atoms_list = irmsd.read_structures(args.structures)
+
+        # TODO:
+        # irmsd.sort_structures_and_print(
+        #    atoms_list,
+        #    rthr=args.rthr,
+        #    inversion=args.inversion,
+        #    heavy=heavy,
+        #    outfile=args.output,
+        # )
+
+        return 0
+
+    # Fallback: should not be reached due to required=True on subparsers
+    parser.print_help()
+    return 1
 
 
 if __name__ == "__main__":
