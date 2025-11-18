@@ -5,6 +5,7 @@ from .api.axis_exposed import get_axis_fortran
 from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 from .api.irmsd_exposed import get_irmsd
+from .api.sorter_exposed import sorter_irmsd
 
 # ---- Core API (what you already had) ----------------------------------------
 from .api.xyz_bridge import xyz_to_fortran, xyz_to_fortran_pair
@@ -19,6 +20,7 @@ try:
         get_cn_ase,
         get_irmsd_ase,
         get_rmsd_ase,
+        sorter_irmsd_ase,
     )
 except Exception:
 
@@ -82,12 +84,14 @@ __all__ = [
     "get_canonical_fortran",
     "get_quaternion_rmsd_fortran",
     "get_irmsd",
+    "sorter_irmsd",
     # ase utils
     "get_cn_ase",
     "get_axis_ase",
     "get_canonical_ase",
     "get_irmsd_ase",
-    "get_rmsd_ase"
+    "get_rmsd_ase",
+    "sorter_irmsd_ase",
     # rdkit utils
     "get_cn_rdkit",
     "get_axis_rdkit",
