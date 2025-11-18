@@ -196,7 +196,7 @@ def get_irmsd_ase(atoms1, atoms2, iinversion=0) -> Tuple[float, "Atoms", "Atoms"
     require_ase()
     from ase import Atoms
 
-    from ..api.irmsd_exposed import get_irmsd_fortran
+    from ..api.irmsd_exposed import get_irmsd
 
     if not isinstance(atoms1, Atoms) or not isinstance(atoms2, Atoms):
         raise TypeError("ase_quaternion_rmsd expects two ase.Atoms objects")
@@ -206,7 +206,7 @@ def get_irmsd_ase(atoms1, atoms2, iinversion=0) -> Tuple[float, "Atoms", "Atoms"
     Z2 = atoms2.get_atomic_numbers()  # (N2,)
     P2 = atoms2.get_positions()  # (N2, 3)
 
-    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(Z1, P1, Z2, P2, iinversion=iinversion)
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd(Z1, P1, Z2, P2, iinversion=iinversion)
     new_atoms1 = atoms1.copy()
     new_atoms1.set_atomic_numbers(new_Z1)
     new_atoms1.set_positions(new_P1, apply_constraint=False)

@@ -52,37 +52,37 @@ def caffeine_xyz_obabel_file_fixture(tmp_dir_fixture, caffeine_molecule_xyz_obab
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_file_fixture",
-            [],
+            ["--quaternion"],
             0.0,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_file_fixture",
-            ["--heavy"],
-            0.0,
-        ),
-        (
-            "caffeine_xyz_file_fixture",
-            "caffeine_xyz_rotated_file_fixture",
-            [],
+            ["--quaternion","--heavy"],
             0.0,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_rotated_file_fixture",
-            ["--heavy"],
+            ["--quaternion"],
+            0.0,
+        ),
+        (
+            "caffeine_xyz_file_fixture",
+            "caffeine_xyz_rotated_file_fixture",
+            ["--quaternion","--heavy"],
             0.0,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
-            [],
+            ["--quaternion"],
             0.1393943463,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
-            ["--heavy"],
+            ["--quaternion","--heavy"],
             0.17258155,
         ),
     ],
@@ -102,7 +102,7 @@ def test_cli_rmsd(
     out = subprocess.check_output(
         [
             exe,
-            "--rmsd",
+            "compare",
             *additional_cli_args,
             str(file1),
             str(file2),

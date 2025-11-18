@@ -4,6 +4,7 @@ from __future__ import annotations
 from .api.axis_exposed import get_axis_fortran
 from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
+from .api.irmsd_exposed import get_irmsd
 
 # ---- Core API (what you already had) ----------------------------------------
 from .api.xyz_bridge import xyz_to_fortran, xyz_to_fortran_pair
@@ -80,6 +81,7 @@ __all__ = [
     "get_axis_fortran",
     "get_canonical_fortran",
     "get_quaternion_rmsd_fortran",
+    "get_irmsd",
     # ase utils
     "get_cn_ase",
     "get_axis_ase",
