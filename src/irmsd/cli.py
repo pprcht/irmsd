@@ -125,6 +125,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--rthr",
         type=float,
         required=True,
+        default=0.125,  # empirical defualt for typical molecules
         help=(
             "Inter-structure RMSD threshold for sorting in Angström. "
             "Structures closer than this threshold are treated as similar."
