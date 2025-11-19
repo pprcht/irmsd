@@ -19,6 +19,7 @@ except Exception:  # pragma: no cover
     get_canonical_ase = None  # type: ignore
 
 from .utils import print_array, print_structur, require_ase
+from ..sorting import first_by_assignment 
 
 if TYPE_CHECKING:
     from ase import Atoms  # type: ignore
@@ -246,6 +247,7 @@ def sort_structures_and_print(
     require_ase()
     from ase.io import write  # local import after require_ase
 
+
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
@@ -259,9 +261,12 @@ def sort_structures_and_print(
     )
 
     # Print groups to screen
-    print(f"groups ({np.max(groups)} unique): {groups}")
+    repr = np.max(groups)
+    print(f"List of structures was processed: {repr} group{'s' if repr != 1 else ''}.")
+
+    new_atoms_list = first_by_assignment(new_atoms_list, groups)
 
     # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
     if outfile is not None:
         write(outfile, new_atoms_list)
-        print(f"wrote aligned structures to: {outfile}")
+        print(f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}")

@@ -6,6 +6,7 @@ from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 from .api.irmsd_exposed import get_irmsd
 from .api.sorter_exposed import sorter_irmsd
+from . import sorting
 
 # ---- Core API (what you already had) ----------------------------------------
 from .api.xyz_bridge import xyz_to_fortran, xyz_to_fortran_pair
@@ -101,6 +102,8 @@ __all__ = [
     # utils
     "read_structures",
     "print_array",
+    # sorting
+    "sorting",
     # optional cmds
     "compute_cn_and_print",
     "compute_axis_and_print",
