@@ -86,10 +86,7 @@ def sorter_irmsd(
     xyzall = np.stack(xyz_list, axis=0)   # (nall, N, 3)
 
     # Allocate groups
-    groups = np.empty(nat, dtype=np.int32)
-
-    print(xyzall)
-    print('entering low-level binding next')
+    groups = np.empty(nall, dtype=np.int32)
 
     # ---- Raw Fortran call ----
     _F.sorter_exposed_xyz_fortran_raw(

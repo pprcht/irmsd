@@ -40,6 +40,4 @@ def sorter_exposed_xyz_fortran_raw(
 ) -> None:
     """Low-level wrapper for C symbol 'sorter_exposed_xyz_fortran'."""
     f = _get_sorter_exposed_xyz_fortran()
-
-    print('entering Fortran code next\n\n')
     f(nat, nall, xyzall, atall, groups, rthresh, iinversion, allcanon, printlvl)

@@ -296,10 +296,6 @@ def sorter_irmsd_ase(
         atom_numbers_list.append(Z)
         positions_list.append(P)
 
-    print(atom_numbers_list)    
-    print(positions_list)
-    print("entering API level next\n\n")
-
     # --- Call the Fortran-backed sorter_irmsd ---
     groups, xyz_structs, Z_structs = sorter_irmsd(
         atom_numbers_list=atom_numbers_list,

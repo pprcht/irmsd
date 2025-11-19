@@ -43,16 +43,6 @@ contains
     call c_f_pointer(groups_ptr,groups, [nall])
     allcanon = allcanon_c
 
-    write (*,*) "Hello from Fortran!"
-    write (*,*) "We have this info:"
-    write (*,'(a,i0)') "xyzall with length ",size(xyzall,1)
-    write (*,'(a,i0)') "atall with length ",size(atall,1)
-    write (*,'(a,i0)') "groups with length ",size(groups,1)
-    write(*,*) "rthr",rthresh
-    write(*,*) "iinversion",iinversion
-    write(*,*) "allcanon",allcanon
-    write(*,*) "printlvl",printlvl
-
     ! Call original Fortran routine
     allocate (structures(nall))
     k1 = 0
@@ -69,19 +59,16 @@ contains
           structures(i)%xyz(l,j) = xyzall(k2)*aatoau  !> Angström to BOHR
         end do
       end do
-      call structures(i)%append(6)
     end do
 
-    stop "something is broken in the following call, stopping here"
+    !> init groups to zero (no assignment)
+    groups(1:nall) = 0
+
+    !> call the actual routine
     call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion,allcanon,printlvl)
 
-    write(*,*)
-    write(*,*) "groups:"
-    write(*,*) groups(1:nall)
-    stop
     !> coordinates for each structure have been aligned and sorted,
     !> so we need to pass them back
-
     k1 = 0
     k2 = 0
     do i = 1,nall
@@ -131,7 +118,7 @@ contains
     real(wp) :: rmsdval,runtime,RTHR
     logical :: stereocheck,individual_IDs
 
-    logical,parameter :: debug = .true.
+    logical,parameter :: debug = .false.
 
 !>--- handle optional arguments
     if (present(allcanon)) then
@@ -157,7 +144,7 @@ contains
       write (stdout,'(a)') 'Info for iRMSD sorting:'
       write (stdout,'(2x,a,i9)') 'number of structures  :',nall
       write (stdout,'(2x,a,f9.5,a)') 'RTHR (RMSD threshold) :',RTHR*autoaa,' Å'
-      write (stdout,'(2x,a,i9)') 'OpenMP threads        :',T
+      !write (stdout,'(2x,a,i9)') 'OpenMP threads        :',T
       write (stdout,'(2x,a,l9)') 'Individual atom IDs?  :',individual_IDs
       write (stdout,'(2x,a)',advance='no') 'False rotamer check?  :'
       select case (iinversion)
@@ -208,12 +195,12 @@ contains
       stereocheck = .false.
     end select
     if (prlvl > 1) then
-      write (stdout,'(a,l2)') 'CREGEN> Check for false rotamers (geometry inversion)? -->',stereocheck
+    !  write (stdout,'(a,l2)') 'Check for false rotamers (geometry inversion)? -->',stereocheck
     end if
 
 !>--- allocate work cache
     if (prlvl > 0) then
-      write (stdout,'(a)',advance='no') 'CREGEN> Allocating iRMSD work cache ... '
+      write (stdout,'(a)',advance='no') 'Allocating iRMSD work cache ... '
       flush (stdout)
     end if
     allocate (rcaches(T))

@@ -259,8 +259,9 @@ def sort_structures_and_print(
     )
 
     # Print groups to screen
-    print("Groups:", groups)
+    print(f"groups ({np.max(groups)} unique): {groups}")
 
     # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
     if outfile is not None:
         write(outfile, new_atoms_list)
+        print(f"wrote aligned structures to: {outfile}")
