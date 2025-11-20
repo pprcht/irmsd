@@ -102,7 +102,8 @@ def test_cli_rmsd(
     out = subprocess.check_output(
         [
             exe,
-            "--rmsd",
+            "compare",
+            "--quaternion",
             *additional_cli_args,
             str(file1),
             str(file2),
