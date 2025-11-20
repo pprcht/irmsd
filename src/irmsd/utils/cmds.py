@@ -22,6 +22,7 @@ except Exception:  # pragma: no cover
     get_canonical_ase = None  # type: ignore
 
 from .utils import print_array, print_structur, require_ase
+from .printouts import print_structure_summary
 from ..sorting import first_by_assignment, group_by, sort_by_value
 
 if TYPE_CHECKING:
@@ -264,6 +265,8 @@ def sort_structures_and_print(
         mol_dict[key] = Presorted_sort_structures_and_print(
             atoms_list, rthr, inversion, allcanon, printlvl, outfile
         )
+        irmsdvals = np.zeros(len(atoms_list))
+        print_structure_summary(key,energies,irmsdvals,max_rows=25)
 
     else:
         # Multiple molecule types
