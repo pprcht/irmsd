@@ -223,7 +223,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             atoms_list,
             rthr=args.rthr,
             inversion=args.inversion,
-        #    heavy=heavy,
+            printlvl=1,
             outfile=args.output,
         )
 

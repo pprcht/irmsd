@@ -223,6 +223,7 @@ def sort_structures_and_print(
     inversion: str = None,
     allcanon: bool = True,
     printlvl: int = 0,
+    maxprint: int  = 25,
     outfile: str | None = None,
 ) -> None:
     """
@@ -244,6 +245,8 @@ def sort_structures_and_print(
         Canonicalization flag, passed through.
     printlvl : int, optional
         Verbosity level, passed through.
+    maxprint : int, optional
+        Max number of lines to print for each structure result table
     outfile : str or None, optional
         If not None, write all resulting structures to this file
         (e.g. 'sorted.xyz') using ASE's write function.
@@ -266,8 +269,9 @@ def sort_structures_and_print(
         mol_dict[key] = Presorted_sort_structures_and_print(
             atoms_list, rthr, inversion, allcanon, printlvl, outfile
         )
-        irmsdvals = np.zeros(len(atoms_list))
-        print_structure_summary(key,energies,irmsdvals,max_rows=25)
+        energies = get_energies_from_atoms_list(mol_dict[key])
+        irmsdvals = np.zeros(len(mol_dict[key]))
+        print_structure_summary(key,energies,irmsdvals,max_rows=maxprint)
 
     else:
         # Multiple molecule types
@@ -284,8 +288,9 @@ def sort_structures_and_print(
             mol_dict[key] = Presorted_sort_structures_and_print(
                 atoms_list, rthr, inversion, allcanon, printlvl, outfile_key
             )
-            irmsdvals = np.zeros(len(atoms_list))                       
-            print_structure_summary(key,energies,irmsdvals,max_rows=25) 
+            energies = get_energies_from_atoms_list(mol_dict[key])
+            irmsdvals = np.zeros(len(mol_dict[key]))                       
+            print_structure_summary(key,energies,irmsdvals,max_rows=maxprint) 
 
 
 def Presorted_sort_structures_and_print(

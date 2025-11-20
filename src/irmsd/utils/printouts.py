@@ -65,7 +65,7 @@ def print_structure_summary(
         columns.append((header, cells))
 
     # Add the explicit columns requested
-    add_column("E / Eh", energies_hartree, "{: .8E}")
+    add_column("E / Eh", energies_hartree, "{: .10f}")
     # If we have energies, also add ΔE in kcal/mol relative to first entry
     if energies_hartree is not None:
         e0 = float(energies_hartree[0])
@@ -74,7 +74,7 @@ def print_structure_summary(
         ]
         add_column("ΔE / kcal mol⁻¹", delta_e_kcal, "{: .3f}")
 
-    add_column("ΔRMSD / Å", delta_irmsd, "{: .3f}")      
+    add_column("ΔRMSD / Å", delta_irmsd, "{: .4f}")      
     # If no arrays were provided at all: do not print anything
     if n is None or n == 0:
         return
