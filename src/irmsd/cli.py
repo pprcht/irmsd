@@ -146,6 +146,12 @@ def build_parser() -> argparse.ArgumentParser:
         help=("When sorting structures, consider only heavy atoms."),
     )
     p_sort.add_argument(
+        "--maxprint",
+        type=int,
+        default=25,
+        help=("Printout option; determine how man rows are printed for each sorted ensemble."),
+    )
+    p_sort.add_argument(
         "-o",
         "--output",
         type=Path,
@@ -218,12 +224,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.command == "sort":
         atoms_list = irmsd.read_structures(args.structures)
 
-        # TODO:
         irmsd.sort_structures_and_print(
             atoms_list,
             rthr=args.rthr,
             inversion=args.inversion,
             printlvl=1,
+            maxprint=args.maxprint,
             outfile=args.output,
         )
 
