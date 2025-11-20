@@ -82,6 +82,41 @@ def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray
 
 #####################################################################################
 
+def get_energy_ase(atoms):
+    """
+    Return the energy stored in an ASE Atoms object.
+
+    Checks, in order:
+        1. atoms.info["energy"]
+        2. atoms.calc.get_potential_energy()
+        3. atoms.calc.results["energy"]
+
+    Returns None if nothing is found.
+    """
+    # 1. Info dict (extended XYZ metadata)
+    E = atoms.info.get("energy")
+    if isinstance(E, (int, float)):
+        return float(E)
+
+    # 2. Calculator energy (the ASE way)
+    calc = atoms.calc
+    if calc is not None:
+        try:
+            return float(atoms.get_potential_energy())
+        except Exception:
+            pass
+
+        # 3. Direct access to stored results, if present
+        try:
+            E = calc.results.get("energy")
+            if isinstance(E, (int, float)):
+                return float(E)
+        except Exception:
+            pass
+
+    # 4. Nothing found
+    return None
+
 
 def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:
     """
@@ -320,6 +355,7 @@ def sorter_irmsd_ase(
 
         # Optionally preserve info and constraints
         new_at.info = dict(at_orig.info)
+        new_at.calc = at_orig.calc
         if getattr(at_orig, "constraints", None):
             new_at.set_constraint(at_orig.constraints)
 

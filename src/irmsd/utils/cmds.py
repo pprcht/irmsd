@@ -6,6 +6,7 @@ import numpy as np
 
 try:
     from .ase_io import (
+        get_energy_ase,
         get_axis_ase,
         get_canonical_ase,
         get_cn_ase,
