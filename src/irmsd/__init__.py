@@ -6,13 +6,9 @@ from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 
 # ---- Core API (what you already had) ----------------------------------------
-from .api.xyz_bridge import xyz_to_fortran, xyz_to_fortran_pair
-
 # Try to expose ase_to_fortran if ASE is present; otherwise export a stub that errors nicely.
 try:
     from .utils.ase_io import (
-        ase_to_fortran,
-        ase_to_fortran_pair,
         get_axis_ase,
         get_canonical_ase,
         get_cn_ase,
@@ -37,9 +33,8 @@ try:
         get_axis_rdkit,
         get_canonical_rdkit,
         get_cn_rdkit,
+        get_irmsd_rdkit,
         get_rmsd_rdkit,
-        rdkit_to_fortran,
-        rdkit_to_fortran_pair,
     )
 except Exception:
 
@@ -72,10 +67,6 @@ except Exception:
 
 __all__ = [
     # core API
-    "xyz_to_fortran",
-    "xyz_to_fortran_pair",
-    "ase_to_fortran",
-    "ase_to_fortran_pair",
     "get_cn_fortran",
     "get_axis_fortran",
     "get_canonical_fortran",
@@ -91,6 +82,7 @@ __all__ = [
     "get_axis_rdkit",
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
+    "get_irmsd_rdkit",
     # utils
     "read_structures",
     "print_array",

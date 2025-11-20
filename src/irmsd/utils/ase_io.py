@@ -7,82 +7,6 @@ import numpy as np
 from .utils import require_ase
 
 
-def ase_to_fortran(atoms) -> Tuple["Atoms", np.ndarray]:
-    """
-    Optional utility: accepts ASE Atoms, adapts to core xyz_to_fortran, and returns:
-      - a NEW Atoms with updated positions
-      - the 3×3 matrix.
-    """
-
-    require_ase()
-
-    from ..api.xyz_bridge import xyz_to_fortran
-
-    if not isinstance(atoms, Atoms):
-        raise TypeError("ase_to_fortran expects an ase.Atoms object")
-
-    Z = atoms.get_atomic_numbers()  # (N,)
-    pos = atoms.get_positions()  # (N, 3) float64
-
-    new_pos, mat = xyz_to_fortran(Z, pos)
-
-    new_atoms = atoms.copy()
-    new_atoms.set_positions(new_pos, apply_constraint=False)
-    return new_atoms, mat
-
-
-###############################################################################
-
-
-def ase_to_fortran_pair(atoms1, atoms2) -> Tuple["Atoms", np.ndarray, np.ndarray]:
-    """
-    Optional ASE utility: operate on TWO ASE Atoms. Returns ONLY the modified second Atoms
-    plus both 3×3 matrices produced by the Fortran routine.
-
-    Parameters
-    ----------
-    atoms1 : ase.Atoms
-    atoms2 : ase.Atoms
-
-    Returns
-    -------
-    new_atoms2 : ase.Atoms
-        Copy of `atoms2` with updated positions (atoms1 is NOT returned).
-    mat1 : (3, 3) float64 ndarray (Fortran-ordered)
-        Matrix corresponding to the first structure.
-    mat2 : (3, 3) float64 ndarray (Fortran-ordered)
-        Matrix corresponding to the second structure.
-
-    Notes
-    -----
-    - The corresponding core API is `irmsd.api.xyz_bridge.xyz_to_fortran_pair`, which takes
-      plain NumPy arrays and has no ASE dependency.
-    """
-
-    require_ase()
-
-    from ..api.xyz_bridge import xyz_to_fortran_pair
-
-    if not isinstance(atoms1, Atoms) or not isinstance(atoms2, Atoms):
-        raise TypeError("ase_to_fortran_pair expects two ase.Atoms objects")
-
-    Z1 = atoms1.get_atomic_numbers()  # (N1,)
-    P1 = atoms1.get_positions()  # (N1, 3)
-    Z2 = atoms2.get_atomic_numbers()  # (N2,)
-    P2 = atoms2.get_positions()  # (N2, 3)
-
-    new_P1, new_P2, M1, M2 = xyz_to_fortran_pair(Z1, P1, Z2, P2)
-
-    # Return ONLY the modified second structure, as requested
-    new_atoms2 = atoms2.copy()
-    new_atoms2.set_positions(new_P2, apply_constraint=False)
-
-    return new_atoms2, M1, M2
-
-
-#####################################################################################
-
-
 def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:
     """
     Optional utility: accepts ASE Atoms, adapts to core get_cn_fortran, and
@@ -206,7 +130,9 @@ def get_irmsd_ase(atoms1, atoms2, iinversion=0) -> Tuple[float, "Atoms", "Atoms"
     Z2 = atoms2.get_atomic_numbers()  # (N2,)
     P2 = atoms2.get_positions()  # (N2, 3)
 
-    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(Z1, P1, Z2, P2, iinversion=iinversion)
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(
+        Z1, P1, Z2, P2, iinversion=iinversion
+    )
     new_atoms1 = atoms1.copy()
     new_atoms1.set_atomic_numbers(new_Z1)
     new_atoms1.set_positions(new_P1, apply_constraint=False)
