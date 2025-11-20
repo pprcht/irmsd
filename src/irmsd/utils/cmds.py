@@ -262,6 +262,7 @@ def sort_structures_and_print(
         # Sort by energy (if possible)
         energies = get_energies_from_atoms_list(atoms_list)
         atoms_list, energies = sort_by_value(atoms_list,energies)
+        print()
         mol_dict[key] = Presorted_sort_structures_and_print(
             atoms_list, rthr, inversion, allcanon, printlvl, outfile
         )
@@ -279,9 +280,12 @@ def sort_structures_and_print(
             # Sort by energy (if possible)
             energies = get_energies_from_atoms_list(atoms_list)
             atoms_list, energies = sort_by_value(atoms_list,energies) 
+            print()
             mol_dict[key] = Presorted_sort_structures_and_print(
                 atoms_list, rthr, inversion, allcanon, printlvl, outfile_key
             )
+            irmsdvals = np.zeros(len(atoms_list))                       
+            print_structure_summary(key,energies,irmsdvals,max_rows=25) 
 
 
 def Presorted_sort_structures_and_print(
