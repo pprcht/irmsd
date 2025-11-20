@@ -117,6 +117,18 @@ def get_energy_ase(atoms):
     # 4. Nothing found
     return None
 
+def get_energies_from_atoms_list(atoms_list):
+    """
+    Given a list of ASE Atoms objects, call `get_energy_ase(atoms)` for each,
+    collect the energies into a float NumPy array, and replace any `None`
+    returned by the energy function with 0.0.
+    """
+    energies = []
+    for atoms in atoms_list:
+        e = get_energy_ase(atoms)   # user-defined energy calculator
+        energies.append(0.0 if e is None else float(e))
+    return np.array(energies, dtype=float)
+
 
 def get_cn_ase(atoms) -> Tuple["Atoms", np.ndarray]:
     """

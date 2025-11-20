@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Tuple
 
+import os
 import numpy as np
 
 try:
     from .ase_io import (
         get_energy_ase,
+        get_energies_from_atoms_list,
         get_axis_ase,
         get_canonical_ase,
         get_cn_ase,
@@ -20,7 +22,7 @@ except Exception:  # pragma: no cover
     get_canonical_ase = None  # type: ignore
 
 from .utils import print_array, print_structur, require_ase
-from ..sorting import first_by_assignment 
+from ..sorting import first_by_assignment, group_by, sort_by_value
 
 if TYPE_CHECKING:
     from ase import Atoms  # type: ignore
@@ -223,6 +225,71 @@ def sort_structures_and_print(
     outfile: str | None = None,
 ) -> None:
     """
+    Convenience wrapper around presorted_sort_structures_and_print:
+
+    - Analyzes the atoms_list to separate them by composition
+    - Sorts by energy if applicable.
+    - Calls presorted_sort_structures_and_print for each group
+
+    Parameters
+    ----------
+    atoms_list : sequence of ase.Atoms
+        Input structures.
+    rthresh : float
+        Distance threshold for sorter_irmsd_ase.
+    iinversion : int, optional
+        Inversion symmetry flag, passed through.
+    allcanon : bool, optional
+        Canonicalization flag, passed through.
+    printlvl : int, optional
+        Verbosity level, passed through.
+    outfile : str or None, optional
+        If not None, write all resulting structures to this file
+        (e.g. 'sorted.xyz') using ASE's write function.
+        Gets automatic name appendage if there are more than one
+        type of molecule in the atoms_list
+    """
+    require_ase()
+    from ase.io import write  # local import after require_ase
+
+    # sort the atoms_list by chemical sum formula
+    mol_dict = group_by(atoms_list, key=lambda a: a.get_chemical_formula(mode="hill"))
+
+    if len(mol_dict) == 1:
+        # Exactly one molecule type
+        key, atoms_list = next(iter(mol_dict.items()))
+        # Sort by energy (if possible)
+        energies = get_energies_from_atoms_list(atoms_list)
+        atoms_list, energies = sort_by_value(atoms_list,energies)
+        mol_dict[key] = Presorted_sort_structures_and_print(
+            atoms_list, rthr, inversion, allcanon, printlvl, outfile
+        )
+
+    else:
+        # Multiple molecule types
+        for key, atoms_list in mol_dict.items():
+            if outfile is not None:
+                root, ext = os.path.splitext(outfile)
+                outfile_key = f"{root}_{key}{ext}"
+            else:
+                outfile_key = None
+            # Sort by energy (if possible)
+            energies = get_energies_from_atoms_list(atoms_list)
+            atoms_list, energies = sort_by_value(atoms_list,energies) 
+            mol_dict[key] = Presorted_sort_structures_and_print(
+                atoms_list, rthr, inversion, allcanon, printlvl, outfile_key
+            )
+
+
+def Presorted_sort_structures_and_print(
+    atoms_list: Sequence["Atoms"],
+    rthr: float,
+    inversion: str = None,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    outfile: str | None = None,
+) -> None:
+    """
     Convenience wrapper around sorter_irmsd_ase:
 
     - Calls sorter_irmsd_ase on the given list of ASE Atoms.
@@ -248,7 +315,6 @@ def sort_structures_and_print(
     require_ase()
     from ase.io import write  # local import after require_ase
 
-
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
@@ -270,4 +336,8 @@ def sort_structures_and_print(
     # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
     if outfile is not None:
         write(outfile, new_atoms_list)
-        print(f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}")
+        print(
+            f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
+        )
+
+    return new_atoms_list
