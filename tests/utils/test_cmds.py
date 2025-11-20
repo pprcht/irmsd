@@ -84,22 +84,3 @@ def test_compute_canonical_and_print(canonical_test_data):
         for i, rank in enumerate(results):
             if heavies[i] == heavy:
                 assert pytest.approx(rank, abs=1e-6) == expected_ranks[k][i]
-
-
-@pytest.fixture(scope="module")
-def rmsd_test_data(caffeine_rmsd_test_data_all):
-    """Caffeine test data for RMSD computation tests of cmds."""
-    CAFFEINE_RMSD_TEST_DATA = caffeine_rmsd_test_data_all
-    atoms_pairs = []
-    heavies = []
-    expected_rmsds = []
-    for xyz_string_1, xyz_string_2, heavy, rmsd in CAFFEINE_RMSD_TEST_DATA:
-        xyz_file_1 = StringIO(xyz_string_1)
-        xyz_file_2 = StringIO(xyz_string_2)
-        atoms_1 = ase_read(xyz_file_1, format="xyz")
-        atoms_2 = ase_read(xyz_file_2, format="xyz")
-        atoms_pairs.append((atoms_1, atoms_2))
-        heavies.append(heavy)
-        expected_rmsds.append(rmsd)
-
-    return atoms_pairs, heavies, expected_rmsds
