@@ -232,6 +232,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.command == "sort":
         atoms_list = irmsd.read_structures(args.structures)
 
+        if args.heavy:
+            print('Heavy-atom mapping in sorting functionality is TODO. Sorry.')
+            return 1
+
         if args.align:
             irmsd.sort_get_delta_irmsd_and_print(
                 atoms_list,
