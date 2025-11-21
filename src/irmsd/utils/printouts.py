@@ -121,6 +121,6 @@ def print_structure_summary(
         )
         print(ellipsis_line)
         remaining = n - rows_to_print
-        print(f"({remaining} additional entries not shown)")
+        print(f"({remaining} additional entries not shown, use `--maxprint` to increase)")
 
 

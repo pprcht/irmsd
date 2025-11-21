@@ -9,6 +9,7 @@ from .utils import require_ase
 
 #####################################################################################
 
+
 def get_energy_ase(atoms):
     """
     Return the energy stored in an ASE Atoms object.
@@ -44,6 +45,7 @@ def get_energy_ase(atoms):
     # 4. Nothing found
     return None
 
+
 def get_energies_from_atoms_list(atoms_list):
     """
     Given a list of ASE Atoms objects, call `get_energy_ase(atoms)` for each,
@@ -52,7 +54,7 @@ def get_energies_from_atoms_list(atoms_list):
     """
     energies = []
     for atoms in atoms_list:
-        e = get_energy_ase(atoms)   # user-defined energy calculator
+        e = get_energy_ase(atoms)  # user-defined energy calculator
         energies.append(0.0 if e is None else float(e))
     return np.array(energies, dtype=float)
 
@@ -301,3 +303,108 @@ def sorter_irmsd_ase(
         new_atoms_list.append(new_at)
 
     return groups, new_atoms_list
+
+
+####################################################################################
+def delta_irmsd_list_ase(
+    atoms_list: Sequence["Atoms"],
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+) -> Tuple[np.ndarray, List["Atoms"]]:
+    """
+    ASE wrapper around delta_irmsd_list.
+
+    Parameters
+    ----------
+    atoms_list : sequence of ase.Atoms
+        List/sequence of ASE Atoms objects. All must have the same number of atoms.
+    iinversion : int, optional
+        Inversion symmetry flag, passed through.
+    allcanon : bool, optional
+        Canonicalization flag, passed through.
+    printlvl : int, optional
+        Verbosity level, passed through.
+
+    Returns
+    -------
+    delta : (nat,) float64
+        Group indices for the first `nat` atoms.
+    new_atoms_list : list of ase.Atoms
+        New Atoms objects reconstructed from the sorted atom types and positions.
+    """
+    require_ase()
+    from ase import Atoms
+    from ..api.sorter_exposed import delta_irmsd_list
+
+    # --- Basic checks on atoms_list ---
+    if not isinstance(atoms_list, (list, tuple)):
+        raise TypeError(
+            "delta_irmsd_list expects a sequence (list/tuple) of ase.Atoms objects"
+        )
+
+    if len(atoms_list) == 0:
+        raise ValueError("atoms_list must contain at least one ase.Atoms object")
+
+    for i, at in enumerate(atoms_list):
+        if not isinstance(at, Atoms):
+            raise TypeError(
+                f"delta_irmsd_list expects a sequence of ase.Atoms objects; "
+                f"item {i} has type {type(at)}"
+            )
+
+    # --- Check that all Atoms have the same number of atoms and define nat ---
+    nat = len(atoms_list[0])
+    for i, at in enumerate(atoms_list):
+        if len(at) != nat:
+            raise ValueError(
+                "All Atoms objects must have the same number of atoms; "
+                f"item 0 has {nat} atoms, item {i} has {len(at)} atoms"
+            )
+
+    # --- Build atom_numbers_list and positions_list ---
+    atom_numbers_list: List[np.ndarray] = []
+    positions_list: List[np.ndarray] = []
+
+    for at in atoms_list:
+        Z = np.asarray(at.numbers, dtype=np.int32)
+        P = np.asarray(at.get_positions(), dtype=np.float64)
+
+        if P.shape != (nat, 3):
+            raise ValueError(
+                "Each Atoms positions array must have shape (nat, 3); " f"got {P.shape}"
+            )
+
+        atom_numbers_list.append(Z)
+        positions_list.append(P)
+
+    # --- Call the Fortran-backed sorter_irmsd ---
+    delta, xyz_structs, Z_structs = delta_irmsd_list(
+        atom_numbers_list=atom_numbers_list,
+        positions_list=positions_list,
+        nat=nat,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+    )
+
+    # --- Reconstruct new ASE Atoms objects ---
+    new_atoms_list: List[Atoms] = []
+    for at_orig, Z_new, P_new in zip(atoms_list, Z_structs, xyz_structs):
+        # Preserve cell and PBC; other metadata can be copied as needed
+        new_at = Atoms(
+            numbers=Z_new,
+            positions=P_new,
+            cell=at_orig.cell,
+            pbc=at_orig.pbc,
+        )
+
+        # Optionally preserve info and constraints
+        new_at.info = dict(at_orig.info)
+        new_at.calc = at_orig.calc
+        if getattr(at_orig, "constraints", None):
+            new_at.set_constraint(at_orig.constraints)
+
+        new_atoms_list.append(new_at)
+
+    return delta, new_atoms_list

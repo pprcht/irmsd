@@ -15,6 +15,7 @@ try:
         get_irmsd_ase,
         get_rmsd_ase,
         sorter_irmsd_ase,
+        delta_irmsd_list_ase,
     )
 except Exception:  # pragma: no cover
     get_cn_ase = None  # type: ignore
@@ -239,7 +240,7 @@ def sort_structures_and_print(
         Input structures.
     rthresh : float
         Distance threshold for sorter_irmsd_ase.
-    iinversion : int, optional
+    inversion : str, optional
         Inversion symmetry flag, passed through.
     allcanon : bool, optional
         Canonicalization flag, passed through.
@@ -256,6 +257,9 @@ def sort_structures_and_print(
     require_ase()
     from ase.io import write  # local import after require_ase
 
+    if inversion is not None:
+        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+
     # sort the atoms_list by chemical sum formula
     mol_dict = group_by(atoms_list, key=lambda a: a.get_chemical_formula(mode="hill"))
 
@@ -269,8 +273,10 @@ def sort_structures_and_print(
         mol_dict[key] = Presorted_sort_structures_and_print(
             atoms_list, rthr, inversion, allcanon, printlvl, outfile
         )
-        energies = get_energies_from_atoms_list(mol_dict[key])
-        irmsdvals = np.zeros(len(mol_dict[key]))
+        irmsdvals,_ = delta_irmsd_list_ase(
+            mol_dict[key], iinversion, allcanon=False, printlvl=0
+        )
+        energies = get_energies_from_atoms_list(mol_dict[key]) 
         print_structure_summary(key,energies,irmsdvals,max_rows=maxprint)
 
     else:
@@ -288,8 +294,10 @@ def sort_structures_and_print(
             mol_dict[key] = Presorted_sort_structures_and_print(
                 atoms_list, rthr, inversion, allcanon, printlvl, outfile_key
             )
+            irmsdvals,_ = delta_irmsd_list_ase(   
+                mol_dict[key], iinversion, allcanon=False, printlvl=0 
+            )                                                 
             energies = get_energies_from_atoms_list(mol_dict[key])
-            irmsdvals = np.zeros(len(mol_dict[key]))                       
             print_structure_summary(key,energies,irmsdvals,max_rows=maxprint) 
 
 
@@ -353,3 +361,78 @@ def Presorted_sort_structures_and_print(
         )
 
     return new_atoms_list
+
+
+def sort_get_delta_irmsd_and_print(
+    atoms_list: Sequence["Atoms"],
+    inversion: str = None,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    maxprint: int  = 25,
+    outfile: str | None = None,
+) -> None:
+    """
+    Convenience wrapper around presorted_sort_structures_and_print:
+
+    - Analyzes the atoms_list to separate them by composition
+    - Sorts by energy if applicable.
+    - Calculates iRMSD between structures x_i and x_i-1
+
+    Parameters
+    ----------
+    atoms_list : sequence of ase.Atoms
+        Input structures.
+    inversion : str, optional
+        Inversion symmetry flag, passed through.
+    allcanon : bool, optional
+        Canonicalization flag, passed through.
+    printlvl : int, optional
+        Verbosity level, passed through.
+    maxprint : int, optional
+        Max number of lines to print for each structure result table
+    outfile : str or None, optional
+        If not None, write all resulting structures to this file
+        (e.g. 'sorted.xyz') using ASE's write function.
+        Gets automatic name appendage if there are more than one
+        type of molecule in the atoms_list
+    """
+    require_ase()
+    from ase.io import write  # local import after require_ase
+
+    if inversion is not None:
+        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+
+    # sort the atoms_list by chemical sum formula
+    mol_dict = group_by(atoms_list, key=lambda a: a.get_chemical_formula(mode="hill"))
+
+    if len(mol_dict) == 1:
+        # Exactly one molecule type
+        key, atoms_list = next(iter(mol_dict.items()))
+        # Sort by energy (if possible)
+        energies = get_energies_from_atoms_list(atoms_list)
+        atoms_list, energies = sort_by_value(atoms_list,energies)
+        print()
+        irmsdvals,mol_dict[key] = delta_irmsd_list_ase(
+            atoms_list, iinversion, allcanon, printlvl
+        )
+        energies = get_energies_from_atoms_list(mol_dict[key])
+        print_structure_summary(key,energies,irmsdvals,max_rows=maxprint)
+
+    else:
+        # Multiple molecule types
+        for key, atoms_list in mol_dict.items():
+            if outfile is not None:
+                root, ext = os.path.splitext(outfile)
+                outfile_key = f"{root}_{key}{ext}"
+            else:
+                outfile_key = None
+            # Sort by energy (if possible)
+            energies = get_energies_from_atoms_list(atoms_list)
+            atoms_list, energies = sort_by_value(atoms_list,energies) 
+            print()
+            irmsdvals,mol_dict[key] = delta_irmsd_list_ase(
+                atoms_list, iinversion, allcanon, printlvl
+            )
+            energies = get_energies_from_atoms_list(mol_dict[key])
+            print_structure_summary(key,energies,irmsdvals,max_rows=maxprint) 
+
