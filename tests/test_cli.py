@@ -103,6 +103,7 @@ def test_cli_rmsd(
         [
             exe,
             "compare",
+            "--quaternion",
             *additional_cli_args,
             str(file1),
             str(file2),

@@ -171,6 +171,34 @@ H     -3.8576064983   -1.7785508485    0.9010397951
 H     -3.8648098649   -1.7768842904   -0.8804701717
 """
 
+CAFFEINE_OBABEL_HEAVY_ALIGNED = """24
+
+C      1.164154     0.125946    -0.076439
+N      2.630020     0.100935    -0.075525
+C      3.387209     1.241149    -0.075206
+N      4.129921     0.410553    -0.075707
+C      4.614710    -0.593225    -0.074880
+C      3.329222    -1.065254    -0.074374
+C      3.025042    -2.505630    -0.071913
+O      1.887153    -2.938935    -0.070583
+N      4.129200    -3.311073    -0.070098
+C      5.427279    -2.876691    -0.071702
+O      6.359549    -3.661548    -0.070333
+N      5.636825    -1.528328    -0.073794
+C      6.998371    -0.964191    -0.073492
+C      3.927977    -4.780266    -0.064918
+H      0.802059     1.157362    -0.074550
+H      0.791203    -0.388959     0.813297
+H      0.792628    -0.385169    -0.968945
+H      2.956066     2.231004    -0.073966
+H      7.762852    -1.744821    -0.075110
+H      7.128479    -0.345226     0.818145
+H      7.128051    -0.342164    -0.962948
+H      2.871433    -5.057371    -0.063572
+H      4.397245    -5.203701     0.827254
+H      4.396742    -5.210298    -0.954260
+"""
+
 CAFFEINE_OBABEL_CMA = """24
 
 C     1.185292    3.070851    -0.000649
@@ -228,6 +256,172 @@ H      4.418204    -5.200748     0.829363
 H      4.416983    -5.208472    -0.952145
 """
 
+CAFFEINE_RMSD_TEST_DATA = [
+    # Conformer1, Conformer2, heavy, rmsd, aligned_conformer, Umat
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_XTB_ROTATED,
+        False,
+        0.00000042,
+        CAFFEINE_XTB,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [
+                [0.000586, 0.025178, 0.999683],
+                [0.025178, 0.999366, -0.025185],
+                [-0.999683, 0.025185, -0.000049],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_OBABEL,
+        False,
+        0.13939435,
+        CAFFEINE_OBABEL_ALIGNED,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [
+                [0.165823, -0.986155, -0.000907],
+                [0.986155, 0.165823, 0.000503],
+                [-0.000346, -0.000978, 0.999999],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_XTB_ROTATED,
+        True,
+        0.00000042,
+        CAFFEINE_XTB,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [
+                [0.000586, 0.025178, 0.999683],
+                [0.025178, 0.999366, -0.025185],
+                [-0.999683, 0.025185, -0.000049],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_OBABEL,
+        True,
+        0.1725815540,
+        CAFFEINE_OBABEL_HEAVY_ALIGNED,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [
+                [0.171404, -0.9852, -0.001332],
+                [0.985201, 0.171405, -0.00012],
+                [0.000347, -0.001292, 0.999999],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+]
+
+
+CAFFEINE_AXIS_TEST_DATA = [
+    # Conformer1, rot constants in MHz, avmom in a.u., evec
+    (
+        CAFFEINE_XTB,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [1068.073127, 710.711798, 430.26121],
+            dtype=np.float64,
+        ),
+        1.30564546e-44,
+        np.asarray(
+            [
+                [0.671158, -0.741313, 0.001206],
+                [0.741314, 0.671157, -0.001149],
+                [0.000042, 0.001665, 0.999999],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+    (
+        CAFFEINE_OBABEL,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            [1146.303928, 700.554317, 438.439373],
+            dtype=np.float64,
+        ),
+        1.28135123e-44,
+        np.asarray(
+            [
+                [0.657967, 0.753046, -0.000501],
+                [0.753044, -0.657967, -0.002205],
+                [-0.00199, 0.001073, -0.999997],
+            ],
+            dtype=np.float64,
+        ),
+    ),
+]
+
+CAFFEINE_CN_TEST_DATA = [
+    # Conformer1, cn
+    (
+        CAFFEINE_OBABEL,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            # fmt: off
+            [3.689705,3.866219,2.934731,3.626334,3.144874,3.791101,2.768159,0.858364,2.743387,
+             2.716063,0.860503,2.747386,3.698299,3.698564,0.924137,0.924083,0.924084,0.925654,
+             0.924202,0.92413,0.924141,0.924245,0.924105,0.924098],
+            # fmt: on
+            dtype=np.float64,
+        ),
+    ),
+]
+
+CAFFEINE_CANONICAL_TEST_DATA = [
+    # Conformer1, heavy, canonical_atom_id
+    (
+        CAFFEINE_XTB,
+        False,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            # fmt: off
+                [1,8,5,7,13,14,12,6,10,9,2,11,4,3,15,15,15,18,17,17,17,16,16,16],
+            # fmt: on
+            dtype=int,
+        ),
+    ),
+    (
+        CAFFEINE_XTB,
+        True,
+        # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
+        np.asarray(
+            # fmt: off
+                [1,8,5,7,13,14,12,6,10,9,2,11,4,3,0,0,0,0,0,0,0,0,0,0],
+            # fmt: on
+            dtype=int,
+        ),
+    ),
+]
+
+CAFFEINE_IRMSD_TEST_DATA = [
+    # Conformer1, Conformer2, mask, rmsd, aligned_conformer, Umat
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_XTB,
+        0.00000000,
+        CAFFEINE_XTB,
+    ),
+    (
+        CAFFEINE_XTB,
+        CAFFEINE_XTB_ROTATED,
+        0.00000042,
+        CAFFEINE_XTB,
+    ),
+    (CAFFEINE_XTB, CAFFEINE_GFF, 0.06160473, CAFFEINE_GFF_ALIGNED),
+]
+
 
 @pytest.fixture(scope="session")
 def caffeine_molecule_xyz():
@@ -247,42 +441,37 @@ def caffeine_molecule_xyz_obabel():
     return CAFFEINE_OBABEL
 
 
-@pytest.fixture(
-    scope="session",
-    params=[
-        # Conformer1, Conformer2, rmsd, aligned_conformer, Umat
-        (
-            CAFFEINE_XTB,
-            CAFFEINE_XTB_ROTATED,
-            0.00000042,
-            CAFFEINE_XTB,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                [
-                    [0.000586, 0.025178, 0.999683],
-                    [0.025178, 0.999366, -0.025185],
-                    [-0.999683, 0.025185, -0.000049],
-                ],
-                dtype=np.float64,
-            ),
-        ),
-        (
-            CAFFEINE_XTB,
-            CAFFEINE_OBABEL,
-            0.13939435,
-            CAFFEINE_OBABEL_ALIGNED,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                [
-                    [0.165823, -0.986155, -0.000907],
-                    [0.986155, 0.165823, 0.000503],
-                    [-0.000346, -0.000978, 0.999999],
-                ],
-                dtype=np.float64,
-            ),
-        ),
-    ],
-)
+@pytest.fixture(scope="session")
+def caffeine_axis_test_data_all():
+    """Fixture that returns all caffeine axis test data."""
+    return CAFFEINE_AXIS_TEST_DATA
+
+
+@pytest.fixture(scope="session")
+def caffeine_cn_test_data_all():
+    """Fixture that returns all caffeine cn test data."""
+    return CAFFEINE_CN_TEST_DATA
+
+
+@pytest.fixture(scope="session")
+def caffeine_canonical_test_data_all():
+    """Fixture that returns all caffeine canonical test data."""
+    return CAFFEINE_CANONICAL_TEST_DATA
+
+
+@pytest.fixture(scope="session")
+def caffeine_irmsd_test_data_all():
+    """Fixture that returns all caffeine irmsd test data."""
+    return CAFFEINE_IRMSD_TEST_DATA
+
+
+@pytest.fixture(scope="session")
+def caffeine_rmsd_test_data_all():
+    """Fixture that returns all caffeine rmsd test data."""
+    return CAFFEINE_RMSD_TEST_DATA
+
+
+@pytest.fixture(scope="session", params=CAFFEINE_RMSD_TEST_DATA)
 def caffeine_rmsd_test_data(request):
     """Fixture that returns atom numbers and positions for caffeine molecule in
     different conformations."""
@@ -291,30 +480,7 @@ def caffeine_rmsd_test_data(request):
 
 @pytest.fixture(
     scope="session",
-    params=[
-        # Conformer1, rot constants in MHz, avmom in a.u., evec
-        (
-            CAFFEINE_XTB,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                [
-                    1068.073127,
-                    710.711798,
-                    430.26121,
-                ],
-                dtype=np.float64,
-            ),
-            1.30564546e-44,
-            np.asarray(
-                [
-                    [0.671158, -0.741313, 0.001206],
-                    [0.741314, 0.671157, -0.001149],
-                    [0.000042, 0.001665, 0.999999],
-                ],
-                dtype=np.float64,
-            ),
-        ),
-    ],
+    params=CAFFEINE_AXIS_TEST_DATA,
 )
 def caffeine_axis_test_data(request):
     return request.param
@@ -322,21 +488,7 @@ def caffeine_axis_test_data(request):
 
 @pytest.fixture(
     scope="session",
-    params=[
-        # Conformer1, cn
-        (
-            CAFFEINE_OBABEL,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                # fmt: off
-            [3.689705,3.866219,2.934731,3.626334,3.144874,3.791101,2.768159,0.858364,2.743387,
-             2.716063,0.860503,2.747386,3.698299,3.698564,0.924137,0.924083,0.924084,0.925654,
-             0.924202,0.92413,0.924141,0.924245,0.924105,0.924098],
-                # fmt: on
-                dtype=np.float64,
-            ),
-        ),
-    ],
+    params=CAFFEINE_CN_TEST_DATA,
 )
 def caffeine_cn_test_data(request):
     return request.param
@@ -344,31 +496,7 @@ def caffeine_cn_test_data(request):
 
 @pytest.fixture(
     scope="session",
-    params=[
-        # Conformer1, heavy, canonical_atom_id
-        (
-            CAFFEINE_XTB,
-            False,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                # fmt: off
-                [1,8,5,7,13,14,12,6,10,9,2,11,4,3,15,15,15,18,17,17,17,16,16,16],
-                # fmt: on
-                dtype=int,
-            ),
-        ),
-        (
-            CAFFEINE_XTB,
-            True,
-            # FIXME: check with crest, this is actually taken from this code itself but the rmsd is the same as crest
-            np.asarray(
-                # fmt: off
-                [1,8,5,7,13,14,12,6,10,9,2,11,4,3,0,0,0,0,0,0,0,0,0,0],
-                # fmt: on
-                dtype=int,
-            ),
-        ),
-    ],
+    params=CAFFEINE_CANONICAL_TEST_DATA,
 )
 def caffeine_canonical_test_data(request):
     return request.param
@@ -376,34 +504,7 @@ def caffeine_canonical_test_data(request):
 
 @pytest.fixture(
     scope="session",
-    params=[
-        # Conformer1, Conformer2, mask, rmsd, aligned_conformer, Umat
-        (
-            CAFFEINE_XTB,
-            CAFFEINE_XTB,
-            0.00000000,
-            CAFFEINE_XTB,
-        ),
-        (
-            CAFFEINE_XTB,
-            CAFFEINE_XTB_ROTATED,
-            0.00000042,
-            CAFFEINE_XTB,
-        ),
-        # (
-        #     CAFFEINE_XTB_CMA,
-        #     CAFFEINE_OBABEL_CMA,
-        #     0.13939435,
-        #     CAFFEINE_OBABEL_ALIGNED,
-        # ),
-        # (
-        #     CAFFEINE_XTB,
-        #     CAFFEINE_OBABEL,
-        #     0.13939435,
-        #     CAFFEINE_OBABEL_ALIGNED,
-        # ),
-        (CAFFEINE_XTB, CAFFEINE_GFF, 0.06160473, CAFFEINE_GFF_ALIGNED),
-    ],
+    params=CAFFEINE_IRMSD_TEST_DATA,
 )
 def caffeine_irmsd_test_data(request):
     conformer1, conformer2, expected_irmsd, expected_aligned_conformer = request.param
