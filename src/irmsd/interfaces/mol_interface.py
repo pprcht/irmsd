@@ -8,6 +8,7 @@ from ..core import Molecule
 
 #####################################################################################
 
+
 def get_energies_from_molecule_list(molecule_list):
     """
     Given a list of irmsd Molecule objects, call get_potential_energy() for each,
@@ -16,74 +17,19 @@ def get_energies_from_molecule_list(molecule_list):
     """
     energies = []
     for molecule in molecule_list:
-        e = molecule.get_potential_energy() # get energy, if stored
+        e = molecule.get_potential_energy()  # get energy, if stored
         energies.append(0.0 if e is None else float(e))
     return np.array(energies, dtype=float)
-
-
-def get_cn_molecule(molecule) -> Tuple["Molecule", np.ndarray]:
-    """
-    Optional utility: accepts irmsd Molecule, adapts to core get_cn_fortran, and
-    returns a numpy array with the coordination numbers per atom
-    """
-    from ..api.cn_exposed import get_cn_fortran
-
-    if not isinstance(molecule, Molecule):
-        raise TypeError("get_cn_molecule expects an irmsd.Molecule object")
-
-    Z = molecule.get_atomic_numbers()  # (N,)
-    pos = molecule.get_positions()  # (N, 3) float64
-
-    new_cn = get_cn_fortran(Z, pos)
-
-    return new_cn
-
-
-def get_axis_molecule(molecule) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Optional utility: accepts Molecule object, adapts to core get_axis, and
-    returns a numpy array with the rotation constants in Mhz, the average  momentum in a.u.
-    and the rot. matrix.
-    """
-    from ..api.axis_exposed import get_axis
-
-    if not isinstance(molecule, Molecule):
-        raise TypeError("get_cn_molecule expects an irmsd.Molecule object")
-
-    Z = molecule.get_atomic_numbers()  # (N,)
-    pos = molecule.get_positions()  # (N, 3) float64
-
-    rot, avmom, evec = get_axis(Z, pos)
-
-    return rot, avmom, evec
-
-
-def get_canonical_molecule(
-    molecule, wbo=None, invtype="apsp+", heavy: bool = False
-) -> np.ndarray:
-    """
-    Optional utility: accepts irmsd Molecule, adapts to core get_canonical_fortran, and
-    returns rank and invariants arrays.
-    """
-    from ..api.canonical_exposed import get_canonical_fortran
-
-    if not isinstance(molecule, Molecule):
-        raise TypeError("get_canonical_molecule expects an irmsd.Molecule object")
-
-    Z = molecule.get_atomic_numbers()  # (N,)
-    pos = molecule.get_positions()  # (N, 3) float64
-
-    rank = get_canonical_fortran(Z, pos, wbo=wbo, invtype=invtype, heavy=heavy)
-
-    return rank
 
 
 #########################################################################################
 
 
-def get_rmsd_molecule(molecule1, molecule2, mask=None) -> Tuple[float, "Molecule", np.ndarray]:
+def get_rmsd_molecule(
+    molecule1, molecule2, mask=None
+) -> Tuple[float, "Molecule", np.ndarray]:
     """
-    Optional irmsd utility: operate on TWO irmsd Molecule. Returns the RMSD in Angström,
+    Optional irmsd utility: operate on TWO irmsd.Molecule. Returns the RMSD in Angström,
     the modified second Molecule plus the 3×3 rotation matrix produced by
     the Fortran routine.
     """
@@ -106,7 +52,12 @@ def get_rmsd_molecule(molecule1, molecule2, mask=None) -> Tuple[float, "Molecule
     return rmsdval, new_molecule2, umat
 
 
-def get_irmsd_molecule(molecule1, molecule2, iinversion=0) -> Tuple[float, "Molecule", "Molecule"]:
+#########################################################################################
+
+
+def get_irmsd_molecule(
+    molecule1, molecule2, iinversion=0
+) -> Tuple[float, "Molecule", "Molecule"]:
     """
     Optional irmsd utility: operate on TWO irmsd Molecule. Returns the iRMSD in Angström,
     the modified second Molecule plus the 3×3 rotation matrix produced by
@@ -137,6 +88,8 @@ def get_irmsd_molecule(molecule1, molecule2, iinversion=0) -> Tuple[float, "Mole
 
 
 ####################################################################################
+
+
 def sorter_irmsd_molecule(
     molecule_list: Sequence["Molecule"],
     rthr: float,
@@ -176,7 +129,9 @@ def sorter_irmsd_molecule(
         )
 
     if len(molecule_list) == 0:
-        raise ValueError("molecule_list must contain at least one irmsd.Molecule object")
+        raise ValueError(
+            "molecule_list must contain at least one irmsd.Molecule object"
+        )
 
     for i, at in enumerate(molecule_list):
         if not isinstance(at, Molecule):
@@ -204,7 +159,8 @@ def sorter_irmsd_molecule(
 
         if P.shape != (nat, 3):
             raise ValueError(
-                "Each Molecule positions array must have shape (nat, 3); " f"got {P.shape}"
+                "Each Molecule positions array must have shape (nat, 3); "
+                f"got {P.shape}"
             )
 
         atom_numbers_list.append(Z)
@@ -244,6 +200,8 @@ def sorter_irmsd_molecule(
 
 
 ####################################################################################
+
+
 def delta_irmsd_list_molecule(
     molecule_list: Sequence["Molecule"],
     iinversion: int = 0,
@@ -280,7 +238,9 @@ def delta_irmsd_list_molecule(
         )
 
     if len(molecule_list) == 0:
-        raise ValueError("molecule_list must contain at least one irmsd.Molecule object")
+        raise ValueError(
+            "molecule_list must contain at least one irmsd.Molecule object"
+        )
 
     for i, at in enumerate(molecule_list):
         if not isinstance(at, Molecule):
@@ -308,7 +268,8 @@ def delta_irmsd_list_molecule(
 
         if P.shape != (nat, 3):
             raise ValueError(
-                "Each Molecule positions array must have shape (nat, 3); " f"got {P.shape}"
+                "Each Molecule positions array must have shape (nat, 3); "
+                f"got {P.shape}"
             )
 
         atom_numbers_list.append(Z)
