@@ -5,7 +5,7 @@ from .api.axis_exposed import get_axis_fortran
 from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 from .api.irmsd_exposed import get_irmsd
-from .api.sorter_exposed import sorter_irmsd
+from .api.sorter_exposed import sorter_irmsd,delta_irmsd_list
 from . import sorting
 
 # ---- Core API (what you already had) ----------------------------------------
