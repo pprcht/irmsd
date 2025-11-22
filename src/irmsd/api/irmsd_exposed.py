@@ -7,7 +7,7 @@ import numpy as np
 from ..bindings import irmsd_exposed as _F
 
 
-def get_irmsd_fortran(
+def get_irmsd(
     atom_numbers1: np.ndarray,
     positions1: np.ndarray,
     atom_numbers2: np.ndarray,

@@ -91,7 +91,11 @@ def read_structures(paths: List[str]) -> List["Atoms"]:
     atoms_list: List["Atoms"] = []
     for p in paths:
         try:
-            frames = ase_read(p, index=":")
+            ext = p.lower().endswith(".xyz")
+            if ext :
+               frames = ase_read(p, index=":", format="extxyz")  # force XYZ reader
+            else:
+               frames = ase_read(p, index=":")  # let ASE guess
             atoms = check_frames(frames, p)
             if isinstance(atoms, list):
                 atoms_list.extend(atoms)  # add elements individually

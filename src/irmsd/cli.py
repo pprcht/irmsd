@@ -124,7 +124,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort.add_argument(
         "--rthr",
         type=float,
-        required=True,
+        required=False,
+        default=0.125,  # empirical defualt for typical molecules
         help=(
             "Inter-structure RMSD threshold for sorting in Angström. "
             "Structures closer than this threshold are treated as similar."
@@ -140,9 +141,23 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_sort.add_argument(
+        "--align",
+        action="store_true",
+        help=("Just sort by energy and align."),
+    )
+    p_sort.add_argument(
         "--heavy",
         action="store_true",
-        help=("When sorting structures, consider only heavy atoms."),
+        # help=("When sorting structures, consider only heavy atoms."),
+        help=("TODO for sorting routines"),
+    )
+    p_sort.add_argument(
+        "--maxprint",
+        type=int,
+        default=25,
+        help=(
+            "Printout option; determine how man rows are printed for each sorted ensemble."
+        ),
     )
     p_sort.add_argument(
         "-o",
@@ -217,14 +232,28 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.command == "sort":
         atoms_list = irmsd.read_structures(args.structures)
 
-        # TODO:
-        # irmsd.sort_structures_and_print(
-        #    atoms_list,
-        #    rthr=args.rthr,
-        #    inversion=args.inversion,
-        #    heavy=heavy,
-        #    outfile=args.output,
-        # )
+        if args.heavy:
+            print('Heavy-atom mapping in sorting functionality is TODO. Sorry.')
+            return 1
+
+        if args.align:
+            irmsd.sort_get_delta_irmsd_and_print(
+                atoms_list,
+                inversion=args.inversion,
+                printlvl=1,
+                maxprint=args.maxprint,
+                outfile=args.output,
+            )
+
+        else:
+            irmsd.sort_structures_and_print(
+                atoms_list,
+                rthr=args.rthr,
+                inversion=args.inversion,
+                printlvl=1,
+                maxprint=args.maxprint,
+                outfile=args.output,
+            )
 
         return 0
 

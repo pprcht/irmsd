@@ -180,7 +180,7 @@ def get_irmsd_rdkit(
 
     from rdkit import Chem
 
-    from ..api.irmsd_exposed import get_irmsd_fortran
+    from ..api.irmsd_exposed import get_irmsd
 
     if not isinstance(molecule_ref, Chem.Mol) or not isinstance(
         molecule_align, Chem.Mol
@@ -199,7 +199,7 @@ def get_irmsd_rdkit(
     Z2 = get_atom_numbers_rdkit(molecule_align)
     P2 = conformer_align.GetPositions()
 
-    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd_fortran(
+    irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd(
         Z1, P1, Z2, P2, iinversion=iinversion
     )
 
