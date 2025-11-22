@@ -30,7 +30,7 @@ _PERIODIC = {
 
 
 @dataclass
-class Mol:
+class Molecule:
     """
     Lightweight replacement for ase.Atoms.
 

@@ -1,7 +1,7 @@
 # src/irmsd/__init__.py
 from __future__ import annotations
 
-from .core.mol import Mol
+from .core.molecule import Molecule
 from .api.axis_exposed import get_axis
 from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
@@ -22,7 +22,7 @@ try:
     )
 except Exception:
     pass
-
+# Same for RDkit
 try:
     from .interfaces.rdkit_io import (
         get_axis_rdkit,
