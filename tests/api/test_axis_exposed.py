@@ -1,7 +1,7 @@
 import pytest
 from helpers.utils import get_atom_num_and_pos_from_xyz
 
-from irmsd.api.axis_exposed import get_axis_fortran
+from irmsd.api.axis_exposed import get_axis
 
 
 def test_get_axis_fortran(caffeine_axis_test_data):
@@ -11,7 +11,7 @@ def test_get_axis_fortran(caffeine_axis_test_data):
         positions1,
     ) = get_atom_num_and_pos_from_xyz(conformer1)
 
-    rot, avmom, evec = get_axis_fortran(
+    rot, avmom, evec = get_axis(
         atom_numbers1,
         positions1,
     )

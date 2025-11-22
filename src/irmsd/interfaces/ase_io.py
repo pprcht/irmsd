@@ -4,7 +4,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .utils import require_ase
+from ..utils.utils import require_ase
 
 
 #####################################################################################
@@ -92,7 +92,7 @@ def get_axis_ase(atoms) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     from ase import Atoms
 
-    from ..api.axis_exposed import get_axis_fortran
+    from ..api.axis_exposed import get_axis
 
     if not isinstance(atoms, Atoms):
         raise TypeError("get_cn_ase expects an ase.Atoms object")
@@ -100,7 +100,7 @@ def get_axis_ase(atoms) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     Z = atoms.get_atomic_numbers()  # (N,)
     pos = atoms.get_positions()  # (N, 3) float64
 
-    rot, avmom, evec = get_axis_fortran(Z, pos)
+    rot, avmom, evec = get_axis(Z, pos)
 
     return rot, avmom, evec
 

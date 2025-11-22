@@ -7,7 +7,7 @@ pytest.importorskip("ase")
 import ase
 from ase.io import read as ase_read
 
-from irmsd.utils.ase_io import (
+from irmsd.interfaces.ase_io import (
     get_axis_ase,
     get_canonical_ase,
     get_cn_ase,

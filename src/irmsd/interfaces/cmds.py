@@ -22,8 +22,8 @@ except Exception:  # pragma: no cover
     get_axis_ase = None  # type: ignore
     get_canonical_ase = None  # type: ignore
 
-from .utils import print_array, print_structur, require_ase
-from .printouts import print_structure_summary
+from ..utils.utils import print_array, print_structur, require_ase
+from ..utils.printouts import print_structure_summary
 from ..sorting import first_by_assignment, group_by, sort_by_value
 
 if TYPE_CHECKING:

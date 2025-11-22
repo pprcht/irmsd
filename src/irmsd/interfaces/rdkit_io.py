@@ -5,7 +5,7 @@ from typing import Sequence, Tuple
 
 import numpy as np
 
-from .utils import require_rdkit
+from ..utils.utils import require_rdkit
 
 
 def conformer_iterator(molecule: "Mol", conf_ids: list[int]) -> "Conformer":
@@ -66,7 +66,7 @@ def get_axis_rdkit(
 
     from rdkit import Chem
 
-    from ..api.axis_exposed import get_axis_fortran
+    from ..api.axis_exposed import get_axis
 
     if not isinstance(molecule, Chem.Mol):
         raise TypeError("rdkit_to_fortran_pair expects rdkit.Chem.Mol objects")
@@ -84,7 +84,7 @@ def get_axis_rdkit(
             raise ValueError("get_axis_rdkit expects 3D conformers")
 
         pos = conformer.GetPositions()
-        rot, avmom, evec = get_axis_fortran(Z, pos)
+        rot, avmom, evec = get_axis(Z, pos)
         all_rot.append(rot)
         all_avmom.append(avmom)
         all_evec.append(evec)

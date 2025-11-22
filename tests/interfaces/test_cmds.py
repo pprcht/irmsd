@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from ase.io import read as ase_read
 
-from irmsd.utils.cmds import (
+from irmsd.interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,

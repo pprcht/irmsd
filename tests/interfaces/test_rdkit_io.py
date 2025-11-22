@@ -5,7 +5,7 @@ pytest.importorskip("rdkit")
 
 from rdkit import Chem
 
-from irmsd.utils.rdkit_io import (
+from irmsd.interfaces.rdkit_io import (
     get_axis_rdkit,
     get_canonical_rdkit,
     get_cn_rdkit,
