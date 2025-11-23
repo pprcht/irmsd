@@ -53,6 +53,7 @@ except Exception:
     pass
 
 __all__ = [
+    "Molecule",
     # core API
     "get_cn_fortran",
     "get_axis",
@@ -73,9 +74,6 @@ __all__ = [
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
     "get_irmsd_rdkit",
-    # utils
-    "read_structures",
-    "print_array",
     # sorting
     "sorting",
     # optional cmds
