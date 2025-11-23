@@ -26,19 +26,18 @@ __all__ = [
 # Dependency guard
 # -----------------------------------------------------------------------------
 
-
-def require_ase() -> None:
-    """Ensure ASE is importable; raise a helpful ImportError otherwise.
-
-    Use this at the *start* of any function that depends on ASE. We keep this
-    separate so that importing `irmsd` does not immediately require ASE.
+def require_ase() -> ModuleType:
+    """
+    Import and return the ASE module, or raise a clear error if it is missing.
     """
     try:
-        import ase  # noqa: F401
-    except Exception as e:  # pragma: no cover
-        raise ImportError(
-            "ASE is required for this function. Install optional extra: pip install 'irmsd[ase]'"
-        ) from e
+        import ase  # type: ignore[import]
+    except ImportError as exc:
+        raise RuntimeError(
+            "This function requires ASE, but it is not installed. "
+            "Install it with `pip install ase`."
+        ) from exc
+    return ase
 
 
 def require_rdkit() -> None:

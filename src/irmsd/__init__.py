@@ -13,6 +13,7 @@ from . import sorting
 # Try to expose ase_to_fortran if ASE is present; otherwise export a stub that errors nicely.
 try:
     from .interfaces.ase_io import (
+        ase_to_molecule,
         get_axis_ase,
         get_canonical_ase,
         get_cn_ase,
@@ -62,6 +63,7 @@ __all__ = [
     "get_irmsd",
     "sorter_irmsd",
     # ase utils
+    "ase_to_molecule",
     "get_cn_ase",
     "get_axis_ase",
     "get_canonical_ase",

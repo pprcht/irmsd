@@ -29,6 +29,9 @@ _PERIODIC = {
     "Rg": 111, "Cn": 112,
     "Nh": 113, "Fl": 114, "Mc": 115, "Lv": 116, "Ts": 117, "Og": 118,
 }
+
+# Precomputed inverse table: Z → symbol
+_INV_PERIODIC = {Z: sym for sym, Z in _PERIODIC.items()}
 # fmt: on
 
 
@@ -165,6 +168,23 @@ class Molecule:
 
         return "".join(fragments)
 
+    def copy(self) -> "Molecule":
+        """
+        Return a deep copy of the Molecule.
+
+        All arrays (positions, numbers, cell) are copied, and both `info` and
+        `symbols` are duplicated so that modifying the copy has no effect on
+        the original.
+        """
+        return Molecule(
+            symbols=list(self.symbols),
+            positions=self.positions.copy(),
+            energy=self.energy,
+            info=dict(self.info),
+            cell=None if self.cell is None else self.cell.copy(),
+            pbc=None if self.pbc is None else tuple(self.pbc),
+        )
+
     # --- Optional setters ------------------------------------------------------
     def set_positions(self, positions: Sequence[Sequence[float]]) -> None:
         new_pos = np.ascontiguousarray(positions, dtype=np.float64)
@@ -174,6 +194,18 @@ class Molecule:
 
     def set_potential_energy(self, energy: float | None):
         self.energy = None if energy is None else float(energy)
+
+    def set_atomic_numbers(self, numbers: Sequence[int]) -> None:
+        if len(numbers) != self.natoms:
+            raise ValueError(
+                f"Expected {self.natoms} atomic numbers, got {len(numbers)}"
+            )
+        Z = np.ascontiguousarray(numbers, dtype=np.int32)
+        self.numbers = Z
+        try:
+            self.symbols = [_INV_PERIODIC[int(z)] for z in Z]
+        except KeyError as e:
+            raise KeyError(f"Unknown atomic number: {e.args[0]}") from e
 
     # --- Larger Functions interfaced to Fortran ---------------------------------
     def get_cn(self) -> np.ndarray:
