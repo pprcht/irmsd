@@ -5,86 +5,62 @@ from typing import TYPE_CHECKING, List, Tuple
 import os
 import numpy as np
 
-try:
-    from .ase_io import (
-        get_energy_ase,
-        get_energies_from_atoms_list,
-        get_axis_ase,
-        get_canonical_ase,
-        get_cn_ase,
-        get_irmsd_ase,
-        get_rmsd_ase,
-        sorter_irmsd_ase,
-        delta_irmsd_list_ase,
-    )
-except Exception:  # pragma: no cover
-    get_cn_ase = None  # type: ignore
-    get_axis_ase = None  # type: ignore
-    get_canonical_ase = None  # type: ignore
-
-from ..utils.utils import print_array, print_structur, require_ase
-from ..utils.printouts import print_structure_summary
+from ..utils.utils import require_ase
+from ..utils.printouts import print_array,print_structure,print_structure_summary
 from ..sorting import first_by_assignment, group_by, sort_by_value
+from ..core import Molecule
+from .mol_interface import (
+    get_energies_from_molecule_list,
+    get_rmsd_molecule,
+    get_irmsd_molecule,
+    sorter_irmsd_molecule,
+    delta_irmsd_list_molecule,
+)
 
-if TYPE_CHECKING:
-    from ase import Atoms  # type: ignore
 
-__all__ = ["compute_cn_and_print", "compute_axis_and_print"]
-
-
-def compute_cn_and_print(atoms_list: Sequence["Atoms"]) -> List[np.ndarray]:
+def compute_cn_and_print(molecule_list: Sequence["Molecule"]) -> List[np.ndarray]:
     """Compute coordination numbers for each structure and print them.
 
     Parameters
     ----------
-    atoms_list : list[ase.Atoms]
+    molecule_list : list[irmsd.Molecule]
         Structures to analyze.
 
     Returns
     -------
     list[np.ndarray]
-        One integer array per structure, same order as ``atoms_list``.
+        One integer array per structure, same order as ``molecule_list``.
     """
-    # Ensure ASE is present only when this command is actually invoked
-    require_ase()
 
     results: List[np.ndarray] = []
-    for i, atoms in enumerate(atoms_list, start=1):
-        if get_cn_ase is not None:
-            cn_vec = get_cn_ase(atoms)
-        else:
-            cn_vec = None
+    for i, mol in enumerate(molecule_list, start=1):
+        cn_vec = mol.get_cn()
         results.append(cn_vec)
-        print_array(f"CN[ structure {i} ] (n={len(atoms)})", cn_vec)
+        print_array(f"CN[ structure {i} ] (n={len(mol)})", cn_vec)
     return results
 
 
 def compute_axis_and_print(
-    atoms_list: Sequence["Atoms"],
+    molecule_list: Sequence["Molecule"],
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Compute rotational constants, averge momentum and rotation matrix for
     each structure and prints them.
 
     Parameters
     ----------
-    atoms_list : list[ase.Atoms]
+    molecule_list : list[irmsd.Molecule]
         Structures to analyze.
 
     Returns
     -------
     list[np.ndarray, np.ndarray, np.ndarray]
         One float array with the 3 rotational constants, one float with the average momentum
-        and one float array with the rotation matrix (3, 3) per structure, same order as ``atoms_list``.
+        and one float array with the rotation matrix (3, 3) per structure, same order as ``molecule_list``.
     """
-    # Ensure ASE is present only when this command is actually invoked
-    require_ase()
 
     results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
-    for i, atoms in enumerate(atoms_list, start=1):
-        if get_axis_ase is not None:
-            rot, avmom, evec = get_axis_ase(atoms)
-        else:
-            rot, avmom, evec = None, None, None
+    for i, mol in enumerate(molecule_list, start=1):
+        rot, avmom, evec = mol.get_axis()
         results.append((rot, avmom, evec))
         print_array(f"Rotational constants (MHz) for structure {i}", rot)
         print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
@@ -93,85 +69,79 @@ def compute_axis_and_print(
 
 
 def compute_canonical_and_print(
-    atoms_list: Sequence["Atoms"], heavy=False
+    molecule_list: Sequence["Molecule"], heavy=False
 ) -> List[np.ndarray]:
     """Computes the canonical atom identifiers for each structure and prints
     them.
 
     Parameters
     ----------
-    atoms_list : list[ase.Atoms]
+    molecule_list : list[irmsd.Molecule]
         Structures to analyze.
 
     Returns
     -------
     list[np.ndarray]
-        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+        One integer array with the canonical ranks per structure, same order as ``molecule_list``.
     """
-    # Ensure ASE is present only when this command is actually invoked
-    require_ase()
 
     results: List[np.ndarray] = []
-    for i, atoms in enumerate(atoms_list, start=1):
-        if get_canonical_ase is not None:
-            rank = get_canonical_ase(atoms, heavy=heavy)
-        else:
-            rank = None
+    for i, mol in enumerate(molecule_list, start=1):
+        rank = mol.get_canonical(heavy=heavy)
         results.append(rank)
         print_array(f"Canonical rank for structure {i}", rank)
     return results
 
 
 def compute_quaternion_rmsd_and_print(
-    atoms_list: Sequence["Atoms"], heavy=False, outfile=None
+    molecule_list: Sequence["Molecule"], heavy=False, outfile=None
 ) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
 
     Parameters
     ----------
-    atoms_list : list[ase.Atoms]
+    molecule_list : list[irmsd.Molecule]
         Structures to analyze. Must contain exactly two strucutres
 
     Returns
     -------
     list[np.ndarray]
-        One integer array with the canonical ranks per structure, same order as ``atoms_list``.
+        One integer array with the canonical ranks per structure, same order as ``molecule_list``.
     """
-    # Ensure ASE is present only when this command is actually invoked
-    require_ase()
-    from ase.io import write as asewrite
 
     print("Reference structure:")
-    print_structur(atoms_list[0])
+    print_structure(molecule_list[0])
     print("Structure to align:")
-    print_structur(atoms_list[1])
+    print_structure(molecule_list[1])
     if heavy:
-        mask0 = atoms_list[0].get_atomic_numbers() > 1
+        mask0 = molecule_list[0].get_atomic_numbers() > 1
     else:
         mask0 = None
-    rmsd, new_atoms, umat = get_rmsd_ase(atoms_list[0], atoms_list[1], mask=mask0)
+    rmsd, new_atoms, umat = get_rmsd_molecule(
+        molecule_list[0], molecule_list[1], mask=mask0
+    )
 
     if outfile is not None:
         print(f"\nAligned structure written to {outfile}")
         asewrite(outfile, new_atoms)
     else:
         print("Aligned structure:")
-        print_structur(new_atoms)
+        print_structure(new_atoms)
 
     print_array("\nU matrix (Fortran order)", umat)
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
 
 
 def compute_irmsd_and_print(
-    atoms_list: Sequence["Atoms"], inversion=None, outfile=None
+    molecule_list: Sequence["Molecule"], inversion=None, outfile=None
 ) -> None:
     """Computes the iRMSD between a SINGLE PAIR of molecules and print the
     iRMSD value.
 
     Parameters
     ----------
-    atoms_list : list[ase.Atoms]
+    molecule_list : list[irmsd.Molecule]
         Structures to analyze. Must contain exactly two strucutres
     inversion :
         parameter to instruct inversion in iRMSD routine
@@ -180,23 +150,20 @@ def compute_irmsd_and_print(
     -------
     None
     """
-    # Ensure ASE is present only when this command is actually invoked
-    require_ase()
-    from ase.io import write as asewrite
 
     if inversion is not None:
         print(f"Inversion check: {inversion}\n")
 
     print("Reference structure:")
-    print_structur(atoms_list[0])
+    print_structure(molecule_list[0])
     print("Structure to align:")
-    print_structur(atoms_list[1])
+    print_structure(molecule_list[1])
 
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
-    irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_ase(
-        atoms_list[0], atoms_list[1], iinversion=iinversion
+    irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_molecule(
+        molecule_list[0], molecule_list[1], iinversion=iinversion
     )
 
     if outfile is not None:
@@ -210,36 +177,36 @@ def compute_irmsd_and_print(
         asewrite(outfile_aligned, new_atoms_aligned)
     else:
         print("Aligned reference structure:")
-        print_structur(new_atoms_ref)
+        print_structure(new_atoms_ref)
         print()
         print("Aligned probe structure:")
-        print_structur(new_atoms_aligned)
+        print_structure(new_atoms_aligned)
 
     print(f"\niRMSD: {irmsd_value:.10f} Å")
 
 
 def sort_structures_and_print(
-    atoms_list: Sequence["Atoms"],
+    molecule_list: Sequence["Molecule"],
     rthr: float,
     inversion: str = None,
     allcanon: bool = True,
     printlvl: int = 0,
-    maxprint: int  = 25,
+    maxprint: int = 25,
     outfile: str | None = None,
 ) -> None:
     """
     Convenience wrapper around presorted_sort_structures_and_print:
 
-    - Analyzes the atoms_list to separate them by composition
+    - Analyzes the molecule_list to separate them by composition
     - Sorts by energy if applicable.
     - Calls presorted_sort_structures_and_print for each group
 
     Parameters
     ----------
-    atoms_list : sequence of ase.Atoms
+    molecule_list : sequence of irmsd.Molecule
         Input structures.
     rthresh : float
-        Distance threshold for sorter_irmsd_ase.
+        Distance threshold for sorter_irmsd_molecule.
     inversion : str, optional
         Inversion symmetry flag, passed through.
     allcanon : bool, optional
@@ -250,78 +217,78 @@ def sort_structures_and_print(
         Max number of lines to print for each structure result table
     outfile : str or None, optional
         If not None, write all resulting structures to this file
-        (e.g. 'sorted.xyz') using ASE's write function.
+        (e.g. 'sorted.xyz') using a write function.
         Gets automatic name appendage if there are more than one
-        type of molecule in the atoms_list
+        type of molecule in the molecule_list
     """
-    require_ase()
-    from ase.io import write  # local import after require_ase
 
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
-    # sort the atoms_list by chemical sum formula
-    mol_dict = group_by(atoms_list, key=lambda a: a.get_chemical_formula(mode="hill"))
+    # sort the molecule_list by chemical sum formula
+    mol_dict = group_by(
+        molecule_list, key=lambda a: a.get_chemical_formula(mode="hill")
+    )
 
     if len(mol_dict) == 1:
         # Exactly one molecule type
-        key, atoms_list = next(iter(mol_dict.items()))
+        key, molecule_list = next(iter(mol_dict.items()))
         # Sort by energy (if possible)
-        energies = get_energies_from_atoms_list(atoms_list)
-        atoms_list, energies = sort_by_value(atoms_list,energies)
+        energies = get_energies_from_molecule_list(molecule_list)
+        molecule_list, energies = sort_by_value(molecule_list, energies)
         print()
         mol_dict[key] = Presorted_sort_structures_and_print(
-            atoms_list, rthr, inversion, allcanon, printlvl, outfile
+            molecule_list, rthr, iinversion, allcanon, printlvl, outfile
         )
-        irmsdvals,_ = delta_irmsd_list_ase(
+        irmsdvals, _ = delta_irmsd_list_molecule(
             mol_dict[key], iinversion, allcanon=False, printlvl=0
         )
-        energies = get_energies_from_atoms_list(mol_dict[key]) 
-        print_structure_summary(key,energies,irmsdvals,max_rows=maxprint)
+        energies = get_energies_from_molecule_list(mol_dict[key])
+        print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
 
     else:
         # Multiple molecule types
-        for key, atoms_list in mol_dict.items():
+        for key, molecule_list in mol_dict.items():
             if outfile is not None:
                 root, ext = os.path.splitext(outfile)
                 outfile_key = f"{root}_{key}{ext}"
             else:
                 outfile_key = None
             # Sort by energy (if possible)
-            energies = get_energies_from_atoms_list(atoms_list)
-            atoms_list, energies = sort_by_value(atoms_list,energies) 
+            energies = get_energies_from_molecule_list(molecule_list)
+            molecule_list, energies = sort_by_value(molecule_list, energies)
             print()
             mol_dict[key] = Presorted_sort_structures_and_print(
-                atoms_list, rthr, inversion, allcanon, printlvl, outfile_key
+                molecule_list, rthr, iinversion, allcanon, printlvl, outfile_key
             )
-            irmsdvals,_ = delta_irmsd_list_ase(   
-                mol_dict[key], iinversion, allcanon=False, printlvl=0 
-            )                                                 
-            energies = get_energies_from_atoms_list(mol_dict[key])
-            print_structure_summary(key,energies,irmsdvals,max_rows=maxprint) 
+            irmsdvals, _ = delta_irmsd_list_molecule(
+                mol_dict[key], iinversion, allcanon=False, printlvl=0
+            )
+            energies = get_energies_from_molecule_list(mol_dict[key])
+            print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
 
 
 def Presorted_sort_structures_and_print(
-    atoms_list: Sequence["Atoms"],
+    molecule_list: Sequence["Molecule"],
     rthr: float,
-    inversion: str = None,
+    iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
     outfile: str | None = None,
 ) -> None:
     """
-    Convenience wrapper around sorter_irmsd_ase:
+    Convenience wrapper around sorter_irmsd_molecule:
 
-    - Calls sorter_irmsd_ase on the given list of ASE Atoms.
+    - Calls sorter_irmsd_molecule on the given list of ASE Molecule.
     - Prints the resulting groups array.
     - Optionally writes all resulting structures to `outfile` via ASE.
 
     Parameters
     ----------
-    atoms_list : sequence of ase.Atoms
+    molecule_list : sequence of irmsd.Molecule
         Input structures.
     rthresh : float
-        Distance threshold for sorter_irmsd_ase.
+        Distance threshold for sorter_irmsd_molecule.
     iinversion : int, optional
         Inversion symmetry flag, passed through.
     allcanon : bool, optional
@@ -330,17 +297,12 @@ def Presorted_sort_structures_and_print(
         Verbosity level, passed through.
     outfile : str or None, optional
         If not None, write all resulting structures to this file
-        (e.g. 'sorted.xyz') using ASE's write function.
+        (e.g. 'sorted.xyz') using a write function.
     """
-    require_ase()
-    from ase.io import write  # local import after require_ase
-
-    if inversion is not None:
-        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
     # Call the ASE-level sorter
-    groups, new_atoms_list = sorter_irmsd_ase(
-        atoms_list=atoms_list,
+    groups, new_molecule_list = sorter_irmsd_molecule(
+        molecule_list=molecule_list,
         rthr=rthr,
         iinversion=iinversion,
         allcanon=allcanon,
@@ -349,38 +311,42 @@ def Presorted_sort_structures_and_print(
 
     # Print groups to screen
     repr = np.max(groups)
-    print(f"List of structures was processed: {repr} group{'s' if repr != 1 else ''}.")
+    if printlvl > 0:
+        print(
+            f"List of structures was processed: {repr} group{'s' if repr != 1 else ''}."
+        )
 
-    new_atoms_list = first_by_assignment(new_atoms_list, groups)
+    new_molecule_list = first_by_assignment(new_molecule_list, groups)
 
     # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
     if outfile is not None:
-        write(outfile, new_atoms_list)
-        print(
-            f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
-        )
+        write(outfile, new_molecule_list)
+        if printlvl > 0:
+            print(
+                f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
+            )
 
-    return new_atoms_list
+    return new_molecule_list
 
 
 def sort_get_delta_irmsd_and_print(
-    atoms_list: Sequence["Atoms"],
+    molecule_list: Sequence["Molecule"],
     inversion: str = None,
     allcanon: bool = True,
     printlvl: int = 0,
-    maxprint: int  = 25,
+    maxprint: int = 25,
     outfile: str | None = None,
 ) -> None:
     """
     Convenience wrapper around presorted_sort_structures_and_print:
 
-    - Analyzes the atoms_list to separate them by composition
+    - Analyzes the molecule_list to separate them by composition
     - Sorts by energy if applicable.
     - Calculates iRMSD between structures x_i and x_i-1
 
     Parameters
     ----------
-    atoms_list : sequence of ase.Atoms
+    molecule_list : sequence of irmsd.Molecule
         Input structures.
     inversion : str, optional
         Inversion symmetry flag, passed through.
@@ -392,47 +358,46 @@ def sort_get_delta_irmsd_and_print(
         Max number of lines to print for each structure result table
     outfile : str or None, optional
         If not None, write all resulting structures to this file
-        (e.g. 'sorted.xyz') using ASE's write function.
+        (e.g. 'sorted.xyz') using a write function.
         Gets automatic name appendage if there are more than one
-        type of molecule in the atoms_list
+        type of molecule in the molecule_list
     """
-    require_ase()
-    from ase.io import write  # local import after require_ase
 
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
-    # sort the atoms_list by chemical sum formula
-    mol_dict = group_by(atoms_list, key=lambda a: a.get_chemical_formula(mode="hill"))
+    # sort the molecule_list by chemical sum formula
+    mol_dict = group_by(
+        molecule_list, key=lambda a: a.get_chemical_formula(mode="hill")
+    )
 
     if len(mol_dict) == 1:
         # Exactly one molecule type
-        key, atoms_list = next(iter(mol_dict.items()))
+        key, molecule_list = next(iter(mol_dict.items()))
         # Sort by energy (if possible)
-        energies = get_energies_from_atoms_list(atoms_list)
-        atoms_list, energies = sort_by_value(atoms_list,energies)
+        energies = get_energies_from_molecule_list(molecule_list)
+        molecule_list, energies = sort_by_value(molecule_list, energies)
         print()
-        irmsdvals,mol_dict[key] = delta_irmsd_list_ase(
-            atoms_list, iinversion, allcanon, printlvl
+        irmsdvals, mol_dict[key] = delta_irmsd_list_molecule(
+            molecule_list, iinversion, allcanon, printlvl
         )
-        energies = get_energies_from_atoms_list(mol_dict[key])
-        print_structure_summary(key,energies,irmsdvals,max_rows=maxprint)
+        energies = get_energies_from_molecule_list(mol_dict[key])
+        print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
 
     else:
         # Multiple molecule types
-        for key, atoms_list in mol_dict.items():
+        for key, molecule_list in mol_dict.items():
             if outfile is not None:
                 root, ext = os.path.splitext(outfile)
                 outfile_key = f"{root}_{key}{ext}"
             else:
                 outfile_key = None
             # Sort by energy (if possible)
-            energies = get_energies_from_atoms_list(atoms_list)
-            atoms_list, energies = sort_by_value(atoms_list,energies) 
+            energies = get_energies_from_molecule_list(molecule_list)
+            molecule_list, energies = sort_by_value(molecule_list, energies)
             print()
-            irmsdvals,mol_dict[key] = delta_irmsd_list_ase(
-                atoms_list, iinversion, allcanon, printlvl
+            irmsdvals, mol_dict[key] = delta_irmsd_list_molecule(
+                molecule_list, iinversion, allcanon, printlvl
             )
-            energies = get_energies_from_atoms_list(mol_dict[key])
-            print_structure_summary(key,energies,irmsdvals,max_rows=maxprint) 
-
+            energies = get_energies_from_molecule_list(mol_dict[key])
+            print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)

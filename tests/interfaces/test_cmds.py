@@ -11,6 +11,7 @@ from irmsd.interfaces.cmds import (
     compute_irmsd_and_print,
     compute_quaternion_rmsd_and_print,
 )
+from irmsd.utils.xyz import read_extxyz
 
 
 @pytest.fixture(scope="module")
@@ -23,7 +24,7 @@ def axis_test_data(caffeine_axis_test_data_all):
     expected_evecs = []
     for xyz_string, rot, avmom, evecs in CAFFEINE_AXIS_TEST_DATA:
         xyz_file = StringIO(xyz_string)
-        atoms_list.append(ase_read(xyz_file, format="xyz"))
+        atoms_list.append(read_extxyz(xyz_file))
         expected_rot.append(rot)
         expected_avmom.append(avmom)
         expected_evecs.append(evecs)
@@ -48,7 +49,7 @@ def cn_test_data(caffeine_cn_test_data_all):
     expected_cn = []
     for xyz_string, cn in CAFFEINE_CN_TEST_DATA:
         xyz_file = StringIO(xyz_string)
-        atoms_list.append(ase_read(xyz_file, format="xyz"))
+        atoms_list.append(read_extxyz(xyz_file))
         expected_cn.append(cn)
 
     return atoms_list, expected_cn
@@ -71,7 +72,7 @@ def canonical_test_data(caffeine_canonical_test_data_all):
     for xyz_string, heavy, rank in CAFFEINE_CANONICAL_TEST_DATA:
         xyz_file = StringIO(xyz_string)
         k = 1 if heavy else 0
-        atoms_list[k].append(ase_read(xyz_file, format="xyz"))
+        atoms_list[k].append(read_extxyz(xyz_file))
         expected_ranks[k].append(rank)
 
     return atoms_list, heavies, expected_ranks

@@ -36,23 +36,17 @@ except Exception:
     pass
 
 # ---- New: re-export Python utilities ----------------------------------------
-from .utils.utils import print_array
 from .utils.io import read_structures
 
-# ---- Optional: command helpers ----------
-try:
-    from .interfaces.cmds import (
-        compute_axis_and_print,
-        compute_canonical_and_print,
-        compute_cn_and_print,
-        compute_irmsd_and_print,
-        compute_quaternion_rmsd_and_print,
-        sort_structures_and_print,
-        sort_get_delta_irmsd_and_print,
-    )
-except Exception:
-    # Safe to ignore so `import irmsd` never breaks due to optional pieces.
-    pass
+from .interfaces.cmds import (
+    compute_axis_and_print,
+    compute_canonical_and_print,
+    compute_cn_and_print,
+    compute_irmsd_and_print,
+    compute_quaternion_rmsd_and_print,
+    sort_structures_and_print,
+    sort_get_delta_irmsd_and_print,
+)
 
 __all__ = [
     "Molecule",

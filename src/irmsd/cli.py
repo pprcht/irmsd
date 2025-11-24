@@ -182,7 +182,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     if args.command == "prop":
         molecule_list = irmsd.read_structures(args.structures)
  
-        breakpoint()
         ran_any = False
 
         if args.cn:
