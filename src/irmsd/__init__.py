@@ -36,7 +36,8 @@ except Exception:
     pass
 
 # ---- New: re-export Python utilities ----------------------------------------
-from .utils.utils import print_array, read_structures
+from .utils.utils import print_array
+from .utils.io import read_structures
 
 # ---- Optional: command helpers ----------
 try:
@@ -79,6 +80,7 @@ __all__ = [
     # sorting
     "sorting",
     # optional cmds
+    "read_structures",
     "compute_cn_and_print",
     "compute_axis_and_print",
     "compute_canonical_and_print",

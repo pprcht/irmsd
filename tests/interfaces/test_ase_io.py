@@ -15,7 +15,6 @@ from irmsd.interfaces.ase_io import (
     get_irmsd_ase,
     get_rmsd_ase,
 )
-from irmsd.utils.utils import read_structures
 from irmsd import Molecule
 
 
