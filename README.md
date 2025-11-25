@@ -2,7 +2,7 @@
 
 
 <h1>iRMSD</h1>
-<h2><em>Molecular Structure Comparison and Ensemble Pruning</em></h2>
+<h3><em>Molecular Structure Comparison and Ensemble Pruning</em></h3>
 
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
