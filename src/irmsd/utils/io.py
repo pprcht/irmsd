@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Sequence
+from typing import List, Sequence, overload
 
 import sys
-import numpy as np  # only if you need it elsewhere; not actually used below
+import numpy as np
 
 from ..core import Molecule
-from .xyz import read_extxyz
-from ..interfaces.ase_io import ase_to_molecule
+from .xyz import read_extxyz, write_extxyz
+from ..interfaces.ase_io import ase_to_molecule, molecule_to_ase
 from .utils import require_ase
 
 
@@ -110,3 +110,85 @@ def read_structures(paths: Sequence[str]) -> List[Molecule]:
 
     return molecules
 
+
+@overload
+def write_structures(
+    filename: str | Path,
+    structures: Molecule,
+    mode: str = "w",
+) -> None: ...
+@overload
+def write_structures(
+    filename: str | Path,
+    structures: Sequence[Molecule],
+    mode: str = "w",
+) -> None: ...
+
+
+def write_structures(
+    filename: str | Path,
+    structures: Molecule | Sequence[Molecule],
+    mode: str = "w",
+) -> None:
+    """
+    High-level structure writer for the irmsd Molecule type.
+
+    This routine mirrors the behaviour of `read_structures` on the output side:
+    it chooses the appropriate backend based on the file extension and accepts
+    either a single Molecule or a sequence of Molecule objects.
+
+    Dispatch rules
+    --------------
+    - If the filename has *no* extension, '.xyz' is appended and the
+      internal extended-XYZ writer is used.
+
+    - If the filename ends with '.xyz', '.extxyz' or '.trj' (case-insensitive),
+      the structures are written using the internal extended-XYZ writer
+      (`write_extxyz`). The `mode` argument is passed through and controls
+      whether the file is overwritten ('w', default) or appended to ('a').
+
+    - For all other filename extensions, ASE is used as a backend. The
+      structures are first converted to ASE `Atoms` objects using
+      `molecule_to_ase`, and then written via `ase.io.write`. In this case
+      the `mode` argument is currently ignored and ASE's default behaviour
+      for the chosen format is used.
+
+    Parameters
+    ----------
+    filename : str or pathlib.Path
+        Output filename. Its extension determines the backend.
+    structures : Molecule or Sequence[Molecule]
+        A single Molecule or a sequence of Molecules to be written.
+        For extended XYZ, multiple Molecules are written as consecutive
+        frames in one file.
+    mode : {"w", "a"}, optional
+        File open mode for extended XYZ output. Ignored for non-XYZ formats
+        handled via ASE.
+
+    Raises
+    ------
+    RuntimeError
+        If ASE is required (non-XYZ formats) but not installed.
+    TypeError
+        If `structures` is not a Molecule or a sequence of Molecules.
+    """
+    path = Path(filename)
+
+    # If no extension is given, default to '.xyz' and use our internal writer
+    if path.suffix == "":
+        path = path.with_suffix(".xyz")
+
+    ext = path.suffix.lower()
+
+    # Extended XYZ branch (internal writer)
+    if ext in {".xyz", ".extxyz", ".trj"}:
+        write_extxyz(path, structures, mode=mode)
+        return
+
+    # ASE branch for all other extensions
+    require_ase()
+    from ase.io import write as ase_write  # type: ignore[import]
+
+    # molecule_to_ase must itself handle single vs sequence
+    ase_obj = molecule_to_ase(structures)
+    ase_write(str(path), ase_obj)

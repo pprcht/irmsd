@@ -6,7 +6,8 @@ import os
 import numpy as np
 
 from ..utils.utils import require_ase
-from ..utils.printouts import print_array,print_structure,print_structure_summary
+from ..utils.printouts import print_array, print_structure, print_structure_summary
+from ..utils.io import write_structures
 from ..sorting import first_by_assignment, group_by, sort_by_value
 from ..core import Molecule
 from .mol_interface import (
@@ -124,7 +125,7 @@ def compute_quaternion_rmsd_and_print(
 
     if outfile is not None:
         print(f"\nAligned structure written to {outfile}")
-        asewrite(outfile, new_atoms)
+        write_structures(outfile, new_atoms)
     else:
         print("Aligned structure:")
         print_structure(new_atoms)
@@ -170,11 +171,11 @@ def compute_irmsd_and_print(
         print(f"\nAligned reference structure written to {outfile}")
         outfile_ref = outfile
         outfile_ref.stem += "_ref"
-        asewrite(outfile_ref, new_atoms_ref)
+        write_structures(outfile_ref, new_atoms_ref)
         print(f"\nAligned probe structure written to {outfile}")
         outfile_aligned = outfile
         outfile_aligned.stem += "_ref"
-        asewrite(outfile_aligned, new_atoms_aligned)
+        write_structures(outfile_aligned, new_atoms_aligned)
     else:
         print("Aligned reference structure:")
         print_structure(new_atoms_ref)
@@ -320,7 +321,7 @@ def Presorted_sort_structures_and_print(
 
     # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
     if outfile is not None:
-        write(outfile, new_molecule_list)
+        write_structures(outfile, new_molecule_list)
         if printlvl > 0:
             print(
                 f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"

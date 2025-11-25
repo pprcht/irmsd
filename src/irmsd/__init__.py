@@ -36,7 +36,7 @@ except Exception:
     pass
 
 # ---- New: re-export Python utilities ----------------------------------------
-from .utils.io import read_structures
+from .utils.io import read_structures, write_structures
 
 from .interfaces.cmds import (
     compute_axis_and_print,
@@ -75,6 +75,7 @@ __all__ = [
     "sorting",
     # optional cmds
     "read_structures",
+    "write_structures",
     "compute_cn_and_print",
     "compute_axis_and_print",
     "compute_canonical_and_print",

@@ -7,7 +7,7 @@ import shlex
 
 import numpy as np
 
-from ..core.molecule import Molecule  # adjust if your Molecule lives elsewhere
+from ..core.molecule import Molecule
 
 
 # ---------------------------------------------------------------------------
@@ -136,39 +136,55 @@ def _parse_comment_line(
     # Use shlex to respect quotes in values: key="value with spaces"
     tokens = shlex.split(line, comments=False, posix=True)
 
-    for token in tokens:
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+
+        # Must contain '=' or we skip
         if "=" not in token:
-            # Free text, we could optionally store it under "comment_text"
-            # but for now we just ignore.
+            i += 1
             continue
 
         key, val = token.split("=", 1)
-        key_stripped = key.strip()
-        val_stripped = val.strip()
+        key = key.strip()
+        val = val.strip()
 
-        kl = key_stripped.lower()
+        # CASE: "key=" followed by separate value token
+        if val == "" and i + 1 < len(tokens):
+            # Accept next token as the value
+            nxt = tokens[i + 1].strip()
+            val = nxt
+            i += 1  # Skip over value token (we consumed it)
+
+        kl = key.lower()
+
         if kl == "energy":
             try:
-                energy = float(val_stripped)
+                energy = float(val)
             except ValueError:
-                # fall back: store raw in info
-                info[key_stripped] = _parse_value(val_stripped)
+                info[key] = _parse_value(val)
+
         elif kl == "cell":
-            parsed_cell = _parse_cell_value(val_stripped)
-            if parsed_cell is not None:
-                cell = parsed_cell
+            parsed = _parse_cell_value(val)
+            if parsed is not None:
+                cell = parsed
             else:
-                info[key_stripped] = val_stripped
+                info[key] = val
+
         elif kl == "pbc":
-            parsed_pbc = _parse_pbc_value(val_stripped)
-            if parsed_pbc is not None:
-                pbc = parsed_pbc
+            parsed = _parse_pbc_value(val)
+            if parsed is not None:
+                pbc = parsed
             else:
-                info[key_stripped] = val_stripped
+                info[key] = val
+
         else:
-            info[key_stripped] = _parse_value(val_stripped)
+            info[key] = _parse_value(val)
+
+        i += 1
 
     return info, energy, cell, pbc
+
 
 
 def _format_cell_value(cell: np.ndarray) -> str:
