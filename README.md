@@ -66,7 +66,7 @@ Together, these yield a robust, fast, and scalable measure of structural similar
 Herein, the RMSD with optimal alignment and permutation is defined as:
 
 ```math
-\mathrm{iRMSD}(\mathbf{X}, \mathbf{Y}) = \min_{\mathbf{P},,\mathbf{U}} \sqrt{ \frac{1}{N} \sum_{i=1}^{N} \left\lVert \mathbf{X}_i - (\mathbf{P},\mathbf{U},\mathbf{Y})_i \right\rVert^2 }
+\mathrm{iRMSD}(\mathbf{X}, \mathbf{Y}) = \min_{\mathbf{P},\mathbf{U}} \sqrt{ \frac{1}{N} \sum_{i=1}^{N} \left\lVert \mathbf{X}_i - (\mathbf{P}\mathbf{U}\mathbf{Y})_i \right\rVert^2 }
 ```
 
 where
