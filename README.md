@@ -1,9 +1,8 @@
 <div align="center"> 
 
 
-# **iRMSD**
-
-## *Molecular Structure Comparison and Ensemble Pruning*
+<h1>iRMSD</h1>
+<h2><em>Molecular Structure Comparison and Ensemble Pruning</em></h2>
 
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
@@ -30,7 +29,6 @@ The package offers:
 
 iRMSD is designed for researchers working in computational chemistry, conformational sampling, machine learning for molecules, and structural bio/chem-informatics, and integrates seamlessly with tools such as **ASE**, **RDKit**, **CREST/xTB**, or custom multiscale simulation pipelines.
 
----
 
 ## Installation 🔧
 
@@ -49,9 +47,8 @@ conda install -c conda-forge irmsd
 ```
 
 
----
 
-## Scientific Background 🔬 
+# Scientific Background 🔬 
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143) 
 
 Structural comparison is at the heart of conformational analysis, docking, trajectory processing, and molecular shape workflows. However, the *classical* Cartesian RMSD fails whenever two structures differ by atom ordering, local symmetry, or rotameric permutations. In such cases, the RMSD becomes artificially large even though the molecular properties (e.g. IR/Raman spectra, NMR shifts, energies) are identical. 
@@ -69,7 +66,7 @@ Together, these yield a robust, fast, and scalable measure of structural similar
 Herein, the RMSD with optimal alignment and permutation is defined as:
 
 ```math
-\mathrm{iRMSD}(\mathbf{X}, \mathbf{Y}) = \min_{\mathbf{P},,\mathbf{U} \sqrt{ \frac{1}{N} \sum_{i=1}^{N} \left\lVert \mathbf{X}_i - (\mathbf{P},\mathbf{U},\mathbf{Y})_i \right\rVert^2 }
+\mathrm{iRMSD}(\mathbf{X}, \mathbf{Y}) = \min_{\mathbf{P},,\mathbf{U}} \sqrt{ \frac{1}{N} \sum_{i=1}^{N} \left\lVert \mathbf{X}_i - (\mathbf{P},\mathbf{U},\mathbf{Y})_i \right\rVert^2 }
 ```
 
 where
@@ -79,7 +76,6 @@ where
 
 Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model.* **2025**, *65* (9), 4501–4511**](https://pubs.acs.org/doi/abs/10.1021/acs.jcim.4c02143) (publically accessible preprint PDF → [**here**](https://doi.org/10.26434/chemrxiv-2024-qmcz4)).
 
----
 
 ##  Examples  📊
 
@@ -100,7 +96,6 @@ As shown in Figure 3 of the paper (page 3) :
 
 This simple example illustrates a key problem with classical (quaternion) RMSD-based conformer comparison and the necessity of addressing *both* the alignment *and* permutation problems for chemical workflows.
 
----
 
 ### Example 2  Validation on Randomized Atom Order Structures
 
@@ -124,7 +119,6 @@ Figures 7a–d (pages 6–7) show that iRMSD successfully returns ~0 Å for **ev
 * BPTI (892 atoms)
 
 
----
 
 ### Example 3 - Noncovalent Clusters (LJ<sub>75</sub> and (H<sub>2</sub>O)<sub>21</sub>)
 
@@ -148,7 +142,6 @@ iRMSD handles these correctly because:
 For LJ<sub>75</sub>, the full 75×75 LSAP is solved successfully.
 
 
----
 
 ### Example 4 - Conformer-Rotamer Ensemble (CRE) Pruning
 
@@ -165,7 +158,6 @@ iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
 
 This is crucial for automated CRE pruning and is an extension to conventional (quaternion) RMSD pruning, e.g. as used in CREST.
 
----
 
 ## When and How To Use iRMSD?
 
@@ -186,7 +178,6 @@ TODO
 TODO
 
 
----
 
 ### License
 TODO
