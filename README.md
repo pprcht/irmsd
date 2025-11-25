@@ -16,16 +16,16 @@
 
 ## iRMSD Package 📦
 
-**iRMSD** is a high-performance toolkit for **molecular structure comparison**, **ensemble pruning**, and **symmetry-aware RMSD analysis**.
+**iRMSD** is a utility toolkit for *molecular structure comparison*, *ensemble pruning*, and *symmetry-aware RMSD analysis*.
 It combines a clean **Python API** with a optimized **Fortran backend**, providing fast and robust routines for large conformational ensembles and multiscale computational workflows.
 
 The package offers:
 
-*  **Fast RMSD evaluation** using symmetry handling, canonicalization, and optimal superposition
-* **Structure grouping and pruning** based on distance thresholds or iRMSD criteria
-* **Flexible Molecule class** with XYZ/extXYZ parsing and ASE interoperability
-* **Low- and high-level APIs** that expose direct Fortran wrappers as well as convenient Python abstractions
-* **Extendable infrastructure** for future shape metrics and ensemble workflows
+*  *Fast RMSD evaluation* including symmetry handling, canonicalization, and optimal superposition
+* *Structure grouping and pruning* based on distance thresholds or iRMSD criteria
+* *Flexible Molecule class* with XYZ/extXYZ parsing and ASE interoperability
+* *Low- and high-level APIs* that expose direct Fortran wrappers as well as convenient Python abstractions
+* *Extendable infrastructure* for future shape metrics and ensemble workflows
 
 iRMSD is designed for researchers working in computational chemistry, conformational sampling, machine learning for molecules, and structural bio/chem-informatics, and integrates seamlessly with tools such as **ASE**, **RDKit**, **CREST/xTB**, or custom multiscale simulation pipelines.
 
@@ -47,6 +47,7 @@ conda install -c conda-forge irmsd
 ```
 
 
+For basic usage instructions, both via the CLI and in-code, see below.
 
 # Scientific Background 🔬 
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143) 
@@ -70,8 +71,9 @@ Herein, the RMSD with optimal alignment and permutation is defined as:
 ```
 
 where
-* (**U**): rotation matrix
-* (**P**): permutation matrix representing atom–atom assignment
+* **X**/**Y** : Cartesian coordinates of the two molecules to be compared
+* **U**: rotation matrix
+* **P**: permutation matrix representing atom–atom assignment
 * The minimization ensures best superposition *and* best atom correspondence
 
 Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model.* **2025**, *65* (9), 4501–4511**](https://pubs.acs.org/doi/abs/10.1021/acs.jcim.4c02143) (publically accessible preprint PDF → [**here**](https://doi.org/10.26434/chemrxiv-2024-qmcz4)).
@@ -159,7 +161,7 @@ iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
 This is crucial for automated CRE pruning and is an extension to conventional (quaternion) RMSD pruning, e.g. as used in CREST.
 
 
-## When and How To Use iRMSD?
+# When and How To Use iRMSD?
 
 Use iRMSD whenever you wish to:
 
@@ -179,10 +181,9 @@ TODO
 
 
 
-### License
+## License
 TODO
 
----
 
 # OTHER TODOs
 - [ ] docstrings and actual docs (GH pages?)
