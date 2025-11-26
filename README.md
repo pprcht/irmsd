@@ -17,7 +17,7 @@
 ## iRMSD Package 📦
 
 **iRMSD** is a utility toolkit for *molecular structure comparison*, *ensemble pruning*, and *symmetry-aware RMSD analysis*.
-It combines a clean **Python API** with a optimized **Fortran backend**, providing fast and robust routines for large conformational ensembles and multiscale computational workflows.
+It combines a clean **Python API** with an optimized **Fortran backend**, providing fast and robust routines for large conformational ensembles and multiscale computational workflows.
 
 The package offers:
 
@@ -56,11 +56,11 @@ Structural comparison is at the heart of conformational analysis, docking, traje
 
 The **permutation invariant RMSD (iRMSD)** implemented in this package solves this problem by:
 
-* Assigning **canonical atom identities** independent of input atom order
-* Performing **symmetry-aware alignment** using a divide-and-conquer approach
-* Solving the **linear sum assignment problem (LSAP, Hungarian algorithm)** efficiently in Fortran
-* Handling **false enantiomers** when appropriate
-* Using **cached memory + single precision LSAP kernel** for high speed
+- Assigning **canonical atom identities** independent of input atom order
+- Performing **symmetry-aware alignment** using a divide-and-conquer approach
+- Solving the **linear sum assignment problem (LSAP, Hungarian algorithm)** efficiently in Fortran
+- Handling **false enantiomers** when appropriate
+- Using **cached memory + single precision LSAP kernel** for high speed
 
 Together, these yield a robust, fast, and scalable measure of structural similarity suitable for large ensembles (thousands of conformers), proteins, and noncovalent clusters.
 
@@ -165,12 +165,19 @@ This is crucial for automated CRE pruning and is an extension to conventional (q
 
 Use iRMSD whenever you wish to:
 
-* compare conformers with local symmetry
+* compare conformers with *local* symmetry
 * prune redundant structures in CRE/CREGEN-style workflows
 * merge ensembles from different levels of theory (energy-threshold independent)
 * process MD trajectories where atom ordering is stable but symmetry remains
 * align structures from different toolchains (RDKit ↔ xTB ↔ ORCA ↔ OpenBabel)
 * classify rotamers vs conformers with physical correctness
+
+## Known Edge-Cases and Technical Limitations
+TODO
+
+* High-symmetry cases (e.g. C<sub>60</sub>, adamantane, etc.): Rotational axes are degenerate and an initial alignment is not possible this way.
+* Interchage of atoms between molecules on different fragments in noncovalent complexes: The canonical assignment of two sub-graphs (two molecules that share no covalent connection) is currently independent. Hence, atoms (of the same element) may exchange across fragments, as for the (H<<sub>2</sub>O)<sub>21</sub> or LJ<sub>75</sub> case.
+* Mismatches in canonical atom identifiers (comparing to chemical isomers that share a sum formula but have entirely different connectivity) are currently *not* caught and handled automatically.
 
 
 ### Python CLI Usage
