@@ -1,6 +1,42 @@
 from collections.abc import Sequence
+import numpy as np
+from ..core import Molecule
 
 HARTREE_TO_KCAL_MOL = 627.509474
+
+
+def print_array(title: str, arr: np.ndarray) -> None:
+    """Pretty-print a numpy array with a header and spacing."""
+    print(title)
+    with np.printoptions(precision=6, suppress=True):
+        print(arr)
+    print()
+
+
+def print_structure(mol) -> None:
+    """
+    Print basic information about a Molecule object in a simple XYZ-like format.
+
+    Parameters
+    ----------
+    mol : Molecule
+        Molecule instance to print.
+
+    Raises
+    ------
+    TypeError
+        If the input is not a Molecule.
+    """
+    if not isinstance(mol, Molecule):
+        raise TypeError("print_structure expects a Molecule object")
+
+    nat = len(mol)
+    symbols = mol.get_chemical_symbols()
+    positions = mol.get_positions()
+
+    print(f"{nat}\n")
+    for sym, (x, y, z) in zip(symbols, positions):
+        print(f"{sym:2} {x:12.6f} {y:12.6f} {z:12.6f}")
 
 
 def print_structure_summary(
@@ -69,12 +105,10 @@ def print_structure_summary(
     # If we have energies, also add ΔE in kcal/mol relative to first entry
     if energies_hartree is not None:
         e0 = float(energies_hartree[0])
-        delta_e_kcal = [
-            (float(e) - e0) * HARTREE_TO_KCAL_MOL for e in energies_hartree
-        ]
+        delta_e_kcal = [(float(e) - e0) * HARTREE_TO_KCAL_MOL for e in energies_hartree]
         add_column("ΔE / kcal mol⁻¹", delta_e_kcal, "{: .3f}")
 
-    add_column("ΔRMSD / Å", delta_irmsd, "{: .4f}")      
+    add_column("ΔRMSD / Å", delta_irmsd, "{: .4f}")
     # If no arrays were provided at all: do not print anything
     if n is None or n == 0:
         return
@@ -121,6 +155,6 @@ def print_structure_summary(
         )
         print(ellipsis_line)
         remaining = n - rows_to_print
-        print(f"({remaining} additional entries not shown, use `--maxprint` to increase)")
-
-
+        print(
+            f"({remaining} additional entries not shown, use `--maxprint` to increase)"
+        )

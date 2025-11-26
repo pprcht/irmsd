@@ -15,7 +15,7 @@ def group_by(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, List[T]]:
     Parameters
     ----------
     items : iterable of T
-        The objects you want to group.
+        The objects to be grouped.
     key : callable
         Function mapping an item -> hashable key (str, int, tuple, ...).
 

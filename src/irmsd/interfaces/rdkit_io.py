@@ -1,0 +1,364 @@
+from __future__ import annotations
+
+from typing import List, Sequence, Tuple, overload
+
+import numpy as np
+
+from irmsd.interfaces.mol_interface import (
+    delta_irmsd_list_molecule,
+    get_irmsd_molecule,
+    get_rmsd_molecule,
+    sorter_irmsd_molecule,
+)
+
+from ..core.molecule import Molecule
+from ..utils.utils import require_rdkit
+
+
+def conformer_iterator(molecule: "Mol", conf_ids: list[int]) -> "Conformer":
+    for conf_id in conf_ids:
+        yield molecule.GetConformer(conf_id)
+
+
+def conf_id_to_iterator(molecule: "Mol", conf_id: None | int | Sequence) -> "Conformer":
+    if conf_id is None:
+        conf_iterator = molecule.GetConformers()
+    elif isinstance(conf_id, int):
+        conf_iterator = [molecule.GetConformer(conf_id)]
+    elif isinstance(conf_id, list):
+        conf_iterator = conformer_iterator(molecule, conf_id)
+    else:
+        raise TypeError("conf_id must be None, int, or list of int")
+    return conf_iterator
+
+
+def get_atom_numbers_rdkit(molecule) -> np.ndarray:
+    Z = [atom.GetAtomicNum() for atom in molecule.GetAtoms()]
+    return np.array(Z, dtype=np.int32)
+
+
+def get_atom_symbols_rdkit(molecule) -> list[str]:
+    symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+    return symbols
+
+
+def get_energy_rdkit(conformer) -> float | None:
+    if conformer.HasProp("energy"):
+        energy = float(conformer.GetProp("energy"))
+    else:
+        energy = None
+    return energy
+
+
+@overload
+def rdkit_to_molecule(
+    molecules: "Mol", conf_id: int | Sequence[int] | None = None
+) -> Molecule | list[Molecule]: ...
+@overload
+def rdkit_to_molecule(
+    molecules: Sequence["Mol"], conf_id: int | Sequence[int] | None = None
+) -> list[Molecule]: ...
+
+
+def rdkit_to_molecule(
+    molecules, conf_id: int | Sequence[int] | None = None
+) -> Molecule | list[Molecule]:
+    """Convert one or more RDKit Molecule objects to one or more irmsd Molecule
+    objects.
+
+    If conf_id is None, all conformers are converted. If conf_id is an
+    int, only that conformer is converted. If conf_id is a list of int,
+    only those conformers are converted.
+    """
+
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if isinstance(molecules, Chem.Mol):
+        molecules = [molecules]
+
+    if not isinstance(molecules, Sequence):
+        raise TypeError(
+            "rdkit_to_molecule expects rdkit.Chem.Mol objects or a list of them"
+        )
+
+    all_mols = []
+    for mol in molecules:
+        if not isinstance(mol, Chem.Mol):
+            raise TypeError("rdkit_to_molecule expects rdkit.Chem.Mol objects")
+
+        mol_info = {prop: mol.GetProp(prop) for prop in mol.GetPropNames()}
+        conf_iterator = conf_id_to_iterator(mol, conf_id)
+
+        for conformer in conf_iterator:
+            if not conformer.Is3D():
+                raise ValueError("rdkit_to_molecule expects 3D conformers")
+
+            symbols = get_atom_symbols_rdkit(mol)  # list of str
+            pos = conformer.GetPositions()  # (N, 3)
+            conf_info = {
+                prop: conformer.GetProp(prop) for prop in conformer.GetPropNames()
+            }
+            energy = get_energy_rdkit(conformer)
+
+            info = mol_info | conf_info
+
+            new_mol = Molecule(symbols=symbols, positions=pos, info=info, energy=energy)
+            all_mols.append(new_mol)
+
+    if len(all_mols) == 1:
+        return all_mols[0]
+    else:
+        return all_mols
+
+
+@overload
+def molecule_to_rdkit(molecule: Molecule) -> "Mol": ...
+@overload
+def molecule_to_rdkit(molecules: Sequence[Molecule]) -> list["Mol"]: ...
+
+
+def molecule_to_rdkit(molecule: Molecule | Sequence[Molecule]) -> "Mol" | list["Mol"]:
+    """Convert one or more irmsd Molecule objects to one or more RDKit Molecule
+    objects."""
+
+    require_rdkit()
+
+    from rdkit import Chem
+    from rdkit.Chem import AllChem
+
+    if isinstance(molecule, Molecule):
+        molecule = [molecule]
+
+    if not isinstance(molecule, Sequence):
+        raise TypeError(
+            "molecule_to_rdkit expects irmsd.core.Molecule objects or a list of them"
+        )
+
+    all_mols = []
+    for mol in molecule:
+        if not isinstance(mol, Molecule):
+            raise TypeError("molecule_to_rdkit expects irmsd.core.Molecule objects")
+
+        rdkit_mol = Chem.RWMol()
+        atom_indices = []
+        for symbol in mol.symbols:
+            atom = Chem.Atom(symbol)
+            atom_idx = rdkit_mol.AddAtom(atom)
+            atom_indices.append(atom_idx)
+
+        conformer = Chem.Conformer(len(mol.symbols))
+        conformer.SetPositions(mol.positions)
+
+        rdkit_mol.AddConformer(conformer, assignId=True)
+        all_mols.append(rdkit_mol.GetMol())
+
+    if len(all_mols) == 1:
+        return all_mols[0]
+    else:
+        return all_mols
+
+
+def get_cn_rdkit(molecule, conf_id: None | int | Sequence = None) -> np.ndarray:
+    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule
+    and return as a numpy array with shape (n_conf, n_atoms)."""
+
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if not isinstance(molecule, Chem.Mol):
+        raise TypeError("rdkit_to_fortran_pair expects rdkit.Chem.Mol objects")
+
+    core_mol = rdkit_to_molecule(molecule, conf_id=conf_id)
+    if isinstance(core_mol, Molecule):
+        return core_mol.get_cn()
+    else:
+        all_cn = [mol.get_cn() for mol in core_mol]
+        return np.array(all_cn)
+
+
+def get_axis_rdkit(
+    molecule, conf_id: None | int | Sequence = None
+) -> (
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+    | List[Tuple[np.ndarray, np.ndarray, np.ndarray]]
+):
+    """Optional RDKit utility: compute principal axes for one or more conformers of a molecule"""
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if not isinstance(molecule, Chem.Mol):
+        raise TypeError("rdkit_to_fortran_pair expects rdkit.Chem.Mol objects")
+
+    core_mol = rdkit_to_molecule(molecule, conf_id=conf_id)
+    if isinstance(core_mol, Molecule):
+        return core_mol.get_axis()
+    else:
+        all_results = [mol.get_axis() for mol in core_mol]
+        return all_results
+
+
+def get_canonical_rdkit(
+    molecule,
+    conf_id: None | int | Sequence = None,
+    wbo: None | np.ndarray = None,
+    invtype="apsp+",
+    heavy: bool = False,
+) -> np.ndarray:
+    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule
+    and return as a numpy array with shape (n_conf, n_atoms)."""
+
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if not isinstance(molecule, Chem.Mol):
+        raise TypeError("rdkit_to_fortran_pair expects rdkit.Chem.Mol objects")
+
+    core_mol = rdkit_to_molecule(molecule, conf_id=conf_id)
+    if isinstance(core_mol, Molecule):
+        return core_mol.get_canonical(invtype=invtype, wbo=wbo, heavy=heavy)
+    else:
+        if wbo is None:
+            all_canonical = [
+                mol.get_canonical(invtype=invtype, heavy=heavy) for mol in core_mol
+            ]
+        elif wbo.ndim == 2:
+            all_canonical = [
+                mol.get_canonical(invtype=invtype, wbo=wbo, heavy=heavy)
+                for mol in core_mol
+            ]
+        else:
+            all_canonical = [
+                mol.get_canonical(invtype=invtype, wbo=wbo_mol, heavy=heavy)
+                for mol, wbo_mol in zip(core_mol, wbo)
+            ]
+        return np.array(all_canonical)
+
+
+def get_rmsd_rdkit(
+    molecule_ref, molecule_align, conf_id_ref=-1, conf_id_align=-1, mask=None
+) -> Tuple[float, "Mol", np.ndarray]:
+    """Optional Rdkit utility: operate on two Rdkit Molecules. Returns the RMSD in Angström,
+    the molecule object with both Conformers aligned.
+    """
+
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if not isinstance(molecule_ref, Chem.Mol) or not isinstance(
+        molecule_align, Chem.Mol
+    ):
+        raise TypeError("get_rmsd_rdkit expects rdkit.Chem.Mol objects")
+
+    molecule_ref_core = rdkit_to_molecule(molecule_ref, conf_id=conf_id_ref)
+    molecule_align_core = rdkit_to_molecule(molecule_align, conf_id=conf_id_align)
+
+    rmsd, molecule_new_core, rotmat = get_rmsd_molecule(
+        molecule_ref_core, molecule_align_core, mask=mask
+    )
+
+    molecule_ret = molecule_to_rdkit(molecule_new_core)
+    return rmsd, molecule_ret, rotmat
+
+
+def get_irmsd_rdkit(
+    molecule_ref, molecule_align, conf_id_ref=-1, conf_id_align=-1, iinversion: int = 0
+) -> Tuple[float, "Mol", "Mol"]:
+    """
+    Optional Rdkit utility: operate on TWO Rdkit Molecules. Returns the iRMSD in Angström,
+    the molecule object with both Conformers permuted and aligned.
+    """
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if not isinstance(molecule_ref, Chem.Mol) or not isinstance(
+        molecule_align, Chem.Mol
+    ):
+        raise TypeError("get_rmsd_rdkit expects rdkit.Chem.Mol objects")
+
+    molecule_ref_core = rdkit_to_molecule(molecule_ref, conf_id=conf_id_ref)
+    molecule_align_core = rdkit_to_molecule(molecule_align, conf_id=conf_id_align)
+
+    irmsd, molecule_1_core, molecule_2_core = get_irmsd_molecule(
+        molecule_ref_core, molecule_align_core, iinversion
+    )
+    molecule_1_ret = molecule_to_rdkit(molecule_1_core)
+    molecule_2_ret = molecule_to_rdkit(molecule_2_core)
+    return irmsd, molecule_1_ret, molecule_2_ret
+
+
+def sorter_irmsd_rdkit(
+    molecules: "Mol" | Sequence["Mol"],
+    rthr: float,
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+) -> Tuple[np.ndarray, List["Mol"]]:
+    """
+    Optional Rdkit utility: operate on a list of Rdkit Molecules.
+    Returns a list of indices corresponding to the sorted molecules based on iRMSD.
+    """
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if isinstance(molecules, Chem.Mol):
+        assert (
+            molecules.GetNumConformers() > 1
+        ), "Molecule must have multiple conformers"
+    else:
+        for mol in molecules:
+            if not isinstance(mol, Chem.Mol):
+                raise TypeError("sorter_irmsd_rdkit expects rdkit.Chem.Mol objects")
+
+    mols = rdkit_to_molecule(molecules)
+
+    groups, new_mols = sorter_irmsd_molecule(
+        molecule_list=mols,
+        rthr=rthr,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+    )
+
+    new_molecules_list = molecule_to_rdkit(new_mols)
+
+    return groups, new_molecules_list
+
+
+def delta_irmsd_list_rdkit(
+    molecules: "Mol" | Sequence["Mol"],
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+) -> Tuple[np.ndarray, List["Mol"]]:
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if isinstance(molecules, Chem.Mol):
+        assert (
+            molecules.GetNumConformers() > 1
+        ), "Molecule must have multiple conformers"
+    else:
+        for mol in molecules:
+            if not isinstance(mol, Chem.Mol):
+                raise TypeError("sorter_irmsd_rdkit expects rdkit.Chem.Mol objects")
+    mols = rdkit_to_molecule(molecules)
+
+    delta, new_mols = delta_irmsd_list_molecule(
+        molecule_list=mols,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+    )
+
+    new_molecules_list = molecule_to_rdkit(new_mols)
+
+    return groups, new_molecules_list

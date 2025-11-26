@@ -15,7 +15,7 @@ def _find_lib() -> str:
     cand = files("irmsd") / _lib_filename()
     if cand.exists():
         return str(cand)
-    # optional: remove fallback if your redirect setup is solid
+    # optional: remove fallback if the redirect setup is solid
     repo_root = Path(__file__).resolve().parents[2]
     for p in repo_root.glob(f"build/**/{_lib_filename()}"):
         if p.is_file():

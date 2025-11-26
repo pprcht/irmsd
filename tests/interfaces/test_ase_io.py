@@ -1,20 +1,21 @@
+import numpy as np
 from io import StringIO
-
 import pytest
 
 pytest.importorskip("ase")
-
 import ase
+from ase import Atoms
 from ase.io import read as ase_read
 
-from irmsd.utils.ase_io import (
+from irmsd.interfaces.ase_io import (
+    ase_to_molecule,
     get_axis_ase,
     get_canonical_ase,
     get_cn_ase,
     get_irmsd_ase,
     get_rmsd_ase,
 )
-from irmsd.utils.utils import read_structures
+from irmsd import Molecule
 
 
 def test_get_axis_ase(caffeine_axis_test_data):
@@ -95,3 +96,85 @@ def test_get_irmsd_ase(caffeine_irmsd_test_data):
     irmsd, atoms_aligned1, atoms_aligned2 = get_irmsd_ase(atoms1, atoms2)
 
     assert pytest.approx(irmsd, abs=1e-6) == expected_irmsd
+
+
+def test_ase_to_molecule_single_basic():
+    """Single ASE Atoms → Molecule: structure, cell, pbc, energy, info."""
+    # Build a simple water molecule
+    symbols = ["O", "H", "H"]
+    positions = [
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0],
+    ]
+    cell = np.diag([10.0, 10.0, 10.0])
+
+    a = Atoms(symbols=symbols, positions=positions, cell=cell, pbc=[True, False, True])
+
+    # Attach metadata
+    a.info["energy"] = -76.1234
+    a.info["tag"] = "test_water"
+
+    mol = ase_to_molecule(a)
+    assert isinstance(mol, Molecule)
+
+    # Structure
+    assert mol.natoms == 3
+    assert mol.get_chemical_symbols() == symbols
+    np.testing.assert_allclose(mol.get_positions(), np.array(positions, float))
+
+    # Cell and PBC
+    assert mol.cell is not None
+    np.testing.assert_allclose(mol.cell, cell)
+    assert mol.pbc == (True, False, True)
+
+    # Energy
+    assert mol.energy == pytest.approx(-76.1234)
+
+    # Info (at least the extra key survives)
+    assert mol.info.get("tag") == "test_water"
+
+
+def test_ase_to_molecule_single_no_energy():
+    """If ASE Atoms has no energy info or calculator, Molecule.energy should be None."""
+    a = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
+
+    # No info['energy'], no calculator
+    assert "energy" not in a.info
+    assert a.calc is None
+
+    mol = ase_to_molecule(a)
+    assert isinstance(mol, Molecule)
+    assert mol.natoms == 2
+    assert mol.energy is None  # nothing to pick up
+
+
+def test_ase_to_molecule_sequence():
+    """Sequence of ASE Atoms → list[Molecule]."""
+    a1 = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.7]])
+    a2 = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.8]])
+
+    a1.info["energy"] = -1.0
+    a2.info["energy"] = -2.0
+
+    mols = ase_to_molecule([a1, a2])
+
+    assert isinstance(mols, list)
+    assert len(mols) == 2
+    assert all(isinstance(m, Molecule) for m in mols)
+
+    # Check ordering and basic fields
+    assert mols[0].natoms == 2
+    assert mols[1].natoms == 2
+
+    assert mols[0].energy == pytest.approx(-1.0)
+    assert mols[1].energy == pytest.approx(-2.0)
+
+    np.testing.assert_allclose(
+        mols[0].get_positions(),
+        np.array([[0, 0, 0], [0, 0, 0.7]], float),
+    )
+    np.testing.assert_allclose(
+        mols[1].get_positions(),
+        np.array([[0, 0, 0], [0, 0, 0.8]], float),
+    )
