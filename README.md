@@ -49,6 +49,9 @@ conda install -c conda-forge irmsd
 
 For basic usage instructions, both via the CLI and in-code, see below.
 
+
+<div style="margin-top: 3em;"></div>
+
 # Scientific Background 🔬 
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143) 
 
@@ -78,6 +81,8 @@ where
 
 Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model.* **2025**, *65* (9), 4501–4511**](https://pubs.acs.org/doi/abs/10.1021/acs.jcim.4c02143) (publically accessible preprint PDF → [**here**](https://doi.org/10.26434/chemrxiv-2024-qmcz4)).
 
+
+<div style="margin-top: 3em;"></div>
 
 ##  Examples  📊
 
@@ -154,6 +159,8 @@ iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
 This is crucial for automated CRE pruning and is an extension to conventional (quaternion) RMSD pruning, e.g. as used in CREST.
 
 
+<div style="margin-top: 3em;"></div>
+
 # When and How To Use iRMSD?
 
 Use iRMSD whenever you wish to:
@@ -165,13 +172,6 @@ Use iRMSD whenever you wish to:
 * align structures from different toolchains (RDKit ↔ xTB ↔ ORCA ↔ OpenBabel)
 * classify rotamers vs conformers with physical correctness
 
-## Known Edge-Cases and Technical Limitations
-
-* High-symmetry cases (e.g. C<sub>60</sub>, adamantane, etc.): Rotational axes are degenerate and an initial alignment is not possible this way.
-* Interchage of atoms between molecules on different fragments in noncovalent complexes: The canonical assignment of two sub-graphs (two molecules that share no covalent connection) is currently independent. Hence, atoms (of the same element) may exchange across fragments, as for the (H<sub>2</sub>O)<sub>21</sub> or LJ<sub>75</sub> case.
-* Mismatches in canonical atom identifiers (comparing to chemical isomers that share a sum formula but have entirely different connectivity) are currently *not* caught and handled automatically.
-* Some quaternion RMSDs may be slightly lower when comparing entirely *different* conformers (e.g. see example 4, figure b): This can occur due to the imperfect alignment+LSAP since rotational axes in different conformers varying orientations. Automatically falling back to the lower quaternion RMSD is an implementation TODO.
-
 
 ### Python CLI Usage
 TODO
@@ -180,6 +180,14 @@ TODO
 TODO
 
 
+## Known Edge-Cases and Technical Limitations
+
+* High-symmetry cases (e.g. C<sub>60</sub>, adamantane, etc.): Rotational axes are degenerate and an initial alignment is not possible this way.
+* Interchage of atoms between molecules on different fragments in noncovalent complexes: The canonical assignment of two sub-graphs (two molecules that share no covalent connection) is currently independent. Hence, atoms (of the same element) may exchange across fragments, as for the (H<sub>2</sub>O)<sub>21</sub> or LJ<sub>75</sub> case. 
+* Mismatches in canonical atom identifiers (comparing to chemical isomers that share a sum formula but have entirely different connectivity) are currently *not* caught and handled automatically.
+* Some quaternion RMSDs may be slightly lower when comparing entirely *different* conformers (e.g. see example 4, figure b): This can occur due to the imperfect alignment+LSAP since rotational axes in different conformers varying orientations. Automatically falling back to the lower quaternion RMSD is an implementation TODO.              
+
+<div style="margin-top: 2em;"></div>
 
 ## License
 This project is licensed under the GNU Lesser General Public License (LGPL), version 3.0 or later.
