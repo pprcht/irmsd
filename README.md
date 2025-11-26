@@ -83,11 +83,9 @@ Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model
 
 ### Example 1 - Symmetric Rotamers (Pentane C<sub>5</sub>H<sub>12</sub>)
 
-```
-<!-- Figure Placeholder A:
-     Rotamer examples + RMSD heatmaps (conventional vs. iRMSD) -->
-<p align="center"><i>[ insert pentane rotamer images and heatmaps here ]</i></p>
-```
+<p align="center">
+  <img src="assets/images/example1.jpg" width="100%">
+</p>
 
 Most pentane conformers have *four* rotamers that differ only by permutation or inversion of terminal methyl groups.
 As shown in Figure 3 of the paper (page 3) :
@@ -99,15 +97,13 @@ As shown in Figure 3 of the paper (page 3) :
 This simple example illustrates a key problem with classical (quaternion) RMSD-based conformer comparison and the necessity of addressing *both* the alignment *and* permutation problems for chemical workflows.
 
 
-### Example 2  Validation on Randomized Atom Order Structures
+### Example 2 - Validation on Randomized Atom Order Structures
 
-```
-<!-- Figure Placeholder B:
-     Polar plots of RMSD for randomized copies of pentane/TPPO/taxol/BPTI -->
-<p align="center"><i>[ insert validation polar plots for multiple molecules ]</i></p>
-```
+<p align="center">
+  <img src="assets/images/example2.jpg" width="100%"> 
+</p>
 
-A robust alignment algorithm must correctly classify structures as identical even if:
+A robust permutation-handling alignment algorithm must correctly classify structures as identical even if:
 
 * randomly rotated
 * atom order is randomly permuted
@@ -124,11 +120,10 @@ Figures 7a–d (pages 6–7) show that iRMSD successfully returns ~0 Å for **ev
 
 ### Example 3 - Noncovalent Clusters (LJ<sub>75</sub> and (H<sub>2</sub>O)<sub>21</sub>)
 
-```
-<!-- Figure Placeholder C:
-     RMSD validation for LJ75 and (H2O)21 clusters -->
-<p align="center"><i>[ insert LJ75 and water cluster iRMSD plots ]</i></p>
-```
+
+<p align="center">
+  <img src="assets/images/example3.jpg" width="100%">
+</p>
 
 Noncovalent clusters break most RMSD algorithms because:
 
@@ -147,11 +142,9 @@ For LJ<sub>75</sub>, the full 75×75 LSAP is solved successfully.
 
 ### Example 4 - Conformer-Rotamer Ensemble (CRE) Pruning
 
-```
-<!-- Figure Placeholder D:
-     Parity plot of quaternion RMSD vs iRMSD for ensemble pruning -->
-<p align="center"><i>[ insert parity plots for pentane and taxol CREs ]</i></p>
-```
+<p align="center">
+  <img src="assets/images/example4.jpg" width="100%"> 
+</p>
 
 iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
 
@@ -173,11 +166,11 @@ Use iRMSD whenever you wish to:
 * classify rotamers vs conformers with physical correctness
 
 ## Known Edge-Cases and Technical Limitations
-TODO
 
 * High-symmetry cases (e.g. C<sub>60</sub>, adamantane, etc.): Rotational axes are degenerate and an initial alignment is not possible this way.
-* Interchage of atoms between molecules on different fragments in noncovalent complexes: The canonical assignment of two sub-graphs (two molecules that share no covalent connection) is currently independent. Hence, atoms (of the same element) may exchange across fragments, as for the (H<<sub>2</sub>O)<sub>21</sub> or LJ<sub>75</sub> case.
+* Interchage of atoms between molecules on different fragments in noncovalent complexes: The canonical assignment of two sub-graphs (two molecules that share no covalent connection) is currently independent. Hence, atoms (of the same element) may exchange across fragments, as for the (H<sub>2</sub>O)<sub>21</sub> or LJ<sub>75</sub> case.
 * Mismatches in canonical atom identifiers (comparing to chemical isomers that share a sum formula but have entirely different connectivity) are currently *not* caught and handled automatically.
+* Some quaternion RMSDs may be slightly lower when comparing entirely *different* conformers (e.g. see example 4, figure b): This can occur due to the imperfect alignment+LSAP since rotational axes in different conformers varying orientations. Automatically falling back to the lower quaternion RMSD is an implementation TODO.
 
 
 ### Python CLI Usage
@@ -189,8 +182,20 @@ TODO
 
 
 ## License
-TODO
+This project is licensed under the GNU Lesser General Public License (LGPL), version 3.0 or later.
+You are free to use, modify, and redistribute the software under the terms of this license.
+See the LICENSE file for the full text.
 
+**Disclaimer:**  
+This software is provided *“as is”*, without any warranty of any kind, express or implied,
+including but not limited to warranties of merchantability, fitness for a particular purpose,
+and noninfringement. In no event shall the authors or contributors be liable for any claim,
+damages, or other liability arising from the use of this software.
+
+© 2025 Philipp Pracht, Tobias Kaczun.<br> 
+If you use this software in academic work, please acknowledge it and cite the [*associated publication*](https://doi.org/10.1021/acs.jcim.4c02143).
+
+---
 
 # OTHER TODOs
 - [ ] docstrings and actual docs (GH pages?)
