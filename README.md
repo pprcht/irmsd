@@ -47,10 +47,11 @@ conda install -c conda-forge irmsd
 ```
 
 
-For basic usage instructions, both via the CLI and in-code, see below.
+For basic usage instructions, both via the CLI and in-code, [**see below**](#when-and-how-to-use-irmsd).
 
 
-<div style="margin-top: 3em;"></div>
+<br>
+<br>
 
 # Scientific Background 🔬 
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143) 
@@ -82,7 +83,6 @@ where
 Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model.* **2025**, *65* (9), 4501–4511**](https://pubs.acs.org/doi/abs/10.1021/acs.jcim.4c02143) (publically accessible preprint PDF → [**here**](https://doi.org/10.26434/chemrxiv-2024-qmcz4)).
 
 
-<br>
 <br>
 <br>
 
@@ -163,7 +163,6 @@ This is crucial for automated CRE pruning and is an extension to conventional (q
 
 <br>
 <br>
-<br>
 
 # When and How To Use iRMSD?
 
@@ -191,7 +190,6 @@ TODO
 * Mismatches in canonical atom identifiers (comparing to chemical isomers that share a sum formula but have entirely different connectivity) are currently *not* caught and handled automatically.
 * Some quaternion RMSDs may be slightly lower when comparing entirely *different* conformers (e.g. see example 4, figure b): This can occur due to the imperfect alignment+LSAP since rotational axes in different conformers varying orientations. Automatically falling back to the lower quaternion RMSD is an implementation TODO.              
 
-<br>
 <br>
 <br>
 
