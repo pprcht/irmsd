@@ -7,7 +7,7 @@ import numpy as np
 from ..bindings import axis_exposed as _F
 
 
-def get_axis_fortran(
+def get_axis(
     atom_numbers: np.ndarray, positions: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """

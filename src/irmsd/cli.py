@@ -180,20 +180,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     # prop
     # -------------------------------------------------------------------------
     if args.command == "prop":
-        atoms_list = irmsd.read_structures(args.structures)
-
+        molecule_list = irmsd.read_structures(args.structures)
+ 
         ran_any = False
 
         if args.cn:
-            irmsd.compute_cn_and_print(atoms_list)
+            irmsd.compute_cn_and_print(molecule_list)
             ran_any = True
 
         if args.rot:
-            irmsd.compute_axis_and_print(atoms_list)
+            irmsd.compute_axis_and_print(molecule_list)
             ran_any = True
 
         if args.canonical:
-            irmsd.compute_canonical_and_print(atoms_list, heavy=heavy)
+            irmsd.compute_canonical_and_print(molecule_list, heavy=heavy)
             ran_any = True
 
         if not ran_any:
@@ -207,19 +207,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     # compare
     # -------------------------------------------------------------------------
     if args.command == "compare":
-        atoms_list = irmsd.read_structures(args.structures)
+        molecule_list = irmsd.read_structures(args.structures)
 
         if args.quaternion:
             # Quaternion RMSD (old --rmsd behavior)
             irmsd.compute_quaternion_rmsd_and_print(
-                atoms_list,
+                molecule_list,
                 heavy=heavy,
                 outfile=args.output,
             )
         else:
             # Default: iRMSD (old --irmsd behavior)
             irmsd.compute_irmsd_and_print(
-                atoms_list,
+                molecule_list,
                 inversion=args.inversion,
                 outfile=args.output,
             )
@@ -230,7 +230,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # sort
     # -------------------------------------------------------------------------
     if args.command == "sort":
-        atoms_list = irmsd.read_structures(args.structures)
+        molecule_list = irmsd.read_structures(args.structures)
 
         if args.heavy:
             print('Heavy-atom mapping in sorting functionality is TODO. Sorry.')
@@ -238,7 +238,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         if args.align:
             irmsd.sort_get_delta_irmsd_and_print(
-                atoms_list,
+                molecule_list,
                 inversion=args.inversion,
                 printlvl=1,
                 maxprint=args.maxprint,
@@ -247,7 +247,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         else:
             irmsd.sort_structures_and_print(
-                atoms_list,
+                molecule_list,
                 rthr=args.rthr,
                 inversion=args.inversion,
                 printlvl=1,
