@@ -8,12 +8,14 @@ pytest.importorskip("rdkit")
 from rdkit import Chem
 
 from irmsd.interfaces.rdkit_io import (
+    delta_irmsd_list_rdkit,
     get_axis_rdkit,
     get_canonical_rdkit,
     get_cn_rdkit,
     get_irmsd_rdkit,
     get_rmsd_rdkit,
     rdkit_to_molecule,
+    sorter_irmsd_rdkit,
 )
 
 
@@ -43,6 +45,40 @@ def test_get_canonical_rdkit(caffeine_canonical_test_data):
     caffeine_rdkit = Chem.MolFromXYZBlock(caffeine_xyz)
 
     canonical = get_canonical_rdkit(caffeine_rdkit, heavy=heavy)
+    assert pytest.approx(expected_canonical, abs=1e-6) == canonical
+
+
+@pytest.mark.parametrize(
+    "conformer_xyz,wbo,expected_canonical",
+    [
+        (
+            [
+                "caffeine_molecule_xyz",
+                "caffeine_molecule_xyz_obabel",
+                "caffeine_molecule_xyz_gff",
+            ],
+            None,
+            np.array(
+                # fmt: off
+        [[ 1,  8,  5,  7, 13, 14, 12,  6, 10,  9,  2, 11,  4,  3, 15, 15, 15, 18, 17, 17, 17, 16, 16, 16],
+       [ 1,  7,  5, 10, 13, 14, 12,  6, 11,  8,  2,  9,  3,  4, 15, 15, 15, 18, 16, 16, 16, 17, 17, 17],
+       [ 1,  8,  5,  7, 13, 14, 12,  6, 10,  9,  2, 11,  4,  3, 15, 15, 15, 18, 17, 17, 17, 16, 16, 16]],
+                # fmt: on
+            ),
+        ),
+    ],
+)
+def test_get_canonical_rdkit_specific(conformer_xyz, wbo, expected_canonical, request):
+    caffeine_rdkit = None
+    for xyz_fixture in conformer_xyz:
+        caffeine_xyz = request.getfixturevalue(xyz_fixture)
+        if caffeine_rdkit is None:
+            caffeine_rdkit = Chem.MolFromXYZBlock(caffeine_xyz)
+        else:
+            tmp_rdkit = Chem.MolFromXYZBlock(caffeine_xyz)
+            caffeine_rdkit.AddConformer(tmp_rdkit.GetConformer(), assignId=True)
+
+    canonical = get_canonical_rdkit(caffeine_rdkit, wbo=wbo)
     assert pytest.approx(expected_canonical, abs=1e-6) == canonical
 
 
@@ -231,3 +267,25 @@ def test_rdkit_sequence_to_molecule_sequence():
         mols[1].get_positions(),
         np.array([[0, 0, 0], [0, 0, 0.8]], float),
     )
+
+
+def test_sorter_irmsd_rdkit(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    rdkit_mol_list = []
+    for conf_xyz in conformer_list:
+        rdkit_mol = Chem.MolFromXYZBlock(conf_xyz)
+        rdkit_mol_list.append(rdkit_mol)
+
+    groups, new_rdkit_mol_list = sorter_irmsd_rdkit(rdkit_mol_list, rthr)
+    assert all(groups == expected_groups)
+
+
+def test_delta_irmsd_list_rdkit(caffeine_delta_irmsd_list_test_data):
+    conformer_list, expected_delta = caffeine_delta_irmsd_list_test_data
+    rdkit_mol_list = []
+    for conf_xyz in conformer_list:
+        rdkit_mol = Chem.MolFromXYZBlock(conf_xyz)
+        rdkit_mol_list.append(rdkit_mol)
+
+    delta, new_rdkit_mol_list = delta_irmsd_list_rdkit(rdkit_mol_list)
+    assert pytest.approx(delta, abs=1e-4) == expected_delta

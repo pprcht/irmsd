@@ -422,6 +422,49 @@ CAFFEINE_IRMSD_TEST_DATA = [
     (CAFFEINE_XTB, CAFFEINE_GFF, 0.06160473, CAFFEINE_GFF_ALIGNED),
 ]
 
+CAFFEINE_SORTER_IRMSD_TEST_DATA = [
+    # conformer list, distance threshold, groups
+    (
+        [
+            CAFFEINE_XTB,
+            CAFFEINE_XTB,
+            CAFFEINE_OBABEL,
+        ],
+        0.125,
+        np.asarray([1, 1, 2]),
+    ),
+    (
+        [
+            CAFFEINE_XTB,
+            CAFFEINE_XTB_ROTATED,
+            CAFFEINE_OBABEL,
+            CAFFEINE_GFF,
+        ],
+        0.05,
+        np.asarray([1, 1, 2, 3]),
+    ),
+    (
+        [
+            CAFFEINE_XTB,
+            CAFFEINE_XTB_ROTATED,
+            CAFFEINE_OBABEL,
+            CAFFEINE_GFF,
+        ],
+        0.125,
+        np.asarray([1, 1, 2, 1]),
+    ),
+]
+
+CAFFEINE_DELTA_IRMSD_LIST_TEST_DATA = [
+    (
+        [CAFFEINE_XTB, CAFFEINE_XTB, CAFFEINE_GFF],
+        np.asarray(
+            [0.0, 0.0, 0.06160473],
+            dtype=np.float64,
+        ),
+    ),
+]
+
 
 @pytest.fixture(scope="session")
 def caffeine_molecule_xyz():
@@ -439,6 +482,12 @@ def caffeine_molecule_xyz_rotated():
 def caffeine_molecule_xyz_obabel():
     """Fixture that returns a caffeine molecule."""
     return CAFFEINE_OBABEL
+
+
+@pytest.fixture(scope="session")
+def caffeine_molecule_xyz_gff():
+    """Fixture that returns a caffeine molecule."""
+    return CAFFEINE_GFF
 
 
 @pytest.fixture(scope="session")
@@ -518,3 +567,13 @@ def caffeine_irmsd_test_data(request):
 
     conformer2 = "\n".join(conformer2_shuffled)
     return conformer1, conformer2, expected_irmsd, expected_aligned_conformer
+
+
+@pytest.fixture(scope="session", params=CAFFEINE_SORTER_IRMSD_TEST_DATA)
+def caffeine_sorter_irmsd_test_data(request):
+    return request.param
+
+
+@pytest.fixture(scope="session", params=CAFFEINE_DELTA_IRMSD_LIST_TEST_DATA)
+def caffeine_delta_irmsd_list_test_data(request):
+    return request.param

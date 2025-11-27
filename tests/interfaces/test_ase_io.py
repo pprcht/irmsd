@@ -1,5 +1,6 @@
-import numpy as np
 from io import StringIO
+
+import numpy as np
 import pytest
 
 pytest.importorskip("ase")
@@ -7,15 +8,17 @@ import ase
 from ase import Atoms
 from ase.io import read as ase_read
 
+from irmsd import Molecule
 from irmsd.interfaces.ase_io import (
     ase_to_molecule,
+    delta_irmsd_list_ase,
     get_axis_ase,
     get_canonical_ase,
     get_cn_ase,
     get_irmsd_ase,
     get_rmsd_ase,
+    sorter_irmsd_ase,
 )
-from irmsd import Molecule
 
 
 def test_get_axis_ase(caffeine_axis_test_data):
@@ -136,7 +139,8 @@ def test_ase_to_molecule_single_basic():
 
 
 def test_ase_to_molecule_single_no_energy():
-    """If ASE Atoms has no energy info or calculator, Molecule.energy should be None."""
+    """If ASE Atoms has no energy info or calculator, Molecule.energy should be
+    None."""
     a = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
 
     # No info['energy'], no calculator
@@ -178,3 +182,27 @@ def test_ase_to_molecule_sequence():
         mols[1].get_positions(),
         np.array([[0, 0, 0], [0, 0, 0.8]], float),
     )
+
+
+def test_sorter_irmsd_ase(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    atoms_list = []
+    for conf_xyz in conformer_list:
+        conf_file = StringIO(conf_xyz)
+        atoms = ase_read(conf_file, format="xyz")
+        atoms_list.append(atoms)
+
+    groups, new_atoms_list = sorter_irmsd_ase(atoms_list, rthr)
+    assert all(groups == expected_groups)
+
+
+def test_delta_irmsd_list_ase(caffeine_delta_irmsd_list_test_data):
+    conformer_list, expected_delta = caffeine_delta_irmsd_list_test_data
+    atoms_list = []
+    for conf_xyz in conformer_list:
+        conf_file = StringIO(conf_xyz)
+        atoms = ase_read(conf_file, format="xyz")
+        atoms_list.append(atoms)
+
+    delta, new_atoms = delta_irmsd_list_ase(atoms_list)
+    assert pytest.approx(delta, abs=1e-6) == expected_delta

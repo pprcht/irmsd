@@ -361,4 +361,4 @@ def delta_irmsd_list_rdkit(
 
     new_molecules_list = molecule_to_rdkit(new_mols)
 
-    return groups, new_molecules_list
+    return delta, new_molecules_list
