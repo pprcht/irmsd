@@ -1,21 +1,22 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import TYPE_CHECKING, List, Tuple
 
-import os
 import numpy as np
 
-from ..utils.utils import require_ase
-from ..utils.printouts import print_array, print_structure, print_structure_summary
-from ..utils.io import write_structures
-from ..sorting import first_by_assignment, group_by, sort_by_value
 from ..core import Molecule
+from ..sorting import first_by_assignment, group_by, sort_by_value
+from ..utils.io import write_structures
+from ..utils.printouts import print_array, print_structure, print_structure_summary
+from ..utils.utils import require_ase
 from .mol_interface import (
-    get_energies_from_molecule_list,
-    get_rmsd_molecule,
-    get_irmsd_molecule,
-    sorter_irmsd_molecule,
     delta_irmsd_list_molecule,
+    get_energies_from_molecule_list,
+    get_irmsd_molecule,
+    get_rmsd_molecule,
+    sorter_irmsd_molecule,
 )
 
 
@@ -169,12 +170,12 @@ def compute_irmsd_and_print(
 
     if outfile is not None:
         print(f"\nAligned reference structure written to {outfile}")
-        outfile_ref = outfile
-        outfile_ref.stem += "_ref"
+        outfile_ref = Path(outfile)
+        outfile_ref = outfile_ref.with_stem(outfile_ref.stem + "_ref")
         write_structures(outfile_ref, new_atoms_ref)
         print(f"\nAligned probe structure written to {outfile}")
-        outfile_aligned = outfile
-        outfile_aligned.stem += "_ref"
+        outfile_aligned = Path(outfile)
+        outfile_aligned = outfile_aligned.with_stem(outfile_aligned.stem + "_aligned")
         write_structures(outfile_aligned, new_atoms_aligned)
     else:
         print("Aligned reference structure:")

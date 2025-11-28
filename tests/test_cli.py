@@ -2,6 +2,7 @@ import re
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -143,6 +144,13 @@ def test_cli_compare_quarternion(
             ["--heavy"],
             2.2149021075,
         ),
+        (
+            "caffeine_xyz_file_fixture",
+            "caffeine_xyz_obabel_file_fixture",
+            # only check that files are created
+            ["--heavy", "--output"],
+            2.2149021075,
+        ),
     ],
 )
 def test_cli_compare_irmsd(
@@ -155,6 +163,13 @@ def test_cli_compare_irmsd(
 ):
     file1 = request.getfixturevalue(file1_fixture)
     file2 = request.getfixturevalue(file2_fixture)
+
+    if "--output" in additional_cli_args:
+        # insert filename after --output
+        output_filename = str(file1.parent / "output.xyz")
+        additional_cli_args.insert(
+            additional_cli_args.index("--output") + 1, output_filename
+        )
 
     mains_args = [
         "compare",
@@ -170,6 +185,14 @@ def test_cli_compare_irmsd(
 
     rmsd_value = float(match.group(1))
     assert pytest.approx(rmsd_value, abs=1e-6) == expected_irmsd
+
+    if "--output" in additional_cli_args:
+        outfile_path = Path(output_filename)
+        outfile_path_ref = outfile_path.with_stem(outfile_path.stem + "_ref")
+        outfile_path_aligned = outfile_path.with_stem(outfile_path.stem + "_aligned")
+
+        assert outfile_path_ref.exists(), "Reference output file not created"
+        assert outfile_path_aligned.exists(), "Aligned output file not created"
 
 
 @pytest.mark.parametrize(
