@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple, overload
+from typing import Generator, List, Sequence, Tuple, overload
 
 import numpy as np
 
@@ -16,11 +16,41 @@ from ..utils.utils import require_rdkit
 
 
 def conformer_iterator(molecule: "Mol", conf_ids: list[int]) -> "Conformer":
+    """Generator that yields conformers from a molecule given a list of
+    conformer IDs.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.Mol
+        RDKit Molecule object containing conformers.
+    conf_ids : list of int
+        List of conformer IDs to yield.
+
+    Yields
+    ------
+    rdkit.Chem.Conformer
+        The conformer corresponding to each ID in conf_ids.
+    """
     for conf_id in conf_ids:
         yield molecule.GetConformer(conf_id)
 
 
-def conf_id_to_iterator(molecule: "Mol", conf_id: None | int | Sequence) -> "Conformer":
+def conf_id_to_iterator(
+    molecule: "Mol", conf_id: None | int | Sequence
+) -> Generator | List["Mol"]:
+    """Convert conf_id input to an iterator over conformers.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.Mol
+        RDKit Molecule object containing conformers.
+    conf_id : None, int, or list of int
+        Conformer ID(s) to select. If None, all conformers are selected.
+
+    Returns
+    -------
+    generator or list of rdkit.Chem.Conformer
+    """
     if conf_id is None:
         conf_iterator = molecule.GetConformers()
     elif isinstance(conf_id, int):
@@ -33,11 +63,13 @@ def conf_id_to_iterator(molecule: "Mol", conf_id: None | int | Sequence) -> "Con
 
 
 def get_atom_symbols_rdkit(molecule) -> list[str]:
+    """Get atomic symbols from an RDKit Molecule object."""
     symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
     return symbols
 
 
 def get_energy_rdkit(conformer) -> float | None:
+    """Get energy from an RDKit Conformer object, if available."""
     if conformer.HasProp("energy"):
         energy = float(conformer.GetProp("energy"))
     else:
@@ -64,6 +96,24 @@ def rdkit_to_molecule(
     If conf_id is None, all conformers are converted. If conf_id is an
     int, only that conformer is converted. If conf_id is a list of int,
     only those conformers are converted.
+
+    Parameters
+    ----------
+    molecules : rdkit.Chem.Mol or list of rdkit.Chem.Mol
+        RDKit Molecule object(s) to convert.
+    conf_id : int, list of int, or None, optional
+        Conformer ID(s) to convert. If None, all conformers are converted.
+
+    Returns
+    -------
+    irmsd.core.Molecule or list of irmsd.core.Molecule
+        Converted irmsd Molecule object(s).
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule or a list of them. Also if any
+        conformer is not 3D.
     """
 
     require_rdkit()
@@ -88,7 +138,7 @@ def rdkit_to_molecule(
 
         for conformer in conf_iterator:
             if not conformer.Is3D():
-                raise ValueError("rdkit_to_molecule expects 3D conformers")
+                raise TypeError("rdkit_to_molecule expects 3D conformers")
 
             symbols = get_atom_symbols_rdkit(mol)  # list of str
             pos = conformer.GetPositions()  # (N, 3)
@@ -116,7 +166,23 @@ def molecule_to_rdkit(molecules: Sequence[Molecule]) -> list["Mol"]: ...
 
 def molecule_to_rdkit(molecule: Molecule | Sequence[Molecule]) -> "Mol" | list["Mol"]:
     """Convert one or more irmsd Molecule objects to one or more RDKit Molecule
-    objects."""
+    objects.
+
+    Parameters
+    ----------
+    molecule : irmsd.core.Molecule or list of irmsd.core.Molecule
+        irmsd Molecule object(s) to convert.
+
+    Returns
+    -------
+    rdkit.Chem.Mol or list of rdkit.Chem.Mol
+        Converted RDKit Molecule object(s).
+
+    Raises
+    ------
+    TypeError
+        If the input is not an irmsd Molecule or a list of them.
+    """
 
     require_rdkit()
 
@@ -156,8 +222,26 @@ def molecule_to_rdkit(molecule: Molecule | Sequence[Molecule]) -> "Mol" | list["
 
 
 def get_cn_rdkit(molecule, conf_id: None | int | Sequence = None) -> np.ndarray:
-    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule
-    and return as a numpy array with shape (n_conf, n_atoms)."""
+    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.Mol
+        RDKit Molecule object containing conformers.
+    conf_id : int, list of int, or None, optional
+        Conformer ID(s) to compute coordination numbers for. If None, all conformers are used.
+
+    Returns
+    -------
+    np.ndarray
+        Coordination numbers for each atom in the specified conformers. If multiple
+        conformers are specified, returns an array of shape (n_conf, n_atoms).
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule.
+    """
 
     require_rdkit()
 
@@ -180,7 +264,25 @@ def get_axis_rdkit(
     Tuple[np.ndarray, np.ndarray, np.ndarray]
     | List[Tuple[np.ndarray, np.ndarray, np.ndarray]]
 ):
-    """Optional RDKit utility: compute principal axes for one or more conformers of a molecule"""
+    """Optional RDKit utility: compute principal axes for one or more conformers of a molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.Mol
+        RDKit Molecule object containing conformers.
+    conf_id : int, list of int, or None, optional
+        Conformer ID(s) to compute principal axes for. If None, all conformers are used.
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray, np.ndarray] or list of such tuples.
+        (Rotational constants, average moments, eigenvectors) for each specified conformer.
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule.
+    """
     require_rdkit()
 
     from rdkit import Chem
@@ -203,8 +305,32 @@ def get_canonical_rdkit(
     invtype="apsp+",
     heavy: bool = False,
 ) -> np.ndarray:
-    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule
-    and return as a numpy array with shape (n_conf, n_atoms)."""
+    """Optional RDKit utility: compute coordination numbers for one or more conformers of a molecule.
+
+    Parameters
+    ----------
+    molecule : rdkit.Chem.Mol
+        RDKit Molecule object containing conformers.
+    conf_id : int, list of int, or None, optional
+        Conformer ID(s) to compute canonical representations for. If None, all conformers are used.
+    wbo : np.ndarray, optional
+        Optional weight bond order matrix/matrices for canonicalization, required for the 'cangen' invtype. If given either one per conformer with shape (n_conf, n_atoms, n_atoms) or use the same for all (n_atoms, n_atoms).
+    invtype : str, optional
+        Type of invariant representation to compute. Default is 'apsp+'.
+    heavy : bool, optional
+        Whether to consider only heavy atoms in the canonicalization. Default is False.
+
+    Returns
+    -------
+    np.ndarray
+        Canonical ranks for each atom in the specified conformers. If multiple
+        conformers are specified, returns an array of shape (n_conf, n_atoms).
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule.
+    """
 
     require_rdkit()
 
@@ -239,6 +365,28 @@ def get_rmsd_rdkit(
 ) -> Tuple[float, "Mol", np.ndarray]:
     """Optional Rdkit utility: operate on two Rdkit Molecules. Returns the RMSD in Angström,
     the molecule object with both Conformers aligned.
+
+    Parameters
+    ----------
+    molecule_ref : rdkit.Chem.Mol
+        Reference RDKit Molecule object.
+    molecule_align : rdkit.Chem.Mol
+        RDKit Molecule object to be aligned.
+    conf_id_ref : int, optional
+        Conformer ID for the reference molecule. Default is -1 (rdkit default).
+    conf_id_align : int, optional
+        Conformer ID for the molecule to be aligned. Default is -1 (rdkit default).
+    mask : array-like of bool, optional
+
+    Returns
+    -------
+    Tuple[float, rdkit.Chem.Mol, np.ndarray]
+        RMSD in Angström, aligned RDKit Molecule object, and rotation matrix.
+
+    Raises
+    ------
+    TypeError
+        If the inputs are not RDKit Molecule objects.
     """
 
     require_rdkit()
@@ -267,6 +415,29 @@ def get_irmsd_rdkit(
     """
     Optional Rdkit utility: operate on TWO Rdkit Molecules. Returns the iRMSD in Angström,
     the molecule object with both Conformers permuted and aligned.
+
+    Parameters
+    ----------
+    molecule_ref : rdkit.Chem.Mol
+        Reference RDKit Molecule object.
+    molecule_align : rdkit.Chem.Mol
+        RDKit Molecule object to be aligned.
+    conf_id_ref : int, optional
+        Conformer ID for the reference molecule. Default is -1 (rdkit default).
+    conf_id_align : int, optional
+        Conformer ID for the molecule to be aligned. Default is -1 (rdkit default).
+    iinversion : int, optional
+        Inversion type for iRMSD calculation. Default is 0. ( 0: 'auto', 1: 'on', 2: 'off' )
+
+    Returns
+    -------
+    Tuple[float, rdkit.Chem.Mol, rdkit.Chem.Mol]
+        iRMSD in Angström, aligned RDKit Molecule object for reference, aligned RDKit Molecule object for alignment.
+
+    Raises
+    ------
+    TypeError
+        If the inputs are not RDKit Molecule objects.
     """
     require_rdkit()
 
@@ -298,6 +469,32 @@ def sorter_irmsd_rdkit(
     """
     Optional Rdkit utility: operate on a list of Rdkit Molecules.
     Returns a list of indices corresponding to the sorted molecules based on iRMSD.
+
+    Parameters
+    ----------
+    molecules : rdkit.Chem.Mol or list of rdkit.Chem.Mol
+        RDKit Molecule object(s) containing multiple conformers.
+    rthr : float
+        iRMSD threshold for grouping.
+    iinversion : int, optional
+        Inversion type for iRMSD calculation. Default is 0. ( 0: 'auto', 1: 'on', 2: 'off' )
+    allcanon : bool, optional
+        Canonicalization flag, passed through to the backend.
+    printlvl : int, optional
+        Verbosity level, passed through to the backend.
+
+    Returns
+    -------
+    groups : np.ndarray
+        Integer array of shape (nat,) with group indices for the first
+        ``nat`` atoms (as defined by the backend).
+    new_molecules_list : list of rdkit.Chem.Mol
+        List of RDKit Molecule objects corresponding to the sorted molecules.
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule or a list of them.
     """
     require_rdkit()
 
@@ -333,6 +530,33 @@ def delta_irmsd_list_rdkit(
     allcanon: bool = True,
     printlvl: int = 0,
 ) -> Tuple[np.ndarray, List["Mol"]]:
+    """
+    Optional Rdkit utility: operate on a list of Rdkit Molecules.
+
+    Parameters
+    ----------
+    molecules : rdkit.Chem.Mol or list of rdkit.Chem.Mol
+        RDKit Molecule object(s) containing multiple conformers.
+    iinversion : int, optional
+        Inversion type for iRMSD calculation. Default is 0. ( 0: 'auto', 1: 'on', 2: 'off' )
+    allcanon : bool, optional
+        Canonicalization flag, passed through to the backend.
+    printlvl : int, optional
+        Verbosity level, passed through to the backend.
+
+    Returns
+    -------
+    delta : np.ndarray
+        Float array returned by the backend (see ``delta_irmsd_list`` for
+        detailed semantics).
+    new_molecules_list : list of rdkit.Chem.Mol
+        List of RDKit Molecule objects corresponding to the processed molecules.
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule or a list of them.
+    """
     require_rdkit()
 
     from rdkit import Chem
