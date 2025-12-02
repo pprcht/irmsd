@@ -352,6 +352,8 @@ options:
 
 For more information refer to the docs.
 
+<br>
+
 ### Python Script Usage
 A list of the provided functions and types can be found in the docs. A simple function could look like this:
 ```python
@@ -360,10 +362,12 @@ from irmsd import read_structures, sorter_irmsd_molecule
 # read an xyz file with multiple frames and return a list of irmsd.Molecule objects
 molecules = read_structures('/PATH/TO/YOUR/input.xyz')
 
-# Analyze the structure list and assign each molecule to a group (simple list of integers), as well as the aligned molecules
+# Analyze the structure list and assign each molecule to a group (simple list of integers)
+# as well as the aligned molecules
 groups,aligned_molecules = sorter_irmsd_molecule(molecules)
 ```
 
+<br>
 
 ## Known Edge-Cases and Technical Limitations
 
