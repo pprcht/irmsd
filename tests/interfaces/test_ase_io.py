@@ -5,7 +5,9 @@ import pytest
 
 pytest.importorskip("ase")
 import ase
+import numpy as np
 from ase import Atoms
+from ase.calculators.calculator import Calculator, all_properties
 from ase.io import read as ase_read
 
 from irmsd import Molecule
@@ -15,10 +17,150 @@ from irmsd.interfaces.ase_io import (
     get_axis_ase,
     get_canonical_ase,
     get_cn_ase,
+    get_energy_ase,
     get_irmsd_ase,
     get_rmsd_ase,
     sorter_irmsd_ase,
 )
+
+# -------------------------------------------------------------------
+# Lightweight ASE calculators for testing
+# -------------------------------------------------------------------
+
+
+class EmptyCalc(Calculator):
+    """A calculator with no results and no energy, but with
+    calculation_required returning False by default."""
+
+    implemented_properties = all_properties
+
+    def __init__(self, required=False, **kwargs):
+        super().__init__(**kwargs)
+        self._required = required
+        self.results = {}
+
+    def calculation_required(self, atoms, quantities=None):
+        return self._required
+
+    def get_potential_energy(self, atoms=None, force_consistent=False):
+        # If results had energy, ASE would store it here; we override explicitly.
+        return 42.0
+
+
+class RaisingCalc(EmptyCalc):
+    """A calc whose get_potential_energy raises an error."""
+
+    def get_potential_energy(self, atoms=None, force_consistent=False):
+        raise RuntimeError("boom")
+
+
+class ResultsCalc(EmptyCalc):
+    """A calc pre-populated with results dict entries."""
+
+    def __init__(self, results_dict, **kwargs):
+        super().__init__(**kwargs)
+        self.results = results_dict
+
+
+# -------------------------------------------------------------------
+# Tests
+# -------------------------------------------------------------------
+
+# ==========================================================
+# TYPE ENFORCEMENT
+# ==========================================================
+
+
+def test_wrong_type():
+    with pytest.raises(TypeError):
+        get_energy_ase(object())
+
+
+# ==========================================================
+# 1. info["energy"]
+# ==========================================================
+
+
+def test_energy_from_info():
+    atoms = Atoms("H")
+    atoms.info["energy"] = 12.5
+    assert get_energy_ase(atoms) == 12.5
+
+
+def test_energy_from_info_non_numeric():
+    atoms = Atoms("H")
+    atoms.info["energy"] = "nope"
+    atoms.calc = None
+    assert get_energy_ase(atoms) is None
+
+
+# ==========================================================
+# 2. calc.results: energy / free_energy / enthalpy
+# ==========================================================
+
+
+@pytest.mark.parametrize(
+    "key,val",
+    [
+        ("energy", 10.0),
+        ("free_energy", -1.5),
+        ("enthalpy", 3.14),
+    ],
+)
+def test_energy_from_calc_results(key, val):
+    atoms = Atoms("H2")
+    atoms.calc = ResultsCalc({key: val})
+    assert get_energy_ase(atoms) == float(val)
+
+
+def test_calc_results_non_numeric():
+    atoms = Atoms("H2")
+    atoms.calc = ResultsCalc({"energy": "bad", "free_energy": None, "enthalpy": "?"})
+    # falls through and uses get_potential_energy (default=42.0)
+    assert get_energy_ase(atoms) == 42.0
+
+
+# ==========================================================
+# 3. get_potential_energy only if calculation is NOT required
+# ==========================================================
+
+
+def test_calculation_required_true_skips_energy():
+    atoms = Atoms("H2")
+    atoms.calc = EmptyCalc(required=True)
+    # No info, no results, calc_required=True → return None
+    assert get_energy_ase(atoms) is None
+
+
+def test_calculation_required_false_uses_potential_energy():
+    atoms = Atoms("H2")
+    atoms.calc = EmptyCalc(required=False)
+    assert get_energy_ase(atoms) == 42.0
+
+
+def test_get_potential_energy_raises_returns_none():
+    atoms = Atoms("H2")
+    atoms.calc = RaisingCalc()
+    # Exception inside → must return None, not crash
+    assert get_energy_ase(atoms) is None
+
+
+# ==========================================================
+# NOTHING FOUND: return None
+# ==========================================================
+
+
+def test_no_info_no_calc():
+    atoms = Atoms("H2")
+    atoms.calc = None
+    assert get_energy_ase(atoms) is None
+
+
+def test_no_info_empty_calc_no_results_required_true():
+    atoms = Atoms("H2")
+    atoms.calc = EmptyCalc(required=True)
+    # calculation_required=True → no potential_energy call → fallback
+    assert get_energy_ase(atoms) is None
 
 
 def test_get_axis_ase(caffeine_axis_test_data):
