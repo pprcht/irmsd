@@ -1,13 +1,14 @@
 # src/irmsd/__init__.py
 from __future__ import annotations
 
-from .core.molecule import Molecule
+from . import sorting
 from .api.axis_exposed import get_axis
 from .api.canonical_exposed import get_canonical_fortran
 from .api.cn_exposed import get_cn_fortran
 from .api.irmsd_exposed import get_irmsd
-from .api.sorter_exposed import sorter_irmsd, delta_irmsd_list
-from . import sorting
+from .api.rmsd_exposed import get_quaternion_rmsd_fortran
+from .api.sorter_exposed import delta_irmsd_list, sorter_irmsd
+from .core.molecule import Molecule
 
 # ---- Core API ----------------------------------------
 # Try to expose ase_to_fortran if ASE is present; otherwise export a stub that errors nicely.
@@ -35,18 +36,18 @@ try:
 except Exception:
     pass
 
-# ---- New: re-export Python utilities ----------------------------------------
-from .utils.io import read_structures, write_structures
-
 from .interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,
     compute_irmsd_and_print,
     compute_quaternion_rmsd_and_print,
-    sort_structures_and_print,
     sort_get_delta_irmsd_and_print,
+    sort_structures_and_print,
 )
+
+# ---- New: re-export Python utilities ----------------------------------------
+from .utils.io import read_structures, write_structures
 
 __all__ = [
     "Molecule",
