@@ -1,0 +1,49 @@
+name: Tests & Coverage
+
+on:
+  push:
+    branches: [ main ]       # run when main is updated
+  pull_request:
+    branches: [ main ]       # run on all PRs targeting main
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # In case our Fortran build needs system packages at some point
+      # Placeholder for now
+      # - name: Install system dependencies
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y gfortran
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # installs pytest, pytest-cov
+          pip install .[dev]
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=irmsd \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true
+
