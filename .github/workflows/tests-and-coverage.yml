@@ -75,7 +75,7 @@ jobs:
         shell: bash -l {0}
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install '.[dev,ase]'
 
       - name: Run tests with RDKit + coverage
         shell: bash -l {0}
