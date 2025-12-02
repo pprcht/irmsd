@@ -7,7 +7,7 @@ name = "irmsd"
 version = "0.0.0a"
 description = "irmsd: A package for the calculation of the permutation-invariant root-mean-square-deviation (RMSD) of atomic positions."
 readme = "README.md"
-#license = { file = "LICENSE" }
+license = { file = "LICENSE" }
 authors = [{ name = "Philipp Pracht" }, { name = "Tobias Kaczun"}]
 requires-python = ">=3.9"
 dependencies = ["numpy>=2.0"]
