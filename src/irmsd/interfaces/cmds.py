@@ -9,7 +9,13 @@ import numpy as np
 from ..core import Molecule
 from ..sorting import first_by_assignment, group_by, sort_by_value
 from ..utils.io import write_structures
-from ..utils.printouts import print_array, print_structure, print_structure_summary
+from ..utils.printouts import (
+    print_array,
+    print_atomwise_properties,
+    print_pretty_array,
+    print_structure,
+    print_structure_summary,
+)
 from ..utils.utils import require_ase
 from .mol_interface import (
     delta_irmsd_list_molecule,
@@ -38,7 +44,8 @@ def compute_cn_and_print(molecule_list: Sequence["Molecule"]) -> List[np.ndarray
     for i, mol in enumerate(molecule_list, start=1):
         cn_vec = mol.get_cn()
         results.append(cn_vec)
-        print_array(f"CN[ structure {i} ] (n={len(mol)})", cn_vec)
+        print(f"Coordination numbers for structure {i}:")
+        print_atomwise_properties(mol, cn_vec, "CN")
     return results
 
 
@@ -64,9 +71,14 @@ def compute_axis_and_print(
     for i, mol in enumerate(molecule_list, start=1):
         rot, avmom, evec = mol.get_axis()
         results.append((rot, avmom, evec))
-        print_array(f"Rotational constants (MHz) for structure {i}", rot)
-        print(f"Average momentum a.u. (10⁻⁴⁷kg m²) for structure {i}: {avmom}")
-        print_array(f"Rotation matrix for structure {i}", evec)
+        print(f"Results for structure {i}:")
+
+        print_pretty_array(f"Rotational constants (MHz):", rot)
+        print()
+        print(f"Average momentum a.u. (10⁻⁴⁷kg m²): {avmom[0]:1.6e}")
+        print()
+        print_pretty_array(f"Rotation matrix:", evec)
+        print()
     return results
 
 
@@ -91,7 +103,8 @@ def compute_canonical_and_print(
     for i, mol in enumerate(molecule_list, start=1):
         rank = mol.get_canonical(heavy=heavy)
         results.append(rank)
-        print_array(f"Canonical rank for structure {i}", rank)
+        print(f"Canonical ranks for structure {i}:")
+        print_atomwise_properties(mol, rank, "Canonical Rank")
     return results
 
 
