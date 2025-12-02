@@ -104,7 +104,7 @@ def compute_canonical_and_print(
         rank = mol.get_canonical(heavy=heavy)
         results.append(rank)
         print(f"Canonical ranks for structure {i}:")
-        print_atomwise_properties(mol, rank, "Canonical Rank")
+        print_atomwise_properties(mol, rank, "Canonical Rank", fmt="{:14d}")
     return results
 
 

@@ -7,7 +7,7 @@ from ..core import Molecule
 HARTREE_TO_KCAL_MOL = 627.509474
 
 
-def print_atomwise_properties(mol, array, name: str) -> None:
+def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
     """Pretty-print atom-wise properties for a Molecule.
 
     Parameters
@@ -34,7 +34,8 @@ def print_atomwise_properties(mol, array, name: str) -> None:
     print("---- ------ --------------")
     symbols = mol.get_chemical_symbols()
     for i in range(nat):
-        print(f"{i+1:4d} {symbols[i]:>6} {array[i]:14.6f}")
+        print_string = f"{i+1:4d} {symbols[i]:>6} " + fmt.format(array[i])
+        print(print_string)
     print()
 
 
