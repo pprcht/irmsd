@@ -7,10 +7,6 @@ import numpy as np
 from ..bindings import canonical_exposed as _F
 
 
-# TODO: disucss with phillip how to deal with the invtype string
-#       the fortran implementation will not throw an error if a wrong
-#       string is passed, it will just ignore it and use the default
-#       should we check it here?
 def get_canonical_fortran(
     atom_numbers: np.ndarray,
     positions: np.ndarray,
