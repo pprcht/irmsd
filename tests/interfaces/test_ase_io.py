@@ -17,6 +17,7 @@ from irmsd.interfaces.ase_io import (
     get_axis_ase,
     get_canonical_ase,
     get_cn_ase,
+    get_energies_from_atoms_list,
     get_energy_ase,
     get_irmsd_ase,
     get_rmsd_ase,
@@ -161,6 +162,79 @@ def test_no_info_empty_calc_no_results_required_true():
     atoms.calc = EmptyCalc(required=True)
     # calculation_required=True → no potential_energy call → fallback
     assert get_energy_ase(atoms) is None
+
+
+# ==========================================================
+# get_energies_from_atoms_list tests
+# ==========================================================
+
+
+def test_get_energies_mixed_cases():
+    """
+    Mixed test covering all possible energy sources:
+        1. info["energy"]
+        2. calc.results["energy"]
+        3. potential energy via calculator
+        4. calculation_required → None → 0.0
+        5. raising calculator → None → 0.0
+    """
+
+    # 1. direct info energy
+    a1 = Atoms("H")
+    a1.info["energy"] = 10.0
+
+    # 2. calc.results["energy"]
+    a2 = Atoms("H2")
+    a2.calc = ResultsCalc({"energy": 5.5})
+
+    # 3. get_potential_energy → 42.0
+    a3 = Atoms("H2")
+    a3.calc = EmptyCalc(required=False)
+
+    # 4. calculation_required=True → skip → None → 0.0
+    a4 = Atoms("H2")
+    a4.calc = EmptyCalc(required=True)
+
+    # 5. potential energy raises → return None → 0.0
+    a5 = Atoms("H2")
+    a5.calc = RaisingCalc()
+
+    atoms_list = [a1, a2, a3, a4, a5]
+
+    energies = get_energies_from_atoms_list(atoms_list)
+
+    assert isinstance(energies, np.ndarray)
+    assert energies.dtype == float
+    assert energies.shape == (5,)
+
+    expected = np.array([10.0, 5.5, 42.0, 0.0, 0.0])
+    assert np.allclose(energies, expected)
+
+
+def test_empty_list():
+    """Should return empty float array."""
+    arr = get_energies_from_atoms_list([])
+    assert isinstance(arr, np.ndarray)
+    assert arr.size == 0
+    assert arr.dtype == float
+
+
+def test_all_none_energies():
+    """If all return None (e.g., calculation_required=True or missing energy),
+    must produce an array of zeros."""
+    a1 = Atoms("H")
+    a1.calc = EmptyCalc(required=True)  # none available
+
+    a2 = Atoms("He")
+    a2.calc = RaisingCalc()  # raises → None
+
+    out = get_energies_from_atoms_list([a1, a2])
+    assert np.allclose(out, [0.0, 0.0])
+
+
+# ==========================================================
+# Other ASE interface tests with caffeine data
+# ==========================================================
 
 
 def test_get_axis_ase(caffeine_axis_test_data):
