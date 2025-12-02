@@ -34,6 +34,39 @@ def get_quaternion_rmsd_fortran_raw(
     Umat_F: np.ndarray,  # (3,3) float64 F
     mask: np.ndarray | None = None,  # (bool,
 ) -> float:
+    """Low-level call that matches the Fortran signature exactly.
+
+    Parameters
+    ----------
+    n1 : int
+        Number of atoms in structure 1 (must be consistent with array lengths).
+    types1 : (n1,) int32, C-contiguous
+        Atomic numbers for structure 1.
+    coords1_flat : (3*n1,) float64, C-contiguous
+        Flat coordinates [x1,y1,z1,x2,y2,z2,...] for structure 1.
+    n2 : int
+        Number of atoms in structure 2 (must be consistent with array lengths).
+    types2 : (n2,) int32, C-contiguous
+        Atomic numbers for structure 2.
+    coords2_flat : (3*n2,) float64, C-contiguous
+        Flat coordinates [x1,y1,z1,x2,y2,z2,...] for structure 2.
+    Umat_F : (3,3) float64, Fortran-contiguous
+        Output rotation matrix.
+    mask : (n1,) bool, C-contiguous, optional
+        Optional mask to include only a subset of atoms from structure 1.
+
+    Returns
+    -------
+    float
+        The computed RMSD.
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
+    ValueError
+        If array sizes do not match n1 or n2.
+    """
     # Validate buffers to catch ABI mismatches early
     if types1.dtype != np.int32 or not types1.flags.c_contiguous:
         raise TypeError("types1 must be int32 and C-contiguous")

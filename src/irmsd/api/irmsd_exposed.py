@@ -14,6 +14,45 @@ def get_irmsd(
     positions2: np.ndarray,
     iinversion: int = 0,
 ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Core API: call the Fortran routine to calculate the iRMSD between two structures
+
+    Parameters
+    ----------
+    atom_numbers1 : (N1,) int32-like
+        Atomic numbers (or types) of structure 1.
+    positions1 : (N1, 3) float64-like
+        Cartesian coordinates in Å of structure 1.
+    atom_numbers2 : (N2,) int32-like
+        Atomic numbers (or types) of structure 2.
+    positions2 : (N2, 3) float64-like
+        Cartesian coordinates in Å of structure 2.
+    iinversion : int, optional
+        Whether to consider inversion symmetry. Default is 0 (auto). Set to 1 to use inversion, set
+        to 2 to disable inversion.
+
+    Returns
+    -------
+    rmsdval : float
+        The calculated iRMSD value.
+    Z3 : (N1,) int32 ndarray
+        Atomic numbers of the aligned structure 1.
+    P3 : (N1, 3) float64 ndarray
+        Aligned and centered coordinates of structure 1.
+    Z4 : (N2,) int32 ndarray
+        Atomic numbers of the aligned structure 2.
+    P4 : (N2, 3) float64 ndarray
+        Aligned and centered coordinates of structure 2.
+
+    Notes
+    -----
+    The returned coordinates P3 and P4 are centered at the origin.
+
+    Raises
+    ------
+    ValueError
+        If positions1 or positions2 do not have shape (Ni, 3).
+    """
     Z1 = np.ascontiguousarray(atom_numbers1, dtype=np.int32)
     Z2 = np.ascontiguousarray(atom_numbers2, dtype=np.int32)
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
-from typing import Tuple
+
 import numpy as np
+
 from ..bindings import cn_exposed as _F
+
 
 def get_cn_fortran(atom_numbers: np.ndarray, positions: np.ndarray) -> np.ndarray:
     """
@@ -18,6 +20,11 @@ def get_cn_fortran(atom_numbers: np.ndarray, positions: np.ndarray) -> np.ndarra
     -------
     cn : (N) float64 ndarray
         array with coordination numbers
+
+    Raises
+    ------
+    ValueError
+        If positions does not have shape (N, 3).
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     pos = np.ascontiguousarray(positions, dtype=np.float64)
@@ -32,4 +39,3 @@ def get_cn_fortran(atom_numbers: np.ndarray, positions: np.ndarray) -> np.ndarra
     _F.get_cn_fortran_raw(n, atom_numbers, coords_flat, cn)
 
     return cn
-

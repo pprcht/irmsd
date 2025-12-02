@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Tuple
+from typing import List, Sequence, Tuple
 
 import numpy as np
 
@@ -16,7 +16,6 @@ from ..utils.printouts import (
     print_structure,
     print_structure_summary,
 )
-from ..utils.utils import require_ase
 from .mol_interface import (
     delta_irmsd_list_molecule,
     get_energies_from_molecule_list,

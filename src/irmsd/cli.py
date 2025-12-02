@@ -27,12 +27,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Subcommand to run.",
     )
 
-    # p.add_argument(
-    #    "structures",
-    #    nargs="+",
-    #    help="Paths to structure files (e.g. .xyz, .pdb, .cif).",
-    # )
-
     # -------------------------------------------------------------------------
     # prop subparser: structural properties (CN, rotational constants, canonical IDs)
     # -------------------------------------------------------------------------
@@ -181,7 +175,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # -------------------------------------------------------------------------
     if args.command == "prop":
         molecule_list = irmsd.read_structures(args.structures)
- 
+
         ran_any = False
 
         if args.cn:
@@ -233,7 +227,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         molecule_list = irmsd.read_structures(args.structures)
 
         if args.heavy:
-            print('Heavy-atom mapping in sorting functionality is TODO. Sorry.')
+            print("Heavy-atom mapping in sorting functionality is TODO. Sorry.")
             return 1
 
         if args.align:

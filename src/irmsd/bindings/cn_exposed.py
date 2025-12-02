@@ -40,6 +40,13 @@ def get_cn_fortran_raw(
         Flat coordinates [x1,y1,z1,x2,y2,z2,...].
     cn_flat : (natoms) float64, C-contiguous
         Output CN array written by Fortran.
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
+    ValueError
+        If array sizes do not match natoms.
     """
     # light validation to catch mismatches early
     if types.dtype != np.int32 or not types.flags.c_contiguous:

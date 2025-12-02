@@ -5,6 +5,7 @@ Auto-generated bindings for sorter wrapping
 """
 import ctypes as ct
 from typing import Optional
+
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
@@ -56,7 +57,7 @@ def _get_delta_irmsd_list_fortran() -> ct._CFuncPtr:
             ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
             ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
             ct.c_int,
-            ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"), 
+            ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
             ct.c_bool,
             ct.c_int,
         ]

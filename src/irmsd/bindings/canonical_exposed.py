@@ -37,7 +37,8 @@ def get_canonical_sorter_fortran_raw(
     wbo: np.ndarray | None = None,
     invtype: str = "apsp+",
 ) -> None:
-    """Low-level call that matches the Fortran signature exactly.
+    """Low-level call that matches the Fortran signature exactly. Operates IN-
+    PLACE on rank.
 
     Parameters
     ----------
@@ -55,6 +56,13 @@ def get_canonical_sorter_fortran_raw(
         Optional Wiberg bond order matrix, required if invtype is 'cangen', ignored in case of 'apsp+'.
     invtype : str, optional
         alogrithm type for invariants calculation (default: apsp+), alternativly 'cangen'.
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
+    ValueError
+        If array sizes do not match natoms.
     """
     # light validation to catch mismatches early
     if types.dtype != np.int32 or not types.flags.c_contiguous:
@@ -128,6 +136,13 @@ def get_ids_from_connect_fortran_raw(
         Output array for rank.
     heavy : bool, optional
         Whether to consider only heavy atoms (default: False).
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
+    ValueError
+        If array sizes do not match natoms.
     """
     # light validation to catch mismatches early
     if types.dtype != np.int32 or not types.flags.c_contiguous:

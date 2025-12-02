@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Sequence, Tuple, List
+from typing import List, Sequence, Tuple
+
 import numpy as np
 
 from ..bindings import sorter_exposed as _F
@@ -44,6 +45,11 @@ def sorter_irmsd(
         Updated coordinates for each structure.
     Z_structs : list of (N,) int32 arrays
         Updated atom numbers for each structure.
+
+    Raises
+    ------
+    ValueError
+        If input arrays have inconsistent shapes or invalid parameters.
     """
     # Check basic structure count
     if len(atom_numbers_list) == 0:
@@ -145,6 +151,11 @@ def delta_irmsd_list(
         Updated coordinates for each structure.
     Z_structs : list of (N,) int32 arrays
         Updated atom numbers for each structure.
+
+    Raises
+    ------
+    ValueError
+        If input arrays have inconsistent shapes or invalid parameters.
     """
     # Check basic structure count
     if len(atom_numbers_list) == 0:
@@ -198,7 +209,7 @@ def delta_irmsd_list(
         xyzall,  # flattened buffer (nall*N*3)
         atall,  # flattened buffer (nall*N)
         int(iinversion),
-        delta, # length nall
+        delta,  # length nall
         bool(allcanon),
         int(printlvl),
     )

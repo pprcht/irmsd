@@ -11,7 +11,7 @@ def get_axis(
     atom_numbers: np.ndarray, positions: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Core API: call the Fortran routine to calculate CN
+    Core API: call the Fortran routine to calculate the rotation axis, average moment, and eigenvectors
 
     Parameters
     ----------
@@ -22,7 +22,18 @@ def get_axis(
 
     Returns
     -------
-    TODO
+    rot : (3,) float64 ndarray
+        Rotation axis.
+    avmom : (1,) float64 ndarray
+        Average moment.
+    evec : (3, 3) float64 ndarray
+        Eigenvectors.
+
+    Raises
+    ------
+    ValueError
+        If positions does not have shape (N, 3).
+
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     pos = np.ascontiguousarray(positions, dtype=np.float64)
