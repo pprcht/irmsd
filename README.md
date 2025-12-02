@@ -84,11 +84,15 @@ Details on the iRMSD method are extensively discussed in [***J. Chem. Inf. Model
 
 <br>
 
-A simple application example for iRMSD is seen below. Here, we have two copies of the same conformer of a drug molecule. Both have entirely random atom order, and are randomly rotated.
+A simple application example is seen below. Here, we have two copies of the same conformer of a drug molecule. Both have entirely random atom order, and are randomly rotated, as seen in the side-by-side coordinate blocks. iRMSD is capable of aligning the structures and restoring the correct atom order.
 
 <table>
   <tr>
-  <td width="45%">
+  <td >
+
+<p align="center">
+  <img src="assets/images/fluoxetine1.png" width="50%">
+</p>
 
    ```
    40
@@ -135,7 +139,11 @@ C        2.88629837      -1.43730500      -2.64753502
 C        3.31583545      -2.71173570      -3.02569967
    ```
 
-  </td><td></td><td width="40%">
+  </td><td>
+
+<p align="center">
+  <img src="assets/images/fluoxetine2.png" width="50%"> 
+</p>
 
    ```
    40
