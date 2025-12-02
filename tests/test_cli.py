@@ -485,3 +485,16 @@ def test_cli_prop(
     assert (
         property_printout in out
     ), f"Expected property printout not found in output:\n{out}"
+
+
+def test_cli_help(caffeine_xyz_file_fixture, capfd):
+    mains_args = ["prop", str(caffeine_xyz_file_fixture)]
+    retcode = main(mains_args)
+    out, err = capfd.readouterr()
+
+    assert (
+        retcode == 1
+    ), f"Expected return code 1 when no property selected, got {retcode}"
+    assert (
+        "CLI to read an arbitrary number of structures with ASE and run selected" in out
+    ), f"Help message not found in output:\n{out}"
