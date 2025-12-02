@@ -91,7 +91,7 @@ A simple application example is seen below. Here, we have two copies of the same
   <td >
 
 <p align="center">
-  <img src="assets/images/fluoxetine1.png" width="50%">
+  <img src="assets/images/fluoxetine1.jpg" width="50%">
 </p>
 
    ```
@@ -142,7 +142,7 @@ C        3.31583545      -2.71173570      -3.02569967
   </td><td>
 
 <p align="center">
-  <img src="assets/images/fluoxetine2.png" width="50%"> 
+  <img src="assets/images/fluoxetine2.jpg" width="50%"> 
 </p>
 
    ```
