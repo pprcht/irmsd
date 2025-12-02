@@ -32,11 +32,6 @@ def conf_id_to_iterator(molecule: "Mol", conf_id: None | int | Sequence) -> "Con
     return conf_iterator
 
 
-def get_atom_numbers_rdkit(molecule) -> np.ndarray:
-    Z = [atom.GetAtomicNum() for atom in molecule.GetAtoms()]
-    return np.array(Z, dtype=np.int32)
-
-
 def get_atom_symbols_rdkit(molecule) -> list[str]:
     symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
     return symbols
