@@ -33,7 +33,7 @@ irmsd = "irmsd.cli:main"
 [tool.cibuildwheel]
 build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*"]
 skip = ["pp*", "*-musllinux*"]
-test-command = "pytest -q"
+test-command = "pytest -q {project}/tests"
 test-requires = ["pytest", "numpy"]
 
 [tool.cibuildwheel.linux]
