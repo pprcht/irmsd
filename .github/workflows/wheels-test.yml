@@ -16,11 +16,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      # dynamically set MACOSX_DEPLOYMENT_TARGET on macOS runners
+      - name: Set macOS deployment target dynamically
+        if: runner.os == 'macOS'
+        run: |
+          MAJOR=$(sw_vers -productVersion | cut -d. -f1)
+          echo "Detected macOS major version: $MAJOR"
+          echo "MACOSX_DEPLOYMENT_TARGET=${MAJOR}.0" >> $GITHUB_ENV
+
       - run: pip install cibuildwheel
-      - run: python -m cibuildwheel --output-dir wheelhouse
+
+      - name: Build wheels with cibuildwheel
+        run: python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
         with:
