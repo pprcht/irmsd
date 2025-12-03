@@ -41,8 +41,22 @@ before-all = "yum install -y gcc-gfortran"
 environment = { FC = "gfortran" }
 
 [tool.cibuildwheel.macos]
-before-all = "brew install gcc"
+before-all = """
+brew install gcc
+GFORTRANS=$(ls "$(brew --prefix)"/bin/gfortran-[0-9]* 2>/dev/null || true)
+if [ -z "$GFORTRANS" ]; then
+  echo "No gfortran-* binaries found in $(brew --prefix)/bin" >&2
+  exit 1
+fi
+# Pick the highest version numerically by the suffix
+GFORTRAN_BIN=$(printf '%s\n' $GFORTRANS | sort -t- -k2,2n | tail -n1)
+echo "Using Fortran compiler: $GFORTRAN_BIN"
+ln -sf "$GFORTRAN_BIN" "$(brew --prefix)/bin/gfortran"
+which gfortran || { echo "gfortran still not on PATH"; exit 1; }
+"""
 environment = { FC = "gfortran" }
+
+
 
 [tool.cibuildwheel.windows]
 before-all = "choco install mingw"
