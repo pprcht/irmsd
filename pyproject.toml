@@ -30,4 +30,23 @@ wheel.expand-macos-universal-tags = true
 [project.scripts]
 irmsd = "irmsd.cli:main"
 
+[tool.cibuildwheel]
+build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*"]
+skip = ["pp*", "*-musllinux*"]
+test-command = "pytest -q"
+test-requires = ["pytest", "numpy"]
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y gcc-gfortran"
+environment = { FC = "gfortran" }
+
+[tool.cibuildwheel.macos]
+before-all = "brew install gcc"
+environment = { FC = "gfortran" }
+
+[tool.cibuildwheel.windows]
+before-all = "choco install mingw"
+environment = { FC = "gfortran" }
+
+
 
