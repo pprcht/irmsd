@@ -2,7 +2,6 @@ from io import StringIO
 
 import numpy as np
 import pytest
-from ase.io import read as ase_read
 
 from irmsd.interfaces.cmds import (
     compute_axis_and_print,
