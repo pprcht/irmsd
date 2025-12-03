@@ -30,6 +30,18 @@ def get_quaternion_rmsd_fortran(
     rmsdval        : float64
     new_positions2 : (N2, 3) float64, (positions2 @ Umat.T)
     Umat           : (3, 3) float64 (Fortran-ordered)
+
+    Notes
+    -----
+    The returned new_positions2 is aligned onto positions1.
+    1. If mask is provided, only the atoms where mask==True in structure 1 are used to compute the RMSD.
+    2. The rotation matrix Umat is Fortran-ordered, i.e., to rotate positions2, do: new_positions2 = positions2 @ Umat.T
+    3. The returned new_positions2 is also translated to have the same barycenter as positions1.
+
+    Raises
+    ------
+    ValueError
+        If the input arrays do not have the correct shapes or types.
     """
     Z1 = np.ascontiguousarray(atom_numbers1, dtype=np.int32)
     Z2 = np.ascontiguousarray(atom_numbers2, dtype=np.int32)

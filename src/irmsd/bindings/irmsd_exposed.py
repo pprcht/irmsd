@@ -40,6 +40,46 @@ def get_irmsd_fortran_raw(
     types_out2: np.ndarray,  # (n2,) int32 C
     coords_out2_flat: np.ndarray,  # (3*n2,) float64 C
 ) -> float:
+    """Low-level call that matches the Fortran signature exactly. Operates IN-
+    PLACE on coords_out1_flat and coords_out2_flat.
+
+    Parameters
+    ----------
+    n1 : int
+        Number of atoms in structure 1 (must be consistent with array lengths).
+    types1 : (n1,) int32, C-contiguous
+        Atomic numbers for structure 1.
+    coords1_flat : (3*n1,) float64, C-contiguous
+        Flat coordinates [x1,y1,z1,x2,y2,z2,...] for structure 1.
+    n2 : int
+        Number of atoms in structure 2 (must be consistent with array lengths).
+    types2 : (n2,) int32, C-contiguous
+        Atomic numbers for structure 2.
+    coords2_flat : (3*n2,) float64, C-contiguous
+        Flat coordinates [x1,y1,z1,x2,y2,z2,...] for structure 2.
+    iinversion : int
+        Inversion handling flag (0: automatic, 1: on, 2: off).
+    types_out1 : (n2,) int32, C-contiguous
+        Output atomic numbers for aligned structure 1.
+    coords_out1_flat : (3*n2,) float64, C-contiguous
+        Output flat coordinates for aligned structure 1.
+    types_out2 : (n2,) int32, C-contiguous
+        Output atomic numbers for aligned structure 2.
+    coords_out2_flat : (3*n2,) float64, C-contiguous
+        Output flat coordinates for aligned structure 2.
+
+    Returns
+    -------
+    rmsd : float
+        The computed RMSD value between the two structures after permutation and alignment.
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
+    ValueError
+        If array sizes do not match n1 or n2 as appropriate.
+    """
     # Validate buffers to catch ABI mismatches early
     if types1.dtype != np.int32 or not types1.flags.c_contiguous:
         raise TypeError("types1 must be int32 and C-contiguous")

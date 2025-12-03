@@ -1,8 +1,73 @@
 from collections.abc import Sequence
+
 import numpy as np
+
 from ..core import Molecule
 
 HARTREE_TO_KCAL_MOL = 627.509474
+
+
+def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
+    """Pretty-print atom-wise properties for a Molecule.
+
+    Parameters
+    ----------
+    mol : Molecule
+        Molecule instance.
+    array : 1D numpy.ndarray
+        Array of properties, one per atom.
+    title : str
+        Header title to print before the data.
+
+    Raises
+    ------
+    ValueError
+        If the length of the array does not match the number of atoms.
+    """
+    nat = len(mol)
+    if len(array) != nat:
+        raise ValueError(
+            f"Length of array ({len(array)}) does not match number of atoms ({nat})."
+        )
+
+    print(f"{'Atom':>4} {'Symbol':>6} {name:>14}")
+    print("---- ------ --------------")
+    symbols = mol.get_chemical_symbols()
+    for i in range(nat):
+        print_string = f"{i+1:4d} {symbols[i]:>6} " + fmt.format(array[i])
+        print(print_string)
+    print()
+
+
+def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -> None:
+    """Pretty-print a 1D or 2D numpy array with a header.
+
+    Parameters
+    ----------
+    title : str
+        Header title to print before the data.
+    arr : numpy.ndarray
+        1D or 2D array to print.
+    fmt : str, optional
+        Format string for each element (default: "{:8.4f}").
+    sep : str, optional
+        Separator between elements (default: four spaces).
+
+    Raises
+    ------
+    ValueError
+        If the array is not 1D or 2D.
+    """
+    print(title)
+    if arr.ndim == 1:
+        print(sep.join(fmt.format(x) for x in arr))
+
+    elif arr.ndim == 2:
+        for row in arr:
+            print(sep.join(fmt.format(x) for x in row))
+
+    else:
+        raise ValueError("Only 1D or 2D arrays are supported.")
 
 
 def print_array(title: str, arr: np.ndarray) -> None:
@@ -14,8 +79,8 @@ def print_array(title: str, arr: np.ndarray) -> None:
 
 
 def print_structure(mol) -> None:
-    """
-    Print basic information about a Molecule object in a simple XYZ-like format.
+    """Print basic information about a Molecule object in a simple XYZ-like
+    format.
 
     Parameters
     ----------
@@ -45,8 +110,7 @@ def print_structure_summary(
     delta_irmsd: Sequence[float] | None = None,
     max_rows: int | None = None,
 ) -> None:
-    """
-    Pretty-print a table summarising structures and associated quantities.
+    """Pretty-print a table summarising structures and associated quantities.
 
     Parameters
     ----------

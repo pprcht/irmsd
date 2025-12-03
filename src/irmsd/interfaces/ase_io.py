@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from typing import overload, Sequence, Tuple, List
+from typing import List, Sequence, Tuple, overload
+
 import numpy as np
 
-from ..utils.utils import require_ase
 from ..core.molecule import Molecule
+from ..utils.utils import require_ase
 from .mol_interface import (
-    get_rmsd_molecule,
-    get_irmsd_molecule,
-    sorter_irmsd_molecule,
     delta_irmsd_list_molecule,
+    get_irmsd_molecule,
+    get_rmsd_molecule,
+    sorter_irmsd_molecule,
 )
 
 # -------------------------------------------------------------------
@@ -18,8 +19,7 @@ from .mol_interface import (
 
 
 def get_energy_ase(atoms):
-    """
-    Return the energy stored in an ASE Atoms object.
+    """Return the energy stored in an ASE Atoms object.
 
     Checks, in order:
         1. atoms.info["energy"]
@@ -27,6 +27,33 @@ def get_energy_ase(atoms):
         3. atoms.get_potential_energy() *only if it will NOT trigger a calculation*
 
     Returns None if nothing is found.
+    """
+    # alternative numpy style docstring
+    """Retrieve the energy associated with an ASE Atoms object.
+
+    This function attempts to extract the energy of the given ASE Atoms object
+    through several common avenues, in the following order:
+    1. Check if the energy is stored in `atoms.info["energy"]`.
+    2. If a calculator is attached, check its `results` dictionary for keys
+         "energy", "free_energy", or "enthalpy".
+    3. Call `atoms.get_potential_energy()` only if no calculation is needed.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+        An ASE Atoms object from which to retrieve the energy.
+
+    Returns
+    -------
+    float or None
+        The energy value if found, otherwise `None`.
+
+    Raises
+    ------
+    RuntimeError
+        If ASE is not installed.
+    TypeError
+        If the input is not an ASE Atoms object.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -70,8 +97,7 @@ def ase_to_molecule(atoms: Sequence["ase.Atoms"]) -> list[Molecule]: ...
 
 
 def ase_to_molecule(atoms):
-    """
-    Convert an ASE `Atoms` object (or a sequence of them) into the internal
+    """Convert an ASE `Atoms` object (or a sequence of them) into the internal
     `irmsd.core.Molecule` type.
 
     This function is intentionally non-invasive: it does not trigger any new
@@ -155,9 +181,8 @@ def molecule_to_ase(molecules: Sequence[Molecule]) -> list["ase.Atoms"]: ...
 def molecule_to_ase(
     molecules: Molecule | Sequence[Molecule],
 ):
-    """
-    Convert an internal `irmsd.core.Molecule` instance (or a sequence of them)
-    into ASE `Atoms` objects.
+    """Convert an internal `irmsd.core.Molecule` instance (or a sequence of
+    them) into ASE `Atoms` objects.
 
     This routine performs a purely structural and metadata-level conversion:
     it does not create or attach any calculator, nor does it trigger any new
@@ -241,11 +266,20 @@ def molecule_to_ase(
         ) from exc
 
 
-def get_energies_from_atoms_list(atoms_list):
-    """
-    Given a list of ASE Atoms objects, call `get_energy_ase(atoms)` for each,
-    collect the energies into a float NumPy array, and replace any `None`
+def get_energies_from_atoms_list(atoms_list: Sequence["ase.Atoms"]) -> np.ndarray:
+    """Given a list of ASE Atoms objects, call `get_energy_ase(atoms)` for
+    each, collect the energies into a float NumPy array, and replace any `None`
     returned by the energy function with 0.0.
+
+    Parameters
+    ----------
+    atoms_list : Sequence[ase.Atoms]
+        Sequence of ASE Atoms objects.
+
+    Returns
+    -------
+    np.ndarray
+        Float array of energies with shape (N,).
     """
     energies = []
     for atoms in atoms_list:
@@ -379,8 +413,7 @@ def get_canonical_ase(
 # -----------------------------------------------------------------------------
 #
 def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "ase.Atoms", np.ndarray]:
-    """
-    ASE wrapper for ``get_rmsd_molecule``.
+    """ASE wrapper for ``get_rmsd_molecule``.
 
     Converts two ASE ``Atoms`` objects to internal Molecule objects, calls
     ``get_rmsd_molecule``, and converts the aligned second structure back to
@@ -431,8 +464,7 @@ def get_irmsd_ase(
     atoms2,
     iinversion: int = 0,
 ) -> Tuple[float, "ase.Atoms", "ase.Atoms"]:
-    """
-    ASE wrapper for ``get_irmsd_molecule``.
+    """ASE wrapper for ``get_irmsd_molecule``.
 
     Converts two ASE ``Atoms`` objects to Molecules, calls
     ``get_irmsd_molecule``, and converts both resulting Molecules back to
@@ -445,7 +477,7 @@ def get_irmsd_ase(
     atoms2 : ase.Atoms
         Second structure.
     iinversion : int, optional
-        Inversion flag passed through to the backend.
+        Inversion flag passed through to the backend. (0 = 'auto', 1 = 'on', 2 = 'off')
 
     Returns
     -------
@@ -455,6 +487,11 @@ def get_irmsd_ase(
         New ASE Atoms object corresponding to the transformed first Molecule.
     new_atoms2 : ase.Atoms
         New ASE Atoms object corresponding to the transformed second Molecule.
+
+    Raises
+    ------
+    RuntimeError
+        If ASE is not installed.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -479,8 +516,7 @@ def sorter_irmsd_ase(
     allcanon: bool = True,
     printlvl: int = 0,
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
-    """
-    ASE wrapper for ``sorter_irmsd_molecule``.
+    """ASE wrapper for ``sorter_irmsd_molecule``.
 
     Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
     ``sorter_irmsd_molecule``, and converts the resulting Molecules back
@@ -493,7 +529,7 @@ def sorter_irmsd_ase(
     rthr : float
         Distance threshold for the sorter.
     iinversion : int, optional
-        Inversion symmetry flag.
+        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
     allcanon : bool, optional
         Canonicalization flag.
     printlvl : int, optional
@@ -541,8 +577,7 @@ def delta_irmsd_list_ase(
     allcanon: bool = True,
     printlvl: int = 0,
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
-    """
-    ASE wrapper for ``delta_irmsd_list_molecule``.
+    """ASE wrapper for ``delta_irmsd_list_molecule``.
 
     Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
     ``delta_irmsd_list_molecule``, and converts the resulting Molecules
@@ -553,7 +588,7 @@ def delta_irmsd_list_ase(
     atoms_list : Sequence[ase.Atoms]
         Sequence of ASE Atoms objects. All must have the same number of atoms.
     iinversion : int, optional
-        Inversion symmetry flag.
+        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
     allcanon : bool, optional
         Canonicalization flag.
     printlvl : int, optional
@@ -594,5 +629,3 @@ def delta_irmsd_list_ase(
     new_atoms_list = molecule_to_ase(new_mols)
 
     return delta, new_atoms_list
-
-

@@ -1,0 +1,19 @@
+# codecov.yml
+coverage:
+  status:
+    project:
+      default:
+        target: auto  # compare to previous commit
+        threshold: 1%  # allow minor fluctuations
+    patch:
+      default:
+        target: 80%   # diff must have >=80% coverage
+        threshold: 5% # allow small fluctuations
+
+comment: false
+
+ignore:
+  - "tests/*"
+  - "build/*"
+  - "src/irmsd/_fortran/*"  
+

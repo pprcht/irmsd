@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar, SupportsInt, List, Set, Sequence
+from typing import List, Sequence, Set, SupportsInt, TypeVar
 
 T = TypeVar("T")
 
@@ -9,8 +9,7 @@ def first_by_assignment(
     items: Sequence[T],
     assignments: Sequence[SupportsInt],
 ) -> list[T]:
-    """
-    Select the first representative of each assignment label.
+    """Select the first representative of each assignment label.
 
     Parameters
     ----------
@@ -26,12 +25,12 @@ def first_by_assignment(
         A new list containing the first occurrence of each assignment,
         in the order the *labels* first appear.
 
-        Example
-        -------
-        >>> items = list("abcdefgh")
-        >>> assignments = [1, 1, 1, 2, 3, 3, 3, 3]
-        >>> first_by_assignment(items, assignments)
-        ['a', 'd', 'e']
+    Example
+    -------
+    >>> items = list("abcdefgh")
+    >>> assignments = [1, 1, 1, 2, 3, 3, 3, 3]
+    >>> first_by_assignment(items, assignments)
+    ['a', 'd', 'e']
     """
     if len(items) != len(assignments):
         raise ValueError(
@@ -49,4 +48,3 @@ def first_by_assignment(
             selected.append(item)
 
     return selected
-

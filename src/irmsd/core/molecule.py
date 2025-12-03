@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any, Sequence
+
 import numpy as np
 
 # Very small symbol → Z map so we don't have to rely on ASE at all.
@@ -37,23 +38,59 @@ _INV_PERIODIC = {Z: sym for sym, Z in _PERIODIC.items()}
 
 @dataclass
 class Molecule:
-    """
-    Lightweight replacement for ase.Atoms.
+    """Lightweight replacement for ase.Atoms.
 
-    Stores:
-    - symbols  : list[str]
-    - numbers  : (N,) int32 array (atomic numbers)
-    - positions: (N, 3) float64 array
-    - energy   : float or None
-    - info     : dict
-    - cell     : (3, 3) float64 or None
-    - pbc      : 3-tuple of bool or None
+    Attributes
+    ----------
+    symbols : list of str
+        List of chemical symbols.
+    positions : (N, 3) ndarray of float64
+        Atomic positions in Å.
+    energy : float or None
+        Potential energy in eV.
+    info : dict
+        Additional information dictionary.
+    cell : (3, 3) ndarray of float64 or None
+        Unit cell vectors in Å.
+    pbc : tuple of 3 bool or None
+        Periodic boundary conditions along each axis.
 
-    Minimal ASE-like API:
-    - get_chemical_symbols()
-    - get_atomic_numbers()
-    - get_positions()
-    - get_potential_energy()
+    Methods
+    -------
+    get_chemical_symbols()
+        Return list of chemical symbols.
+    get_atomic_numbers()
+        Return atomic numbers as int32 array.
+    get_positions(copy=True)
+        Return atomic positions.
+    get_potential_energy()
+        Return potential energy.
+    get_chemical_formula(mode='hill')
+        Return chemical formula string.
+    copy()
+        Return a deep copy of the Molecule.
+    set_positions(positions)
+        Set new atomic positions.
+    set_potential_energy(energy)
+        Set potential energy.
+    set_atomic_numbers(numbers)
+        Set new atomic numbers.
+    get_cn()
+        Return coordination numbers per atom.
+    get_axis()
+        Return rotation constants, average momentum, and rotation matrix.
+    get_canonical(wbo=None, invtype='apsp+', heavy=False)
+        Return canonical ranking of atoms.
+
+    Raises
+    ------
+    ValueError
+        If input data has incorrect shape or contains unknown symbols.
+
+    Notes
+    -----
+    This class is designed to be a lightweight alternative to ASE's Atoms
+    class to minimize dependencies.
     """
 
     symbols: list[str]
@@ -115,6 +152,17 @@ class Molecule:
         return self.numbers.copy()
 
     def get_positions(self, copy: bool = True) -> np.ndarray:
+        """Return atomic positions.
+
+        Parameters
+        ----------
+        copy : bool
+            If True, return a copy of the positions array.
+            If False, return the internal array (may be modified).
+        Returns
+        -------
+        positions : (N, 3) ndarray of float64
+        """
         return self.positions.copy() if copy else self.positions
 
     def get_potential_energy(self) -> float:
@@ -123,8 +171,7 @@ class Molecule:
         return float(self.energy)
 
     def get_chemical_formula(self, mode: str = "hill") -> str:
-        """
-        Return a chemical formula string.
+        """Return a chemical formula string.
 
         Parameters
         ----------
@@ -169,8 +216,7 @@ class Molecule:
         return "".join(fragments)
 
     def copy(self) -> "Molecule":
-        """
-        Return a deep copy of the Molecule.
+        """Return a deep copy of the Molecule.
 
         All arrays (positions, numbers, cell) are copied, and both `info` and
         `symbols` are duplicated so that modifying the copy has no effect on
@@ -209,9 +255,12 @@ class Molecule:
 
     # --- Larger Functions interfaced to Fortran ---------------------------------
     def get_cn(self) -> np.ndarray:
-        """
-        Optional utility: calls core get_cn_fortran and returns
+        """Optional utility: calls core get_cn_fortran and returns
         a numpy array with the coordination numbers per atom.
+
+        Returns
+        -------
+        cn : (N,) ndarray of float64
         """
         from ..api.cn_exposed import get_cn_fortran
 
@@ -222,10 +271,17 @@ class Molecule:
         return new_cn
 
     def get_axis(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Optional utility: calls core get_axis and returns
+        """Optional utility: calls core get_axis and returns
         rotation constants in MHz, average momentum in a.u.,
         and the rotation matrix.
+
+        Returns
+        -------
+        rot : (3,) ndarray of float64
+            Rotation constants in MHz.
+        avmom : (1,) ndarray of float64
+            Average momentum in a.u.
+        evec : (3, 3) ndarray of float64
         """
         from ..api.axis_exposed import get_axis
 
@@ -241,9 +297,23 @@ class Molecule:
         invtype: str = "apsp+",
         heavy: bool = False,
     ) -> np.ndarray:
-        """
-        Optional utility: calls core get_canonical_fortran and
+        """Optional utility: calls core get_canonical_fortran and
         returns the rank (and/or invariants, depending on backend).
+
+        Parameters
+        ----------
+        wbo : (N, N) ndarray of float64, optional
+            Wiberg bond order matrix, required if invtype is 'cangen'.
+        invtype : str, optional
+            Algorithm type for invariants calculation (default: 'apsp+'),
+            alternatively 'cangen'.
+        heavy : bool, optional
+            Whether to consider only heavy atoms (default: False).
+
+        Returns
+        -------
+        rank : (N,) ndarray of int32
+            Rank array.
         """
         from ..api.canonical_exposed import get_canonical_fortran
 

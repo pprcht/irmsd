@@ -1,0 +1,93 @@
+name: Tests & Coverage
+
+on:
+  push:
+    branches: [ main ]       # run when main is updated
+  pull_request:
+    branches: [ main ]       # run on all PRs targeting main
+
+jobs:
+  tests:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # In case our Fortran build needs system packages at some point
+      # Placeholder for now
+      # - name: Install system dependencies
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y gfortran
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # installs pytest, pytest-cov, ase
+          pip install '.[dev,ase]'
+
+      - name: Run tests with coverage
+        run: |
+          pytest \
+            --cov=irmsd \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: true
+          verbose: true
+
+  tests-rdkit:
+    name: Tests & Coverage (w/ RDKit)
+    runs-on: ubuntu-latest
+    needs: tests   # run core tests first
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up micromamba with RDKit
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: rdkit-env
+          create-args: >-
+            python=3.12
+            rdkit=2025.03.6
+          condarc: |
+            channels:
+              - conda-forge
+              - defaults
+            channel_priority: strict
+          cache-environment: true
+
+      - name: Install package and dev dependencies
+        shell: bash -l {0}
+        run: |
+          python -m pip install --upgrade pip
+          pip install '.[dev,ase]'
+
+      - name: Run tests with RDKit + coverage
+        shell: bash -l {0}
+        run: |
+          pytest --cov=irmsd --cov-report=xml --cov-report=term-missing
+
+      - name: Upload coverage to Codecov (RDKit)
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: rdkit
+          fail_ci_if_error: true
+
+

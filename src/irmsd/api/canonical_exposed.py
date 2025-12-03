@@ -7,10 +7,6 @@ import numpy as np
 from ..bindings import canonical_exposed as _F
 
 
-# TODO: disucss with phillip how to deal with the invtype string
-#       the fortran implementation will not throw an error if a wrong
-#       string is passed, it will just ignore it and use the default
-#       should we check it here?
 def get_canonical_fortran(
     atom_numbers: np.ndarray,
     positions: np.ndarray,
@@ -19,7 +15,7 @@ def get_canonical_fortran(
     heavy: bool = False,
 ) -> np.ndarray:
     """
-    Core API: call the Fortran routine to calculate CN
+    Core API: call the Fortran routine to calculate the canonical ranking of atoms
 
     Parameters
     ----------
@@ -38,6 +34,11 @@ def get_canonical_fortran(
     -------
     rank : (N,) int32
         Rank array.
+
+    Raises
+    ------
+    ValueError
+        If positions does not have shape (N, 3).
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     pos = np.ascontiguousarray(positions, dtype=np.float64)
@@ -69,7 +70,7 @@ def get_canonical_from_connect_fortran(
     heavy: bool = False,
 ) -> np.ndarray:
     """
-    Core API: call the Fortran routine to calculate CN
+    Core API: call the Fortran routine to calculate the canonical ranking of atoms from connectivity matrix
 
     Parameters
     ----------
@@ -84,6 +85,11 @@ def get_canonical_from_connect_fortran(
     -------
     rank : (N,) int32
         Rank array.
+
+    Raises
+    ------
+    ValueError
+        If connectivity does not have shape (N, N).
     """
     atom_numbers = np.ascontiguousarray(atom_numbers, dtype=np.int32)
     connect = np.ascontiguousarray(connectivity, dtype=np.int32)

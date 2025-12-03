@@ -1,13 +1,12 @@
 from collections import defaultdict
 from typing import Callable, Dict, Hashable, Iterable, List, TypeVar
 
-T = TypeVar("T")                 # item type
-K = TypeVar("K", bound=Hashable) # key type
+T = TypeVar("T")  # item type
+K = TypeVar("K", bound=Hashable)  # key type
 
 
 def group_by(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, List[T]]:
-    """
-    Group arbitrary items according to a key function.
+    """Group arbitrary items according to a key function.
 
     This is a fully general utility: it works for integers, strings, objects,
     or domain-specific types such as ASE Atoms.
@@ -50,4 +49,3 @@ def group_by(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, List[T]]:
     for item in items:
         groups[key(item)].append(item)
     return dict(groups)
-

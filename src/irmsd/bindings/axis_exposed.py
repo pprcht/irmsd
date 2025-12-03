@@ -34,7 +34,7 @@ def get_axis_fortran_raw(
     evec: np.ndarray,
 ) -> None:
     """Low-level call that matches the Fortran signature exactly. Operates IN-
-    PLACE on cn_flat.
+    PLACE on rot, avmom, evec.
 
     Parameters
     ----------
@@ -44,7 +44,17 @@ def get_axis_fortran_raw(
         Atomic numbers (or type IDs).
     coords_flat : (3*natoms,) float64, C-contiguous
         Flat coordinates [x1,y1,z1,x2,y2,z2,...].
-    TODO
+    rot : (3,) float64, C-contiguous
+        Output rotation axis.
+    avmom : (1,) float64, C-contiguous
+        Output average moment.
+    evec : (3,3) float64, C-contiguous
+        Output eigenvectors.
+
+    Raises
+    ------
+    TypeError
+        If any of the arrays do not have the expected dtype or memory layout.
     """
     # light validation to catch mismatches early
     if types.dtype != np.int32 or not types.flags.c_contiguous:
