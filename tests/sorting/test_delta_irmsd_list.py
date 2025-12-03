@@ -1,8 +1,7 @@
-import numpy as np
 import pytest
-
 from helpers.utils import get_atom_num_and_pos_from_xyz
-from irmsd import delta_irmsd_list  
+
+from irmsd import delta_irmsd_list
 
 
 def test_delta_irmsd_list_caffeine(caffeine_irmsd_test_data):
@@ -38,5 +37,3 @@ def test_delta_irmsd_list_caffeine(caffeine_irmsd_test_data):
     assert pytest.approx(0.0, abs=1e-6) == delta[0]
     # The iRMSD between structure 1 and 2 should be as the ref data
     assert pytest.approx(expected_irmsd, abs=1e-6) == delta[1]
-
-

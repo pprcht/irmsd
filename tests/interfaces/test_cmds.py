@@ -1,14 +1,11 @@
 from io import StringIO
 
-import numpy as np
 import pytest
 
 from irmsd.interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,
-    compute_irmsd_and_print,
-    compute_quaternion_rmsd_and_print,
 )
 from irmsd.utils.xyz import read_extxyz
 

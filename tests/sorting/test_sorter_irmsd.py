@@ -1,8 +1,7 @@
 import numpy as np
-import pytest
-
 from helpers.utils import get_atom_num_and_pos_from_xyz
-from irmsd import sorter_irmsd   # adjust if needed
+
+from irmsd import sorter_irmsd  # adjust if needed
 
 
 def test_sorter_irmsd(caffeine_irmsd_test_data):
@@ -37,10 +36,8 @@ def test_sorter_irmsd(caffeine_irmsd_test_data):
     assert len(xyz_structs) == 2
     assert len(Z_structs) == 2
 
-    # Groups should be non-negative integers 
+    # Groups should be non-negative integers
     # and both conformers should belong to the same group
     assert np.all(groups >= 0)
     assert groups.shape == (2,)
     np.testing.assert_array_equal(groups, [1, 1])
-
-

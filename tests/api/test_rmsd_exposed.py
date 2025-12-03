@@ -4,7 +4,6 @@ from helpers.utils import get_atom_num_and_pos_from_xyz
 from irmsd.api.rmsd_exposed import get_quaternion_rmsd_fortran
 
 
-# TODO: test mask
 def test_get_quaternion_rmsd_fortran(caffeine_rmsd_test_data):
     (
         conformer1,

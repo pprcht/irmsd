@@ -1,5 +1,3 @@
-from io import StringIO
-
 import pytest
 
 pytest.importorskip("ase")

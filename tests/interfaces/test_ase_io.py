@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 pytest.importorskip("ase")
-import ase
 import numpy as np
 from ase import Atoms
 from ase.calculators.calculator import Calculator, all_properties
