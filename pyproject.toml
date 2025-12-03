@@ -14,6 +14,7 @@ dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
 ase = ["ase>=3.22.1"]
+rdkit = ["rdkit>=2025.9.2"]
 dev = ["pytest", "pytest-cov"]
 
 [project.urls]
