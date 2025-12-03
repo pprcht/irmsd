@@ -9,7 +9,7 @@ description = "irmsd: A package for the calculation of the permutation-invariant
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Philipp Pracht" }, { name = "Tobias Kaczun"}]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
@@ -31,7 +31,7 @@ wheel.expand-macos-universal-tags = true
 irmsd = "irmsd.cli:main"
 
 [tool.cibuildwheel]
-build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*"]
+build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*"]
 skip = ["pp*", "*-musllinux*"]
 test-command = "pytest -q {project}/tests"
 test-requires = ["pytest", "numpy"]
