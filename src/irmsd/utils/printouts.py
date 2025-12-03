@@ -40,6 +40,24 @@ def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
 
 
 def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -> None:
+    """Pretty-print a 1D or 2D numpy array with a header.
+
+    Parameters
+    ----------
+    title : str
+        Header title to print before the data.
+    arr : numpy.ndarray
+        1D or 2D array to print.
+    fmt : str, optional
+        Format string for each element (default: "{:8.4f}").
+    sep : str, optional
+        Separator between elements (default: four spaces).
+
+    Raises
+    ------
+    ValueError
+        If the array is not 1D or 2D.
+    """
     print(title)
     if arr.ndim == 1:
         print(sep.join(fmt.format(x) for x in arr))
