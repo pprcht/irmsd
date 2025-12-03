@@ -93,7 +93,7 @@ A simple application example is seen below. Here, we have two copies of the same
   <td >
 
 <p align="center">
-  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine1.jpg" width="50%">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine1.jpg" width="75%">
 </p>
 
    ```
@@ -144,7 +144,7 @@ C   3.3158  -2.7117  -3.0256
   </td><td>
 
 <p align="center">
-  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine2.jpg" width="50%"> 
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine2.jpg" width="75%"> 
 </p>
 
    ```
@@ -402,7 +402,6 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [ ] conda-forge package
 - [ ] ci.yml
 - [x] codecov
-- [ ] images in README.md to absolute paths so PyPI will show them
 - [ ] (implementation) Parallelization via OpenMP
 - [ ] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
 - [ ] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
