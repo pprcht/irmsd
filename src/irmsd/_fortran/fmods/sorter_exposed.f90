@@ -106,16 +106,14 @@ contains
     integer,intent(in),optional :: printlvl
 
     !> LOCAL
-    integer :: i,j,ii,jj,T,Tn,nallpairs,cc,nat
+    integer :: i,ii,jj,T,cc,nat
     integer :: gcount
-    integer :: prlvl,iunit
+    integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
     type(canonical_sorter),allocatable :: sorters(:)
-    real(wp),allocatable :: rmsds(:)
     type(coord),pointer :: ref,mol
-    type(coord) :: molloc
-    real(wp) :: rmsdval,runtime,RTHR
+    real(wp) :: rmsdval,RTHR
     logical :: stereocheck,individual_IDs
 
     logical,parameter :: debug = .false.
@@ -280,19 +278,14 @@ contains
     integer,intent(in),optional :: printlvl
 
     !> LOCAL
-    integer :: i,j,ii,jj,T,Tn,nallpairs,cc,nat
-    integer :: gcount
-    integer :: prlvl,iunit
+    integer :: i,ii,jj,T,cc,nat
+    integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
     type(canonical_sorter),allocatable :: sorters(:)
-    real(wp),allocatable :: rmsds(:)
     type(coord),pointer :: ref,mol
-    type(coord) :: molloc
-    real(wp) :: rmsdval,runtime,RTHR
+    real(wp) :: rmsdval
     logical :: stereocheck,individual_IDs
-
-    logical,parameter :: debug = .false.
 
     if(nall <= 1) return
 

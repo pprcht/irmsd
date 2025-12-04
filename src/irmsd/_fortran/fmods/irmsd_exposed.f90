@@ -32,8 +32,8 @@ contains
     integer(c_int),pointer :: types_out2_c(:)
     real(c_double),pointer :: coords_out2_c(:)
     type(coord) :: mol,ref
-    real(wp) :: rmsdval,tmpd(3),tmpdist,rmsdval_test
-    integer :: i,ich
+    real(wp) :: rmsdval,tmpd(3),tmpdist
+    integer :: i
     type(rmsd_cache) :: rcache
     type(canonical_sorter) :: canmol
     type(canonical_sorter) :: canref

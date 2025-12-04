@@ -17,7 +17,6 @@ contains
     real(c_double),pointer :: cn(:)         ! length natoms
     
     integer :: i
-    real(c_double) :: shift
     type(coord) :: mol
     real(wp),allocatable :: cn_f(:)
 

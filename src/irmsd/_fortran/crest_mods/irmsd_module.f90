@@ -73,10 +73,10 @@ module irmsd_module
                                      &          0.0_wp,0.0_wp,-1.0_wp], &
                                      &          [3,3])
 
-  real(wp),parameter :: Rz180(3,3) = reshape([-1.0_wp,0.0_wp,0.0_wp,   &
-                                     &          0.0_wp,-1.0_wp,0.0_wp, &
-                                     &          0.0_wp,0.0_wp,1.0_wp], &
-                                     &          [3,3])
+  !real(wp),parameter :: Rz180(3,3) = reshape([-1.0_wp,0.0_wp,0.0_wp,   &
+  !                                   &          0.0_wp,-1.0_wp,0.0_wp, &
+  !                                   &          0.0_wp,0.0_wp,1.0_wp], &
+  !                                   &          [3,3])
 
   real(wp), parameter :: Rx90(3,3) = reshape([ &
                                      &    1.0_wp, 0.0_wp, 0.0_wp, &  
@@ -182,7 +182,7 @@ contains  !> MODULE PROCEDURES START HERE
     !> variables
     type(rmsd_core_cache),allocatable,target :: ccachetmp
     type(rmsd_core_cache),pointer :: ccptr
-    real(wp) :: x_center(3),y_center(3),Udum(3,3)
+    real(wp) :: Udum(3,3)
     real(wp),target :: gdum(3,3)
     integer  :: nat,getrotmat
     logical  :: calc_u
@@ -416,7 +416,7 @@ contains  !> MODULE PROCEDURES START HERE
     type(rmsd_cache),allocatable,target :: local_rcache
     integer :: nat,ii,rnk,dumpunit,uniquenesscase
     real(wp) :: calc_rmsd
-    real(wp) :: tmprmsd_sym(32),dum
+    real(wp) :: tmprmsd_sym(32)
     real(wp) :: rotmat(3,3),rotconst(3)
     logical,parameter :: debug = .false.
 
@@ -507,7 +507,7 @@ contains  !> MODULE PROCEDURES START HERE
     tmprmsd_sym(:) = inf
     !> initial alignment of mol
     call axis(mol%nat,mol%at,mol%xyz,rotconst)
-    call min_rmsd_rotcheck_unique(mol,rotconst,uniquenesscase)
+    call min_rmsd_rotcheck_unique(rotconst,uniquenesscase)
 
     !> Running the checks and check of uniqueness of rotational axes
     call min_rmsd_rotcheck_permute(ref,mol,cptr,tmprmsd_sym,1,uniquenesscase)
@@ -599,7 +599,7 @@ contains  !> MODULE PROCEDURES START HERE
     type(coord),intent(inout) :: mol
     type(rmsd_cache),intent(inout),target :: rcache
     real(wp),intent(out) :: val
-    integer :: rr,ii,jj
+    integer :: rr,ii
     real(wp) :: val0
     type(assignment_cache),pointer :: aptr
     logical,parameter :: debug = .false.
@@ -632,13 +632,12 @@ contains  !> MODULE PROCEDURES START HERE
 
 !========================================================================================!
 
-  subroutine min_rmsd_rotcheck_unique(mol,rot,uniquenesscase,thr)
+  subroutine min_rmsd_rotcheck_unique(rot,uniquenesscase,thr)
 !*******************************************************
 !* Based on the rotational constants, determine what we
 !* need to do with the molecule in the following
 !*******************************************************
     implicit none
-    type(coord),intent(inout) :: mol
     real(wp),intent(in) :: rot(3)
     integer,intent(out) :: uniquenesscase
     real(wp),intent(in),optional :: thr
@@ -669,7 +668,7 @@ contains  !> MODULE PROCEDURES START HERE
     type(rmsd_cache),intent(inout),target :: cptr
     real(wp),intent(inout) :: values(:)
     integer,intent(in) :: step,uniquenesscase
-    integer :: rr,ii,jj,debugunit2
+    integer :: ii,debugunit2
     real(wp) :: vals(16),dum
     logical,parameter :: debug = .false.
 
@@ -854,7 +853,7 @@ contains  !> MODULE PROCEDURES START HERE
       do j = 1,mol%nat
         if (ranks(j,2) .ne. targetrank) cycle
         jj = jj+1
-        dists(:) = (ref%xyz(:,i)-mol%xyz(:,j))**2 !> use i and j
+        dists(:) = real((ref%xyz(:,i)-mol%xyz(:,j))**2,sp) !> use i and j
         aptr%Cost(jj+(ii-1)*rnknat) = sum(dists)
       end do
     end do

@@ -126,7 +126,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: counth,countb,countbo
     real(wp) :: countbo2
     real(wp),allocatable :: cn(:),Bmat(:,:)
-    integer :: i,j,k,l,ii,ati,atj,maxnei
+    integer :: i,j,k,l,ii,ati,maxnei
     integer,allocatable :: ichrgs(:),frag(:)
     character(len=:),allocatable :: myinvtype
     logical :: use_icharges,include_H,anyH
@@ -239,7 +239,7 @@ contains  !> MODULE PROCEDURES START HERE
         end do
         self%invariants0(i) = update_invariant0_apsp(self%invariants0(i),ati,counth)
       end do
-      self%invariants(:) = real(self%invariants0(:))
+      self%invariants(:) = int(self%invariants0(:))
 
     case default !> CANGEN
 
@@ -339,7 +339,7 @@ end subroutine init_canonical_sorter_connect
     real(wp),allocatable :: dist(:,:)
     real(wp),allocatable :: rinv(:),tmprinv(:)
     integer,allocatable  :: tmp(:,:)
-    integer :: i,j,k,l,maxdist,lpath
+    integer :: i,j,k,maxdist
     real(wp) :: maxrinv
     inv(:) = 1
 
@@ -427,7 +427,7 @@ end subroutine init_canonical_sorter_connect
 !>---update ranks and primes
     implicit none
     class(canonical_sorter) :: self
-    integer :: maxrank,i,j,k,ii
+    integer :: maxrank,i,j,ii
     integer :: newrank,ngroup
     integer(int64) :: mincurr
     maxrank = maxval(self%rank,1)
@@ -468,7 +468,7 @@ end subroutine init_canonical_sorter_connect
 !>---update invariants
     implicit none
     class(canonical_sorter) :: self
-    integer :: i,j,k,ii
+    integer :: i,j
     integer(int64) :: invprod
     do i = 1,self%hatms
       invprod = 1
@@ -513,7 +513,7 @@ end subroutine init_canonical_sorter_connect
     class(canonical_sorter) :: self
     type(coord),intent(in) :: mol
     integer :: i,ii,zero,nei,j,jj,maxrank
-    integer :: k,l,rs
+    integer :: k,rs
     integer,allocatable :: neiranks(:,:)
     real(wp) :: coords(3,4)
     logical,allocatable :: isstereo(:)
@@ -571,9 +571,7 @@ end subroutine init_canonical_sorter_connect
     class(canonical_sorter),intent(in) :: self
     type(coord),intent(in) :: mol
     integer :: i,ii,zero,nei,j,jj,maxrank
-    integer :: k,l,rs
     integer,allocatable :: neiranks(:,:)
-    real(wp) :: coords(3,4)
     logical,allocatable :: isstereo(:)
     allocate (isstereo(mol%nat),source=.false.)
     allocate (neiranks(4,mol%nat),source=0)
@@ -665,10 +663,8 @@ end subroutine init_canonical_sorter_connect
     implicit none
     class(canonical_sorter),intent(inout) :: self
     type(coord),intent(in) :: mol
-    integer,allocatable :: rankh(:)
     integer,allocatable :: rankmap(:)
-    integer :: i,ii,zero,nei,j,jj,maxrank,rr,maxrank2
-    logical :: hneigh
+    integer :: i,ii,jj,maxrank,rr
 !>--- self%rank must already have the correct dimension!
     if (size(self%rank,1) .ne. mol%nat) then
       stop 'wrong dimension for adding H to canonical ranks!'
@@ -719,7 +715,7 @@ end subroutine init_canonical_sorter_connect
     implicit none
     type(canonical_sorter) :: can
     type(coord)  :: mol
-    integer :: i,k,ii,ati
+    integer :: i,ii,ati
     write (stdout,'(a10,a5,a15,a10,a10)') 'heavy-atom','type','invariant','rank','prime'
     do i = 1,can%hatms
       ii = can%hmap(i)
@@ -732,7 +728,7 @@ end subroutine init_canonical_sorter_connect
     implicit none
     class(canonical_sorter) :: can
     type(coord)  :: mol
-    integer :: i,k,ii,ati
+    integer :: i,ii,ati
     write (stdout,'(a10,a10,a12,a10,2x,a)') 'heavy-atom','type','invariant0','rank','neighbours'
     do i = 1,can%hatms
       ii = can%hmap(i)
@@ -747,7 +743,7 @@ end subroutine init_canonical_sorter_connect
     integer,intent(in) :: neigh(:)
     character(len=:),allocatable :: btmp
     character(len=20) :: atmp
-    integer :: i,j,k
+    integer :: i
     btmp = ''
     if (neigh(1) == 0) then
       btmp = ' ---'
@@ -789,7 +785,7 @@ end subroutine init_canonical_sorter_connect
     real(wp),intent(inout) :: coords(3,4)
     real(wp) :: theta
     real(wp) :: vec(3),uec(3)
-    integer :: k,l,m,n
+    integer :: k,l
 
     k = 4
     !> rotate the highest prio atom onto z axis (0,0,1)

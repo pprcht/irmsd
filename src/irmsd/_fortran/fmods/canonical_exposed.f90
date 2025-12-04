@@ -74,8 +74,6 @@ contains
 
     type(canonical_sorter) :: canonical
 
-    integer :: n,i,j
-    character(:),allocatable :: invtype_f
     real(wp),allocatable :: tmpwbo(:,:)
 
     heavy_f = heavy

@@ -123,7 +123,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer,intent(inout) :: tmp(V)
     logical :: adjacent
     !> LOCAL
-    integer :: i,j,k
+    integer :: k
     adjacent = .false.
     !> check connection if an empty list was provided
     if (sum(tmp) == 0) then
@@ -192,7 +192,6 @@ contains  !> MODULE PROCEDURES START HERE
     real(wp),allocatable  :: dist(:)
     integer,allocatable   :: tmp(:)
     integer,allocatable   :: Atmp(:,:)
-    integer :: i,j
 
     path  = 0
     nring = 0
