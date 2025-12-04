@@ -2,9 +2,15 @@ Package Reference
 =================
 
 .. autosummary::
-   :toctree: reference
-   :template: module_template.rst
+  :toctree: generated
+ :template: _templates/module_template.rst
    :recursive:
 
-   irmsd.api
-   irmsd.utils
+  irmsd
+
+
+.. toctree::
+  :maxdepth: 2
+  :caption: Reference
+
+  generated/irmsd.rst
