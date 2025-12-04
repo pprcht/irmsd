@@ -12,7 +12,6 @@ author = "Philipp Pracht, Tobias Kaczun"
 
 
 import os
-
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 import sys
