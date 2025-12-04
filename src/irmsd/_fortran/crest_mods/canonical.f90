@@ -683,6 +683,10 @@ end subroutine init_canonical_sorter_connect
     do i = 1,self%hatms
       if (mol%at(i) .ne. 1) cycle
       ii = self%neigh(1,i)
+      if(ii < 1)then
+        !> Edge-case: "unbound"" hydrogens (H⁺,H2, etc.), skip those here
+        cycle
+      endif
       jj = self%rank(ii)
       rankmap(jj) = 1
     end do
@@ -692,9 +696,16 @@ end subroutine init_canonical_sorter_connect
         rankmap(i) = maxrank+rr
       end if
     end do
+    !> new maxrank(+1)
+    maxrank = maxval(rankmap(:),1)
     do i = 1,self%hatms
       if (mol%at(i) .ne. 1) cycle
       ii = self%neigh(1,i)
+      if(ii < 1)then 
+        !> again, taking care of the "unbound" H edge-case --> separate maxrank+1 for all of them
+        self%rank(i) = maxrank
+        cycle
+      endif 
       jj = self%rank(ii)
       self%rank(i) = rankmap(jj)
     end do
