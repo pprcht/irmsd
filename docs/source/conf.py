@@ -90,7 +90,7 @@ def setup(app):
 
 # html_theme = "sphinx_book_theme"
 
-html_theme = "breeze"
+html_theme = "shibuya"
 
 html_static_path = [
     "_static",

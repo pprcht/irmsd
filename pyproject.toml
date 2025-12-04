@@ -15,7 +15,7 @@ dependencies = ["numpy>=2.0"]
 [project.optional-dependencies]
 ase = ["ase>=3.22.1"]
 dev = ["pytest", "pytest-cov"]
-docs = ["sphinx>=8.2.3", "sphinx-breeze-theme"]
+docs = ["sphinx>=8.2.3", "shibuya"]
 
 [project.urls]
 Homepage = "https://github.com/pprcht/irmsd"
