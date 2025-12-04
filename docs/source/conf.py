@@ -12,6 +12,7 @@ author = "Philipp Pracht, Tobias Kaczun"
 
 
 import os
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 import sys
@@ -89,10 +90,8 @@ def setup(app):
 
 # html_theme = "sphinx_book_theme"
 
-import mozilla_sphinx_theme
+html_theme = "breeze"
 
-html_theme = "mozilla"
-html_theme_path = [os.path.dirname(mozilla_sphinx_theme.__file__)]
 html_static_path = [
     "_static",
 ]
