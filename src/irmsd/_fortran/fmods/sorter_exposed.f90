@@ -163,6 +163,10 @@ contains
       allocate (sorters(1))
     end if
     ref => structures(1)
+    if (prlvl > 0) then
+      write (stdout,'(a)',advance='no') 'Setting up atom IDs ... '
+      flush (stdout)
+    end if
     ! !$omp parallel &
     ! !$omp shared(sorters, structures, stereocheck) &
     ! !$omp private(mol,ii)
@@ -182,6 +186,7 @@ contains
     end do
     ! !$omp end do
     ! !$omp end parallel
+    if (prlvl > 0) write (stdout,'(a)') 'done.'
 
     !>--- allow user to set inversion check (false rotamers)
     select case (iinversion)
@@ -287,7 +292,7 @@ contains
     real(wp) :: rmsdval
     logical :: stereocheck,individual_IDs
 
-    if(nall <= 1) return
+    if (nall <= 1) return
 
 !>--- handle optional arguments
     if (present(allcanon)) then

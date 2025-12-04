@@ -392,7 +392,7 @@ contains  !> MODULE PROCEDURES START HERE
 
 !========================================================================================!
 
-  subroutine min_rmsd(ref,mol,rcache,rmsdout,align)
+  subroutine min_rmsd(ref,mol,rcache,rmsdout,align,io)
 !*********************************************************************
 !* Main routine to determine minium RMSD considering atom permutation
 !* Input
@@ -402,6 +402,7 @@ contains  !> MODULE PROCEDURES START HERE
 !*   rcache  - memory cache
 !*   rmsdout - the calculated RMSD scalar
 !*   align   - quarternion-align mol in the last stage
+!*   io      - return status
 !*********************************************************************
     implicit none
     !> IN & OUTPUT
@@ -409,16 +410,20 @@ contains  !> MODULE PROCEDURES START HERE
     type(coord),intent(inout) :: mol
     type(rmsd_cache),intent(inout),optional,target :: rcache
     real(wp),intent(out),optional :: rmsdout
-    logical,intent(in),optional :: align
+    logical,intent(in),optional   :: align
+    integer,intent(out),optional  :: io
 
     !> LOCAL
     type(rmsd_cache),pointer :: cptr
     type(rmsd_cache),allocatable,target :: local_rcache
-    integer :: nat,ii,rnk,dumpunit,uniquenesscase
+    integer :: nat,ii,rnk,dumpunit,uniquenesscase,ioloc
     real(wp) :: calc_rmsd
     real(wp) :: tmprmsd_sym(32)
     real(wp) :: rotmat(3,3),rotconst(3)
     logical,parameter :: debug = .false.
+
+!>--- defaults
+    ioloc = 0
 
 !>--- Initialization
     if (present(rcache)) then
@@ -437,7 +442,10 @@ contains  !> MODULE PROCEDURES START HERE
 !>-- Consistency check
     cptr%nranks = maxval(cptr%rank(:,1))
     if (cptr%nranks .ne. maxval(cptr%rank(:,2))) then
-      error stop "Different atom identities in min_rmsd, can't restore an atom order!"
+      write(stdout,*) "WARNING: Different atom identities in min_rmsd, can't restore an atom order!"
+      if(present(rmsdout)) rmsdout = huge(rmsdout)
+      if(present(io)) io = 2
+      return
     end if
 
 !>--- First sorting, to at least restore rank order (only if that's not the case!)
@@ -589,6 +597,7 @@ contains  !> MODULE PROCEDURES START HERE
     end if
 
     if (present(rmsdout)) rmsdout = calc_rmsd
+    if (present(io)) io = ioloc
   end subroutine min_rmsd
 
 !========================================================================================!
