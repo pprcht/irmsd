@@ -57,10 +57,3 @@ which gfortran || { echo "gfortran still not on PATH"; exit 1; }
 environment = { FC = "gfortran" }
 
 
-
-[tool.cibuildwheel.windows]
-before-all = "choco install mingw"
-environment = { FC = "gfortran" }
-
-
-
