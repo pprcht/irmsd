@@ -1,8 +1,8 @@
-name: Publish wheels to PyPI
+name: Publish wheels to TestPyPI
 
 on:
   push:
-    tags: ["v*"]         # e.g. v0.1.0, v0.2.0rc1, ...
+    branches: [ wheels ]
   workflow_dispatch:
 
 jobs:
@@ -53,7 +53,7 @@ jobs:
           path: wheelhouse/*.whl
 
   publish:
-    name: Publish to PyPI
+    name: Publish to TestPyPI
     needs: build_wheels
     runs-on: ubuntu-latest
 
@@ -63,9 +63,10 @@ jobs:
         with:
           path: dist
 
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@v1.12.0
         with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
           packages-dir: dist
 
