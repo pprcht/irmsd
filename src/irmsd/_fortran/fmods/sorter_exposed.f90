@@ -65,7 +65,8 @@ contains
     groups(1:nall) = 0
 
     !> call the actual routine
-    call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion,allcanon,printlvl)
+    call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion, &
+      &                    allcanon=allcanon,printlvl=printlvl)
 
     !> coordinates for each structure have been aligned and sorted,
     !> so we need to pass them back
@@ -89,12 +90,26 @@ contains
 
   end subroutine sorter_exposed_xyz_fortran
 
-  subroutine cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion,allcanon,printlvl)
-!*******************************************************
+  subroutine cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion, &
+      &                        allcanon,printlvl,ethr)
+!**************************************************************************************
 !* Proof-of-concept routine to analyze an
 !* ensemble only via the iRMSD procedure.
-!* Conformers are identified by the rthr threshold only
-!*******************************************************
+!* Conformers are identified by the rthr threshold only.
+!* Input arguments:
+!*        nall - total number of structures
+!*  structures - the structures
+!*     rthresh - RMSD threshold (in ANGSTRÖM) for conformer distinction
+!*  iinversion - integer parameter to select inverion check
+!*
+!* Optionals:
+!*    allcanon - boolean, re-use atom identifiers of first structure for all others?
+!*    printlvl - integer to direct the print verbosity. (0=minimal, 1=verbose)
+!*        ethr - inter-conformer energy threshold (in HARTREE) for pre-sorting
+!*
+!* Output:
+!*      groups - integer array assigning each structure to a group
+!*************************************************************************************
     implicit none
     !> INPUT
     integer,intent(in) :: nall
@@ -102,18 +117,21 @@ contains
     integer,intent(inout) :: groups(nall)
     real(wp),intent(in) :: RTHRESH
     integer,intent(in) :: iinversion
-    logical,intent(in),optional :: allcanon
-    integer,intent(in),optional :: printlvl
+    logical,intent(in),optional  :: allcanon
+    integer,intent(in),optional  :: printlvl
+    real(wp),intent(in),optional :: ETHR
 
     !> LOCAL
-    integer :: i,ii,jj,T,cc,nat
+    integer :: i,ii,jj,T,cc,nat,io
     integer :: gcount
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
     type(canonical_sorter),allocatable :: sorters(:)
     type(coord),pointer :: ref,mol
-    real(wp) :: rmsdval,RTHR
+    real(wp) :: rmsdval,RTHR,ediff,eii
+    integer,allocatable :: prune_table(:)
+    integer,allocatable :: topo_group(:)
     logical :: stereocheck,individual_IDs
 
     logical,parameter :: debug = .false.
@@ -134,7 +152,7 @@ contains
 !     ...
     T = 1 !> doing it serial for now
 
-!>--- set up parameters (note we are working with BOHR internally)
+!>--- set up parameters (NOTE, we are working with BOHR internally)
     RTHR = RTHRESH*aatoau
 
 !>--- print some sorting data
@@ -223,6 +241,34 @@ contains
       write (stdout,*)
     end if
 
+!> ----------------------------------------------
+!> PRE-PROCESSING for more efficient sorting
+!> ----------------------------------------------
+    !> prune_table keeps track of which structure to compare to
+    !> so for a  list of structures (1...j...k...nall), the entry
+    !> prune_table(k) = j, tells us structure k is compared to all
+    !> structures j up to k-1. The table is initialized to 1, so
+    !> the full comparison list is used.
+    allocate (prune_table(nall),source=1)
+    !> conveniently, we can use the energy threshold to set a better
+    !> comparison table, as in the original CREGEN routine.
+    if (present(ETHR)) then
+      do ii = 1,nall
+        eii = structures(ii)%energy
+        do jj = 1,ii-1
+          ediff = structures(jj)%energy-eii
+          if (ediff <= ETHR) then
+            prune_table(ii) = jj
+            exit
+          end if
+        end do
+      end do
+    end if
+
+    !> topo_group dynamically keeps track of different topology groups
+    !> among the structures. All structures start out as the same topology
+    allocate (topo_group(nall),source=1)
+
 !>--- run the checks
     gcount = maxval(groups(:))
     do ii = 1,nall
@@ -235,12 +281,14 @@ contains
       cc = 1  !> again, serial implementation for now
       ! !$omp parallel &
       ! !$omp shared(nall, nat, groups, individual_IDs, sorters, rcaches) &
-      ! !$omp shared(workmols, structures, ii) &
-      ! !$omp private(jj,rmsdval,cc)
+      ! !$omp shared(workmols, structures, ii, prune_table,topo_group) &
+      ! !$omp private(jj,rmsdval,cc,io)
       ! !$omp do schedule(dynamic)
       do jj = ii+1,nall
         !cc = omp_get_thread_num()+1
         if (groups(jj) .ne. 0) cycle
+        if (ii < prune_table(jj)) cycle
+        if (topo_group(ii) .ne. topo_group(jj)) cycle
         if (individual_IDs) then
           rcaches(cc)%rank(1:nat,1) = sorters(ii)%rank(1:nat)
           rcaches(cc)%rank(1:nat,2) = sorters(jj)%rank(1:nat)
@@ -252,7 +300,11 @@ contains
         workmols(cc)%at(:) = structures(jj)%at(:)
         workmols(cc)%xyz(:,:) = structures(jj)%xyz(:,:)
         call min_rmsd(structures(ii),workmols(cc), &
-        &        rcache=rcaches(cc),rmsdout=rmsdval)
+        &        rcache=rcaches(cc),rmsdout=rmsdval,io=io)
+        if (io .ne. 0) then
+          topo_group(jj) = topo_group(jj)+1
+          cycle
+        end if
         if (rmsdval < RTHR) groups(jj) = gcount
       end do
       ! !$omp end do
@@ -264,8 +316,16 @@ contains
       do ii = 1,maxval(groups(:))
         write (*,*) ii,count(groups(:) == ii)
       end do
+      if (.not.all(topo_group(:) == 1)) then
+        write (*,*) 'assigned topology groups and count'
+        do ii = 1,maxval(topo_group(:))
+          write (*,*) ii,count(topo_group(:) == ii)
+        end do
+      end if
     end if
 
+    if (allocated(topo_group)) deallocate (topo_group)
+    if (allocated(prune_table)) deallocate (prune_table)
   end subroutine cregen_irmsd_sort
 
   subroutine delta_irmsd_list(nall,structures,iinversion,delta,allcanon,printlvl)
