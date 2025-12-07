@@ -140,7 +140,7 @@ contains  !> MODULE PROCEDURES START HERE
     if (allocated(self%ngroup)) deallocate (self%ngroup)
     if (allocated(self%proxy_topo_ref)) deallocate (self%proxy_topo_ref)
     if (allocated(self%proxy_topo)) deallocate (self%proxy_topo)
-    if (allocated(self%proxy_topo_idx)) deallocate(self%proxy_topo_idx)
+    if (allocated(self%proxy_topo_idx)) deallocate (self%proxy_topo_idx)
     if (allocated(self%ccache)) deallocate (self%ccache)
     if (allocated(self%acache)) deallocate (self%acache)
     allocate (self%assigned(nat),source=.false.)
@@ -156,7 +156,7 @@ contains  !> MODULE PROCEDURES START HERE
     allocate (self%ngroup(nat),source=0)
     allocate (self%proxy_topo(nat,2),source=0)
     allocate (self%proxy_topo_ref(nat,2),source=0)
-    allocate (self%proxy_topo_idx(nat), source=0)
+    allocate (self%proxy_topo_idx(nat),source=0)
     allocate (self%xyzscratch(3,nat,2),source=0.0_wp)
     allocate (self%ccache)
     allocate (self%acache)
@@ -249,7 +249,7 @@ contains  !> MODULE PROCEDURES START HERE
       k = 0
       do ic = 1,ref%nat
         if (mask(ic)) then
-          k = k + 1
+          k = k+1
           scratchptr(1:3,k,1) = mol%xyz(1:3,ic)
           scratchptr(1:3,k,2) = ref%xyz(1:3,ic)
         end if
@@ -266,7 +266,7 @@ contains  !> MODULE PROCEDURES START HERE
           if (mask(ic)) then
             grdptr(1:3,ic) = grdptr(1:3,k)
             grdptr(1:3,k) = 0.0_wp
-            k = k - 1
+            k = k-1
           end if
         end do
       end if
@@ -327,18 +327,18 @@ contains  !> MODULE PROCEDURES START HERE
       !> calculate the barycenters, centroidal coordinates, and the norms
       x_norm = 0.0_wp
       y_norm = 0.0_wp
-      rnat = 1.0_wp / real(nat,wp)
+      rnat = 1.0_wp/real(nat,wp)
       do i = 1,3
         xi(:nat) = x(i,1:nat)
         yi(:nat) = y(i,1:nat)
-        x_center(i) = sum(xi(1:nat)) * rnat
-        y_center(i) = sum(yi(1:nat)) * rnat
-        xi(1:nat) = xi(1:nat) - x_center(i)
-        yi(1:nat) = yi(1:nat) - y_center(i)
+        x_center(i) = sum(xi(1:nat))*rnat
+        y_center(i) = sum(yi(1:nat))*rnat
+        xi(1:nat) = xi(1:nat)-x_center(i)
+        yi(1:nat) = yi(1:nat)-y_center(i)
         x(i,1:nat) = xi(1:nat)
         y(i,1:nat) = yi(1:nat)
-        x_norm = x_norm + dot_product(xi,xi)
-        y_norm = y_norm + dot_product(yi,yi)
+        x_norm = x_norm+dot_product(xi,xi)
+        y_norm = y_norm+dot_product(yi,yi)
       end do
 
       !> calculate the R matrix
@@ -349,25 +349,25 @@ contains  !> MODULE PROCEDURES START HERE
       end do
 
       !> S matrix
-      S(1,1) = Rmatrix(1,1) + Rmatrix(2,2) + Rmatrix(3,3)
-      S(2,1) = Rmatrix(2,3) - Rmatrix(3,2)
-      S(3,1) = Rmatrix(3,1) - Rmatrix(1,3)
-      S(4,1) = Rmatrix(1,2) - Rmatrix(2,1)
+      S(1,1) = Rmatrix(1,1)+Rmatrix(2,2)+Rmatrix(3,3)
+      S(2,1) = Rmatrix(2,3)-Rmatrix(3,2)
+      S(3,1) = Rmatrix(3,1)-Rmatrix(1,3)
+      S(4,1) = Rmatrix(1,2)-Rmatrix(2,1)
 
       S(1,2) = S(2,1)
-      S(2,2) = Rmatrix(1,1) - Rmatrix(2,2) - Rmatrix(3,3)
-      S(3,2) = Rmatrix(1,2) + Rmatrix(2,1)
-      S(4,2) = Rmatrix(1,3) + Rmatrix(3,1)
+      S(2,2) = Rmatrix(1,1)-Rmatrix(2,2)-Rmatrix(3,3)
+      S(3,2) = Rmatrix(1,2)+Rmatrix(2,1)
+      S(4,2) = Rmatrix(1,3)+Rmatrix(3,1)
 
       S(1,3) = S(3,1)
       S(2,3) = S(3,2)
-      S(3,3) = -Rmatrix(1,1) + Rmatrix(2,2) - Rmatrix(3,3)
-      S(4,3) = Rmatrix(2,3) + Rmatrix(3,2)
+      S(3,3) = -Rmatrix(1,1)+Rmatrix(2,2)-Rmatrix(3,3)
+      S(4,3) = Rmatrix(2,3)+Rmatrix(3,2)
 
       S(1,4) = S(4,1)
       S(2,4) = S(4,2)
       S(3,4) = S(4,3)
-      S(4,4) = -Rmatrix(1,1) - Rmatrix(2,2) + Rmatrix(3,3)
+      S(4,4) = -Rmatrix(1,1)-Rmatrix(2,2)+Rmatrix(3,3)
 
       !> Calculate eigenvalues and eigenvectors, and
       !> take the maximum eigenvalue lambda and the corresponding eigenvector q.
@@ -385,14 +385,14 @@ contains  !> MODULE PROCEDURES START HERE
       end if
 
       !> RMS Deviation
-      error = sqrt(max(0.0_wp, ((x_norm + y_norm) - 2.0_wp * lambda)) * rnat)
+      error = sqrt(max(0.0_wp, ((x_norm+y_norm)-2.0_wp*lambda))*rnat)
 
       if (calc_g) then
         !> Gradient of the error of xyz1 w.r.t xyz2
         do i = 1,nat
           do j = 1,3
             tmp(:) = matmul(transpose(U(:,:)),y(:,i))
-            grad(j,i) = ((x(j,i) - tmp(j)) / error) * rnat
+            grad(j,i) = ((x(j,i)-tmp(j))/error)*rnat
           end do
         end do
       end if
@@ -430,6 +430,7 @@ contains  !> MODULE PROCEDURES START HERE
     real(wp) :: calc_rmsd
     real(wp) :: tmprmsd_sym(32)
     real(wp) :: rotmat(3,3),rotconst(3)
+    logical :: topopassing
     logical,parameter :: debug = .false.
 
 !>--- defaults
@@ -449,10 +450,11 @@ contains  !> MODULE PROCEDURES START HERE
       call fallbackranks(ref,mol,nat,local_rcache%rank)
       cptr => local_rcache
     end if
+    cptr%nranks = maxval(cptr%rank(:,1)) 
 
 !>-- Consistency check
-    cptr%nranks = maxval(cptr%rank(:,1))
-    if (cptr%nranks .ne. maxval(cptr%rank(:,2))) then
+    topopassing = cptr%check_proxy_topo(ref,mol)
+    if(.not.topopassing)then
       write (stdout,*) "WARNING: Different atom identities in min_rmsd, can't restore an atom order!"
       if (present(rmsdout)) rmsdout = huge(rmsdout)
       if (present(io)) io = 2
@@ -460,7 +462,7 @@ contains  !> MODULE PROCEDURES START HERE
     end if
 
 !>--- First sorting, to at least restore rank order (only if that's not the case!)
-    if (.not. all(cptr%rank(:,1) .eq. cptr%rank(:,2))) then
+    if (.not.all(cptr%rank(:,1) .eq. cptr%rank(:,2))) then
       call rank_2_order(ref%nat,cptr%rank(:,1),cptr%target_order)
       call rank_2_order(mol%nat,cptr%rank(:,2),cptr%current_order)
       if (debug) then
@@ -485,14 +487,14 @@ contains  !> MODULE PROCEDURES START HERE
       do ii = 1,ref%nat
         rnk = cptr%rank(ii,1)
         if (rnk > 0) then
-          cptr%ngroup(rnk) = cptr%ngroup(rnk) + 1
+          cptr%ngroup(rnk) = cptr%ngroup(rnk)+1
         end if
       end do
     end if
     !> assignment reset
     cptr%assigned(:) = .false.
     cptr%rassigned(:) = .false.
-    cptr%rassigned(cptr%nranks + 1:) = .true. !> skip unneeded allocation space
+    cptr%rassigned(cptr%nranks+1:) = .true. !> skip unneeded allocation space
     do ii = 1,ref%nat
       cptr%iwork(ii) = ii         !> also init iwork
       cptr%target_order(ii) = ii  !> also init target_order
@@ -558,14 +560,14 @@ contains  !> MODULE PROCEDURES START HERE
       mol%xyz(3,:) = -mol%xyz(3,:)
       if (debug) write (*,*) 'inverting'
     end if
-    if ((ii > 4 .and. ii < 9) .or. (ii > 20 .and. ii < 25)) then
+    if ((ii > 4.and.ii < 9).or.(ii > 20.and.ii < 25)) then
       if (uniquenesscase == 1) mol%xyz = matmul(Rx90,mol%xyz)
       if (uniquenesscase == 2) mol%xyz = matmul(Rz90,mol%xyz)
       if (uniquenesscase == 3) mol%xyz = matmul(Rz90,mol%xyz)
       if (debug) write (*,*) '90° tilt'
-    else if ((ii > 8 .and. ii < 13) .or. (ii > 24 .and. ii < 29)) then
+    else if ((ii > 8.and.ii < 13).or.(ii > 24.and.ii < 29)) then
       mol%xyz = matmul(Ry90,mol%xyz)
-    else if ((ii > 12 .and. ii < 17) .or. (ii > 28)) then
+    else if ((ii > 12.and.ii < 17).or.(ii > 28)) then
       mol%xyz = matmul(Rx90,mol%xyz)
     end if
     select case (ii) !> 180° rotations
@@ -645,7 +647,7 @@ contains  !> MODULE PROCEDURES START HERE
 
       !> add up the total LSAP cost (of considered ranks)
       !> we need this if we have to decide on a mapping in case of false enantiomers
-      val = val + val0
+      val = val+val0
     end do
 
   end subroutine min_rmsd_iterate_through_groups
@@ -702,27 +704,27 @@ contains  !> MODULE PROCEDURES START HERE
 
     ALIGNLOOP: do ii = 1,4
       call min_rmsd_iterate_through_groups(ref,mol,cptr,dum)
-      vals(1 + 4 * (ii - 1)) = dum
+      vals(1+4*(ii-1)) = dum
       if (debug) call mol%append(debugunit2)
-      cptr%order_bkup(:,1 + 4 * (ii - 1) + 16 * (step - 1)) = cptr%iwork(:)
+      cptr%order_bkup(:,1+4*(ii-1)+16*(step-1)) = cptr%iwork(:)
 
       mol%xyz = matmul(Rx180,mol%xyz)
       call min_rmsd_iterate_through_groups(ref,mol,cptr,dum)
-      vals(2 + 4 * (ii - 1)) = dum
+      vals(2+4*(ii-1)) = dum
       if (debug) call mol%append(debugunit2)
-      cptr%order_bkup(:,2 + 4 * (ii - 1) + 16 * (step - 1)) = cptr%iwork(:)
+      cptr%order_bkup(:,2+4*(ii-1)+16*(step-1)) = cptr%iwork(:)
 
       mol%xyz = matmul(Ry180,mol%xyz)
       call min_rmsd_iterate_through_groups(ref,mol,cptr,dum)
-      vals(3 + 4 * (ii - 1)) = dum
+      vals(3+4*(ii-1)) = dum
       if (debug) call mol%append(debugunit2)
-      cptr%order_bkup(:,3 + 4 * (ii - 1) + 16 * (step - 1)) = cptr%iwork(:)
+      cptr%order_bkup(:,3+4*(ii-1)+16*(step-1)) = cptr%iwork(:)
 
       mol%xyz = matmul(Rx180,mol%xyz)
       call min_rmsd_iterate_through_groups(ref,mol,cptr,dum)
-      vals(4 + 4 * (ii - 1)) = dum
+      vals(4+4*(ii-1)) = dum
       if (debug) call mol%append(debugunit2)
-      cptr%order_bkup(:,4 + 4 * (ii - 1) + 16 * (step - 1)) = cptr%iwork(:)
+      cptr%order_bkup(:,4+4*(ii-1)+16*(step-1)) = cptr%iwork(:)
 
       mol%xyz = matmul(Ry180,mol%xyz) !> restore
 
@@ -765,7 +767,7 @@ contains  !> MODULE PROCEDURES START HERE
     end if
 
     do ii = 1,16
-      values(ii + 16 * (step - 1)) = vals(ii)
+      values(ii+16*(step-1)) = vals(ii)
     end do
   end subroutine min_rmsd_rotcheck_permute
 
@@ -786,14 +788,14 @@ contains  !> MODULE PROCEDURES START HERE
     allocate (typemap(nat),source=0)
     k = 0
     do ii = 1,ref%nat
-      if (.not. any(typemap(:) .eq. ref%at(ii))) then
-        k = k + 1
+      if (.not.any(typemap(:) .eq. ref%at(ii))) then
+        k = k+1
         typemap(k) = ref%at(ii)
       end if
     end do
     do ii = 1,mol%nat
-      if (.not. any(typemap(:) .eq. mol%at(ii))) then
-        k = k + 1
+      if (.not.any(typemap(:) .eq. mol%at(ii))) then
+        k = k+1
         typemap(k) = mol%at(ii)
       end if
     end do
@@ -865,14 +867,14 @@ contains  !> MODULE PROCEDURES START HERE
     ii = 0
     do i = 1,ref%nat
       if (ranks(i,1) .ne. targetrank) cycle
-      ii = ii + 1
+      ii = ii+1
       iwork2(ii,1) = i !> mapping using the first column of iwork2
       jj = 0
       do j = 1,mol%nat
         if (ranks(j,2) .ne. targetrank) cycle
-        jj = jj + 1
-        dists(:) = real((ref%xyz(:,i) - mol%xyz(:,j))**2,sp) !> use i and j
-        aptr%Cost(jj + (ii - 1) * rnknat) = sum(dists)
+        jj = jj+1
+        dists(:) = real((ref%xyz(:,i)-mol%xyz(:,j))**2,sp) !> use i and j
+        aptr%Cost(jj+(ii-1)*rnknat) = sum(dists)
       end do
     end do
 
@@ -892,8 +894,8 @@ contains  !> MODULE PROCEDURES START HERE
       do i = 1,rnknat
         jj = aptr%a(i)
         ii = aptr%b(i)
-        if (ii == -1 .or. jj == -1) cycle  !> cycle bad assignments
-        val0 = val0 + aptr%Cost(jj + (ii - 1) * rnknat)
+        if (ii == -1.or.jj == -1) cycle  !> cycle bad assignments
+        val0 = val0+aptr%Cost(jj+(ii-1)*rnknat)
         iwork2(i,2) = iwork2(aptr%b(i),1)
       end do
     else
@@ -918,7 +920,7 @@ contains  !> MODULE PROCEDURES START HERE
     do ii = 1,maxrank
       do jj = 1,nat
         if (rank(jj) == ii) then
-          k = k + 1
+          k = k+1
           order(jj) = k
         end if
       end do
@@ -950,8 +952,8 @@ contains  !> MODULE PROCEDURES START HERE
       count1 = 0
       count2 = 0
       do jj = 1,nat
-        if (ranks1(jj) .eq. ii) count1 = count1 + 1
-        if (ranks2(jj) .eq. ii) count2 = count2 + 1
+        if (ranks1(jj) .eq. ii) count1 = count1+1
+        if (ranks2(jj) .eq. ii) count2 = count2+1
       end do
       !> not the same amount of atoms in rank ii, return from function
       if (count1 .ne. count2) return
@@ -1007,28 +1009,41 @@ contains  !> MODULE PROCEDURES START HERE
     !* Checks are in order (cheap to expensive):
     !*   1) system size
     !*   2) max rank
-    !*   3) system composition ("sum formula")
-    !*   4) joint sorted ranks and atom types
+    !*   3) joint sorted ranks and atom types
     !* Returns "passing" true or false
     implicit none
     class(rmsd_cache) :: self
     type(coord),intent(in) :: ref
     type(coord),intent(in) :: mol
-    logical :: passing
-    integer :: n
+    logical :: passing,tcheck
+    integer :: n1,n2,m1,m2
 
-    n = ref%nat
+    passing = .false.
 
+    !> Check 1
+    n1 = ref%nat
+    n2 = mol%nat
+    if (n1 .ne. n2) return
+
+    !> Check 2
+    m1 = maxval(self%rank(:,1))
+    m2 = maxval(self%rank(:,2))
+    if (m1 .ne. m2) return
+
+    !> Check 3
     self%proxy_topo_ref(:,1) = ref%at(:)
     self%proxy_topo_ref(:,2) = self%rank(:,1)
-!    call quicksort(self%proxy_topo_ref(:,1),1,n)
-!    call quicksort(self%proxy_topo_ref(:,2),1,n)
+    call qsortm(self%proxy_topo_ref,2,self%proxy_topo_idx)
 
     self%proxy_topo(:,1) = mol%at(:)
     self%proxy_topo(:,2) = self%rank(:,2)
-!    call quicksort(self%proxy_topo(:,1),1,n)
-!    call quicksort(self%proxy_topo(:,2),1,n)
+    call qsortm(self%proxy_topo,2,self%proxy_topo_idx)
+    if (.not.all(self%proxy_topo .eq. self%proxy_topo_ref)) then
+      return !> some difference in the sorting, return before setting passing to true
+    end if
 
+    !> All checks passed
+    passing = .true.
   end function check_proxy_topo
 
   recursive subroutine qsorti(v,ix,l,r)
@@ -1040,27 +1055,27 @@ contains  !> MODULE PROCEDURES START HERE
     integer,intent(in) :: l,r
     integer :: i,j,p,t
     if (l >= r) return
-    p = v(ix((l + r) / 2))
+    p = v(ix((l+r)/2))
     i = l; j = r
     do
-      do while (v(ix(i)) < p); i = i + 1; end do
-      do while (v(ix(j)) > p); j = j - 1; end do
+      do while (v(ix(i)) < p); i = i+1; end do
+      do while (v(ix(j)) > p); j = j-1; end do
       if (i <= j) then
         t = ix(i); ix(i) = ix(j); ix(j) = t
-        i = i + 1; j = j - 1
+        i = i+1; j = j-1
       else
         exit
       end if
     end do
-    if (l < j) call qsi(v,ix,l,j)
-    if (i < r) call qsi(v,ix,i,r)
+    if (l < j) call qsorti(v,ix,l,j)
+    if (i < r) call qsorti(v,ix,i,r)
   end subroutine qsorti
 
   subroutine qsortm(a,k,ix)
     !************************************
-    !* matrix wrapper to qsorti 
+    !* matrix wrapper to qsorti
     !* order is reflected to all columns
-    !************************************    
+    !************************************
     integer,intent(inout) :: a(:,:)
     integer,intent(in) :: k
     integer :: n,i
@@ -1069,7 +1084,7 @@ contains  !> MODULE PROCEDURES START HERE
     do i = 1,n
       ix(i) = i
     end do
-    call qsi(a(:,k),ix,1,n)
+    call qsorti(a(:,k),ix,1,n)
     a = a(ix,:)
   end subroutine qsortm
 
@@ -1078,18 +1093,18 @@ contains  !> MODULE PROCEDURES START HERE
     integer,intent(in) :: l,r
     integer :: i,j,p,t
     if (l >= r) return
-    p = a((l + r) / 2)
+    p = a((l+r)/2)
     i = l; j = r
     do
       do while (a(i) < p)
-        i = i + 1
+        i = i+1
       end do
       do while (a(j) > p)
-        j = j - 1
+        j = j-1
       end do
       if (i <= j) then
         t = a(i); a(i) = a(j); a(j) = t
-        i = i + 1; j = j - 1
+        i = i+1; j = j-1
       else
         exit
       end if
