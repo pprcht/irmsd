@@ -52,7 +52,6 @@ module irmsd_module
     logical :: stereocheck = .false.
     integer,allocatable :: proxy_topo_ref(:,:)
     integer,allocatable :: proxy_topo(:,:)
-    integer,allocatable :: proxy_topo_idx(:)
 
     type(rmsd_core_cache),allocatable :: ccache
     type(assignment_cache),allocatable :: acache
@@ -140,7 +139,6 @@ contains  !> MODULE PROCEDURES START HERE
     if (allocated(self%ngroup)) deallocate (self%ngroup)
     if (allocated(self%proxy_topo_ref)) deallocate (self%proxy_topo_ref)
     if (allocated(self%proxy_topo)) deallocate (self%proxy_topo)
-    if (allocated(self%proxy_topo_idx)) deallocate (self%proxy_topo_idx)
     if (allocated(self%ccache)) deallocate (self%ccache)
     if (allocated(self%acache)) deallocate (self%acache)
     allocate (self%assigned(nat),source=.false.)
@@ -156,7 +154,6 @@ contains  !> MODULE PROCEDURES START HERE
     allocate (self%ngroup(nat),source=0)
     allocate (self%proxy_topo(nat,2),source=0)
     allocate (self%proxy_topo_ref(nat,2),source=0)
-    allocate (self%proxy_topo_idx(nat),source=0)
     allocate (self%xyzscratch(3,nat,2),source=0.0_wp)
     allocate (self%ccache)
     allocate (self%acache)
@@ -402,18 +399,19 @@ contains  !> MODULE PROCEDURES START HERE
 
 !========================================================================================!
 
-  subroutine min_rmsd(ref,mol,rcache,rmsdout,align,io)
-!*********************************************************************
+  subroutine min_rmsd(ref,mol,rcache,rmsdout,align,topocheck,io)
+!****************************************************************************
 !* Main routine to determine minium RMSD considering atom permutation
 !* Input
 !*   ref  - the reference structure
 !*   mol  - the structure to be matched to ref
 !* Optinal arguments
-!*   rcache  - memory cache
-!*   rmsdout - the calculated RMSD scalar
-!*   align   - quarternion-align mol in the last stage
-!*   io      - return status
-!*********************************************************************
+!*   rcache    - memory cache
+!*   rmsdout   - the calculated RMSD scalar
+!*   align     - quarternion-align mol in the last stage
+!*   topocheck - check molecule topology? if absent, doing check is default
+!*   io        - return status
+!****************************************************************************
     implicit none
     !> IN & OUTPUT
     type(coord),intent(in) :: ref
@@ -421,6 +419,7 @@ contains  !> MODULE PROCEDURES START HERE
     type(rmsd_cache),intent(inout),optional,target :: rcache
     real(wp),intent(out),optional :: rmsdout
     logical,intent(in),optional :: align
+    logical,intent(in),optional :: topocheck
     integer,intent(out),optional :: io
 
     !> LOCAL
@@ -430,7 +429,7 @@ contains  !> MODULE PROCEDURES START HERE
     real(wp) :: calc_rmsd
     real(wp) :: tmprmsd_sym(32)
     real(wp) :: rotmat(3,3),rotconst(3)
-    logical :: topopassing
+    logical :: topocheck_l = .true.
     logical,parameter :: debug = .false.
 
 !>--- defaults
@@ -450,22 +449,27 @@ contains  !> MODULE PROCEDURES START HERE
       call fallbackranks(ref,mol,nat,local_rcache%rank)
       cptr => local_rcache
     end if
+    if (present(topocheck)) then
+      topocheck_l = topocheck
+    end if
     cptr%nranks = maxval(cptr%rank(:,1))
 
-!>-- Consistency check
-    ioloc = cptr%check_proxy_topo(ref,mol)
-    if (ioloc > 0) then
-      write (stdout,'(1x,a)') "WARNING: Different atom topologies detected in min_rmsd(), can't restore an atom order!"
-      if (present(rmsdout)) then
-        if (ioloc > 2) then !> topo check identified at least the same system size and maxrank --> quaternion RMSD may be feasible
-          write (stdout,'(10x,a)') "Falling back to quaternion RMSD without reordering atoms. Values may be nonsensical."
-          rmsdout = rmsd(ref,mol,ccache=cptr%ccache)
-        else
-          rmsdout = huge(rmsdout)
+!>-- Consistency (topology) check
+    if (topocheck_l) then
+      ioloc = cptr%check_proxy_topo(ref,mol)
+      if (ioloc > 0) then
+        write (stdout,'(1x,a)') "WARNING: Different atom topologies detected in min_rmsd(), can't restore an atom order!"
+        if (present(rmsdout)) then
+          if (ioloc > 2) then !> topo check identified at least the same system size and maxrank --> quaternion RMSD may be feasible
+            write (stdout,'(10x,a)') "Falling back to quaternion RMSD without reordering atoms. Values may be nonsensical."
+            rmsdout = rmsd(ref,mol,ccache=cptr%ccache)
+          else
+            rmsdout = huge(rmsdout)
+          end if
         end if
+        if (present(io)) io = ioloc
+        return
       end if
-      if (present(io)) io = 2
-      return
     end if
 
 !>--- First sorting, to at least restore rank order (only if that's not the case!)
@@ -1025,7 +1029,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: io
     integer :: n1,n2,m1,m2
 
-    io=0
+    io = 0
 
     !> Check 1
     n1 = ref%nat
@@ -1033,23 +1037,23 @@ contains  !> MODULE PROCEDURES START HERE
     if (n1 .ne. n2) then
       io = 1
       return
-    endif
+    end if
 
     !> Check 2
     m1 = maxval(self%rank(:,1))
     m2 = maxval(self%rank(:,2))
     if (m1 .ne. m2) then
-      io = 2 ; return
-    endif
+      io = 2; return
+    end if
 
     !> Check 3
     self%proxy_topo_ref(:,1) = ref%at(:)
     self%proxy_topo_ref(:,2) = self%rank(:,1)
-    call qsortm(self%proxy_topo_ref,2,self%proxy_topo_idx)
+    call qsortm(self%proxy_topo_ref,2,self%iwork)
 
     self%proxy_topo(:,1) = mol%at(:)
     self%proxy_topo(:,2) = self%rank(:,2)
-    call qsortm(self%proxy_topo,2,self%proxy_topo_idx)
+    call qsortm(self%proxy_topo,2,self%iwork)
     if (.not.all(self%proxy_topo .eq. self%proxy_topo_ref)) then
       io = 3
       return !> some difference in the sorting, return before setting passing to true
