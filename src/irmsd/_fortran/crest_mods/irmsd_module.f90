@@ -450,13 +450,20 @@ contains  !> MODULE PROCEDURES START HERE
       call fallbackranks(ref,mol,nat,local_rcache%rank)
       cptr => local_rcache
     end if
-    cptr%nranks = maxval(cptr%rank(:,1)) 
+    cptr%nranks = maxval(cptr%rank(:,1))
 
 !>-- Consistency check
-    topopassing = cptr%check_proxy_topo(ref,mol)
-    if(.not.topopassing)then
-      write (stdout,*) "WARNING: Different atom identities in min_rmsd, can't restore an atom order!"
-      if (present(rmsdout)) rmsdout = huge(rmsdout)
+    ioloc = cptr%check_proxy_topo(ref,mol)
+    if (ioloc > 0) then
+      write (stdout,'(1x,a)') "WARNING: Different atom topologies detected in min_rmsd(), can't restore an atom order!"
+      if (present(rmsdout)) then
+        if (ioloc > 2) then !> topo check identified at least the same system size and maxrank --> quaternion RMSD may be feasible
+          write (stdout,'(10x,a)') "Falling back to quaternion RMSD without reordering atoms. Values may be nonsensical."
+          rmsdout = rmsd(ref,mol,ccache=cptr%ccache)
+        else
+          rmsdout = huge(rmsdout)
+        end if
+      end if
       if (present(io)) io = 2
       return
     end if
@@ -1002,7 +1009,7 @@ contains  !> MODULE PROCEDURES START HERE
 
 !==========================================================================================!
 
-  function check_proxy_topo(self,ref,mol) result(passing)
+  function check_proxy_topo(self,ref,mol) result(io)
     !******************************************************
     !* Attempt to compare the "topology" for the molecules ref and mol
     !* Assumes that ranks have been computed already.
@@ -1010,25 +1017,30 @@ contains  !> MODULE PROCEDURES START HERE
     !*   1) system size
     !*   2) max rank
     !*   3) joint sorted ranks and atom types
-    !* Returns "passing" true or false
+    !* Returns "io" with value 0 if successfull, or a number indatinc faliure condition
     implicit none
     class(rmsd_cache) :: self
     type(coord),intent(in) :: ref
     type(coord),intent(in) :: mol
-    logical :: passing,tcheck
+    integer :: io
     integer :: n1,n2,m1,m2
 
-    passing = .false.
+    io=0
 
     !> Check 1
     n1 = ref%nat
     n2 = mol%nat
-    if (n1 .ne. n2) return
+    if (n1 .ne. n2) then
+      io = 1
+      return
+    endif
 
     !> Check 2
     m1 = maxval(self%rank(:,1))
     m2 = maxval(self%rank(:,2))
-    if (m1 .ne. m2) return
+    if (m1 .ne. m2) then
+      io = 2 ; return
+    endif
 
     !> Check 3
     self%proxy_topo_ref(:,1) = ref%at(:)
@@ -1039,11 +1051,11 @@ contains  !> MODULE PROCEDURES START HERE
     self%proxy_topo(:,2) = self%rank(:,2)
     call qsortm(self%proxy_topo,2,self%proxy_topo_idx)
     if (.not.all(self%proxy_topo .eq. self%proxy_topo_ref)) then
+      io = 3
       return !> some difference in the sorting, return before setting passing to true
     end if
 
-    !> All checks passed
-    passing = .true.
+    !> All checks passed, io should still be 0
   end function check_proxy_topo
 
   recursive subroutine qsorti(v,ix,l,r)
@@ -1087,31 +1099,6 @@ contains  !> MODULE PROCEDURES START HERE
     call qsorti(a(:,k),ix,1,n)
     a = a(ix,:)
   end subroutine qsortm
-
-  recursive subroutine quicksort(a,l,r)
-    integer,intent(inout) :: a(:)
-    integer,intent(in) :: l,r
-    integer :: i,j,p,t
-    if (l >= r) return
-    p = a((l+r)/2)
-    i = l; j = r
-    do
-      do while (a(i) < p)
-        i = i+1
-      end do
-      do while (a(j) > p)
-        j = j-1
-      end do
-      if (i <= j) then
-        t = a(i); a(i) = a(j); a(j) = t
-        i = i+1; j = j-1
-      else
-        exit
-      end if
-    end do
-    if (l < j) call quicksort(a,l,j)
-    if (i < r) call quicksort(a,i,r)
-  end subroutine quicksort
 
 !========================================================================================!
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<!

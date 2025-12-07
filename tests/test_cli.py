@@ -133,7 +133,7 @@ def test_cli_compare_quarternion(
     assert match, f"Cartesian RMSD not found in output: {out}"
 
     rmsd_value = float(match.group(1))
-    assert pytest.approx(rmsd_value, abs=1e-6) == expected_rmsd
+    assert pytest.approx(expected_rmsd, abs=1e-6) == rmsd_value
 
     if "--output" in additional_cli_args:
         assert Path(output_filename).exists(), "Output file not created"
@@ -158,20 +158,20 @@ def test_cli_compare_quarternion(
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             [],
-            2.2149021075,
+            0.1393943463,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             ["--heavy"],
-            2.2149021075,
+            0.1393943463,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             # only check that files are created
             ["--heavy", "--output"],
-            2.2149021075,
+            0.1393943463,
         ),
     ],
 )
@@ -206,7 +206,7 @@ def test_cli_compare_irmsd(
     assert match, f"iRMSD not found in output: {out}"
 
     rmsd_value = float(match.group(1))
-    assert pytest.approx(rmsd_value, abs=1e-6) == expected_irmsd
+    assert pytest.approx(expected_irmsd, abs=1e-6) == rmsd_value
 
     if "--output" in additional_cli_args:
         outfile_path = Path(output_filename)
@@ -236,7 +236,7 @@ def test_cli_compare_irmsd(
                 "caffeine_xyz_obabel_file_fixture",
             ],
             ["--align"],
-            [0.0, 0.0, 2.2149],
+            [0.0, 0.0, 0.1394],
         ),
     ],
 )
@@ -269,7 +269,7 @@ def test_cli_sorter(
     for i, delta_rmsd_str in enumerate(delta_rmsd_values):
         delta_rmsd_value = float(delta_rmsd_str)
         assert (
-            pytest.approx(delta_rmsd_value, abs=1e-4) == expected_delta_rmsds[i]
+            pytest.approx(expected_delta_rmsds[i], abs=1e-4) == delta_rmsd_value
         ), f"Delta RMSD value mismatch at index {i}: expected {expected_delta_rmsds[i]}, got {delta_rmsd_value}"
 
 
@@ -370,7 +370,7 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
             delta_rmsd_str = delta_rmsd_values[current_index]
             delta_rmsd_value = float(delta_rmsd_str)
             assert (
-                pytest.approx(delta_rmsd_value, abs=1e-4) == expected_delta
+                pytest.approx(expected_delta, abs=1e-4) ==  delta_rmsd_value
             ), f"Delta RMSD value mismatch for file {files[i]} at index {j}: expected {expected_delta}, got {delta_rmsd_value}"
             current_index += 1
 
