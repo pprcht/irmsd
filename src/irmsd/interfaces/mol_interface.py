@@ -185,6 +185,7 @@ def sorter_irmsd_molecule(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ethr: float | None = None,
 ) -> Tuple[np.ndarray, List[Molecule]]:
     """
     High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
@@ -203,6 +204,8 @@ def sorter_irmsd_molecule(
         Canonicalization flag, passed through to the backend.
     printlvl : int, optional
         Verbosity level, passed through to the backend.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
 
     Returns
     -------
@@ -266,6 +269,8 @@ def sorter_irmsd_molecule(
         atom_numbers_list.append(Z)
         positions_list.append(P)
 
+    energies_list = get_energies_from_molecule_list(molecule_list)
+
     # --- Call the Fortran-backed sorter_irmsd ---
     groups, xyz_structs, Z_structs = sorter_irmsd(
         atom_numbers_list=atom_numbers_list,
@@ -275,6 +280,8 @@ def sorter_irmsd_molecule(
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
+        ethr=ethr,
+        energies_list=energies_list,
     )
 
     # --- Reconstruct new Molecule objects ---

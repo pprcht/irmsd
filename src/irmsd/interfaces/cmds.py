@@ -206,6 +206,7 @@ def sort_structures_and_print(
     allcanon: bool = True,
     printlvl: int = 0,
     maxprint: int = 25,
+    ethr: float | None = None,
     outfile: str | None = None,
 ) -> None:
     """
@@ -219,7 +220,7 @@ def sort_structures_and_print(
     ----------
     molecule_list : sequence of irmsd.Molecule
         Input structures.
-    rthresh : float
+    rthr : float | None
         Distance threshold for sorter_irmsd_molecule.
     inversion : str, optional
         Inversion symmetry flag, passed through.
@@ -229,6 +230,8 @@ def sort_structures_and_print(
         Verbosity level, passed through.
     maxprint : int, optional
         Max number of lines to print for each structure result table
+     ethr: float | None
+        Optional inter-conformer energy threshold for more efficient presorting
     outfile : str or None, optional
         If not None, write all resulting structures to this file
         (e.g. 'sorted.xyz') using a write function.
@@ -252,10 +255,10 @@ def sort_structures_and_print(
         molecule_list, energies = sort_by_value(molecule_list, energies)
         print()
         mol_dict[key] = Presorted_sort_structures_and_print(
-            molecule_list, rthr, iinversion, allcanon, printlvl, outfile
+            molecule_list, rthr, iinversion, allcanon, printlvl, ethr, outfile
         )
         irmsdvals, _ = delta_irmsd_list_molecule(
-            mol_dict[key], iinversion, allcanon=False, printlvl=0
+            mol_dict[key], iinversion, allcanon=True, printlvl=0
         )
         energies = get_energies_from_molecule_list(mol_dict[key])
         print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
@@ -273,10 +276,10 @@ def sort_structures_and_print(
             molecule_list, energies = sort_by_value(molecule_list, energies)
             print()
             mol_dict[key] = Presorted_sort_structures_and_print(
-                molecule_list, rthr, iinversion, allcanon, printlvl, outfile_key
+                molecule_list, rthr, iinversion, allcanon, printlvl, ethr, outfile_key
             )
             irmsdvals, _ = delta_irmsd_list_molecule(
-                mol_dict[key], iinversion, allcanon=False, printlvl=0
+                mol_dict[key], iinversion, allcanon=True, printlvl=0
             )
             energies = get_energies_from_molecule_list(mol_dict[key])
             print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
@@ -288,6 +291,7 @@ def Presorted_sort_structures_and_print(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ethr: float | None = None,
     outfile: str | None = None,
 ) -> None:
     """
@@ -321,6 +325,7 @@ def Presorted_sort_structures_and_print(
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
+        ethr=ethr,
     )
 
     # Print groups to screen

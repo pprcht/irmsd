@@ -515,6 +515,7 @@ def sorter_irmsd_ase(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ethr: float | None = None,
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
     """ASE wrapper for ``sorter_irmsd_molecule``.
 
@@ -534,6 +535,8 @@ def sorter_irmsd_ase(
         Canonicalization flag.
     printlvl : int, optional
         Verbosity level.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
 
     Returns
     -------
@@ -564,6 +567,7 @@ def sorter_irmsd_ase(
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
+        ethr=ethr,
     )
 
     new_atoms_list = molecule_to_ase(new_mols)

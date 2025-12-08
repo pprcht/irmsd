@@ -32,6 +32,7 @@ def _get_sorter_exposed_xyz_fortran() -> ct._CFuncPtr:
             ct.c_bool,
             ct.c_int,
             ct.c_double,
+            ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
         ]
         f.restype = None
         _get_sorter_exposed_xyz_fortran = f
@@ -39,11 +40,33 @@ def _get_sorter_exposed_xyz_fortran() -> ct._CFuncPtr:
 
 
 def sorter_exposed_xyz_fortran_raw(
-    nat, nall, xyzall, atall, groups, rthresh, iinversion, allcanon, printlvl, ethr
+    nat,
+    nall,
+    xyzall,
+    atall,
+    groups,
+    rthresh,
+    iinversion,
+    allcanon,
+    printlvl,
+    ethr,
+    energies,
 ) -> None:
     """Low-level wrapper for C symbol 'sorter_exposed_xyz_fortran'."""
     f = _get_sorter_exposed_xyz_fortran()
-    f(nat, nall, xyzall, atall, groups, rthresh, iinversion, allcanon, printlvl, ethr)
+    f(
+        nat,
+        nall,
+        xyzall,
+        atall,
+        groups,
+        rthresh,
+        iinversion,
+        allcanon,
+        printlvl,
+        ethr,
+        energies,
+    )
 
 
 def _get_delta_irmsd_list_fortran() -> ct._CFuncPtr:

@@ -15,8 +15,8 @@ def sorter_irmsd(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
-    ethr: float = None,
-    #energies_list: Sequence[np.ndarray],
+    ethr: float | None = None,
+    energies_list: Sequence[np.ndarray] | None = None,
 ) -> Tuple[np.ndarray, List[np.ndarray], List[np.ndarray]]:
     """
     High-level API: call the sorter_exposed_xyz_fortran Fortran routine.
@@ -38,8 +38,10 @@ def sorter_irmsd(
         Canonicalization flag.
     printlvl : int
         Verbosity level.
-    ethr: float
-        Inter-conformer energy threshold (optional) in Hartree.
+    ethr: float | None
+        Inter-conformer energy threshold (optional). In Hartree.
+     energies_list: sequence of (Nall,) floats | None
+        List of energies for the passed structures (optional). In Hartree.
 
     Returns
     -------
@@ -97,11 +99,18 @@ def sorter_irmsd(
     atall = np.stack(at_list, axis=0)  # (nall, N)
     xyzall = np.stack(xyz_list, axis=0)  # (nall, N, 3)
 
-    # Handling of the optional energy threshold (can't be None for C-bindings)
-    if ethr is not None:
-        pass
-    else:
+    # Handling of the optional energy threshold (can't be None for Fortran/C-bindings)
+    if ethr is None:
         ethr = -99999
+
+    # Similar for energies, we can't pass None to the Fortran/C-bindings
+    if energies_list is None:
+        energies = np.zeros(nall, dtype=np.float64)
+    else:
+        # user provided a list/sequence of scalars → make a contiguous 1D array
+        energies = np.asarray(energies_list, dtype=np.float64)
+        if energies.ndim != 1:
+            raise ValueError("energies_list must be 1D (one energy per structure)")
 
     # Allocate groups
     groups = np.empty(nall, dtype=np.int32)
@@ -118,6 +127,7 @@ def sorter_irmsd(
         bool(allcanon),
         int(printlvl),
         float(ethr),
+        energies,
     )
 
     # ---- Extract back into per-structure arrays ----

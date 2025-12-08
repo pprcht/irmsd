@@ -465,6 +465,7 @@ def sorter_irmsd_rdkit(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ethr: float | None = None,
 ) -> Tuple[np.ndarray, List["Mol"]]:
     """
     Optional Rdkit utility: operate on a list of Rdkit Molecules.
@@ -482,6 +483,9 @@ def sorter_irmsd_rdkit(
         Canonicalization flag, passed through to the backend.
     printlvl : int, optional
         Verbosity level, passed through to the backend.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
+
 
     Returns
     -------

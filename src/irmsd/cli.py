@@ -126,6 +126,17 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_sort.add_argument(
+        "--ethr",
+        nargs="?",                # 0 or 1 values allowed
+        type=float,               # user value is interpreted as Hartree
+        default=None,             # if --ethr is not given at all
+        const=1.5e-5, 
+        help=(
+            "Optional inter-structure energy threshold in Hartree. "
+            "If set, the default is 1.5e-5 Ha or a user-specified value. "
+        ),
+    )
+    p_sort.add_argument(
         "--inversion",
         choices=["on", "off", "auto"],
         default="auto",
@@ -247,6 +258,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 printlvl=1,
                 maxprint=args.maxprint,
                 outfile=args.output,
+                ethr=args.ethr,
             )
 
         return 0

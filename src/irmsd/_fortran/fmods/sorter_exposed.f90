@@ -12,7 +12,7 @@ contains
   subroutine sorter_exposed_xyz_fortran( &
     &                     nat,nall,xyzall_ptr,atall_ptr, &
     &                     groups_ptr,rthresh,iinversion,allcanon_c,printlvl, &
-    &                     ethr &
+    &                     ethr,energies_ptr &
     &                   ) bind(C,name="sorter_exposed_xyz_fortran")
     use,intrinsic :: iso_c_binding
     implicit none
@@ -28,11 +28,13 @@ contains
     logical(c_bool),value :: allcanon_c
     integer(c_int),value :: printlvl
     real(c_double),value :: ethr
+    type(c_ptr),value :: energies_ptr
 
     ! Fortran pointer views of C buffers
     real(c_double),pointer :: xyzall(:)
     integer(c_int),pointer :: atall(:)
     integer(c_int),pointer :: groups(:)
+    real(c_double),pointer :: energies(:)
 
     ! Local Fortran variables
     type(coord),allocatable :: structures(:)
@@ -44,6 +46,7 @@ contains
     call c_f_pointer(atall_ptr,atall, [nat*nall])
     call c_f_pointer(groups_ptr,groups, [nall])
     allcanon = allcanon_c
+    call c_f_pointer(energies_ptr,energies, [nall])
 
     ! Call original Fortran routine
     allocate (structures(nall))
@@ -53,6 +56,7 @@ contains
       structures(i)%nat = nat
       allocate (structures(i)%at(nat),source=0)
       allocate (structures(i)%xyz(3,nat),source=0.0_wp)
+      structures(i)%energy = energies(i)
       do j = 1,nat
         k1 = k1+1
         structures(i)%at(j) = atall(k1)
@@ -165,18 +169,21 @@ contains
 !>--- print some sorting data
     if (prlvl > 0) then
       write (stdout,'(a)') 'Info for iRMSD sorting:'
-      write (stdout,'(2x,a,i9)') 'number of structures     :',nall
-      write (stdout,'(2x,a,f9.5,a)') 'RTHR (RMSD threshold)    :',RTHR*autoaa,' Å'
+      write (stdout,'(2x,a,i10)') 'number of structures     :',nall
+      write (stdout,'(2x,a,f10.5,a)') 'RTHR (RMSD threshold)    :',RTHR*autoaa,' Å'
+      if (present(ETHR)) then
+        write (stdout,'(2x,a,es10.2,a)') 'ETHR (energy threshold)  :',ETHR,' Ha'
+      end if
       !write (stdout,'(2x,a,i9)') 'OpenMP threads           :',T
-      write (stdout,'(2x,a,l9)') 'Individual atom IDs?     :',individual_IDs
+      write (stdout,'(2x,a,l10)') 'Individual atom IDs?     :',individual_IDs
       write (stdout,'(2x,a)',advance='no') 'False enantiomer check?  :'
       select case (iinversion)
       case (0)
-        write (stdout,'(a9)') 'auto'
+        write (stdout,'(a10)') 'auto'
       case (1)
-        write (stdout,'(a9)') 'on'
+        write (stdout,'(a10)') 'on'
       case (2)
-        write (stdout,'(a9)') 'off'
+        write (stdout,'(a10)') 'off'
       end select
       write (stdout,*)
     end if
@@ -262,9 +269,8 @@ contains
     if (present(ETHR)) then
       do ii = 1,nall
         eii = structures(ii)%energy
-        do jj = 1,ii-1
-          ediff = structures(jj)%energy-eii
-          write(*,*) ediff
+        do jj = 1,ii
+          ediff = abs(eii-structures(jj)%energy)
           if (ediff <= ETHR) then
             prune_table(ii) = jj
             exit
@@ -276,6 +282,9 @@ contains
     !> topo_group dynamically keeps track of different topology groups
     !> among the structures. All structures start out as the same topology
     allocate (topo_group(nall),source=1)
+!> --------------------------------------------
+!> pre-processing end
+!> --------------------------------------------
 
 !>--- run the checks
     gcount = maxval(groups(:))
@@ -478,7 +487,7 @@ contains
       workmols(cc)%at(:) = structures(ii)%at(:)
       workmols(cc)%xyz(:,:) = structures(ii)%xyz(:,:)
       call min_rmsd(structures(jj),workmols(cc), &
-      &        rcache=rcaches(cc),rmsdout=rmsdval)
+      &        rcache=rcaches(cc),rmsdout=rmsdval,topocheck=.true.)
       delta(ii) = rmsdval
       ! !$omp end do
       ! !$omp end parallel
