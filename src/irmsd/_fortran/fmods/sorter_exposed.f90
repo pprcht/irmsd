@@ -11,7 +11,8 @@ contains
 
   subroutine sorter_exposed_xyz_fortran( &
     &                     nat,nall,xyzall_ptr,atall_ptr, &
-    &                     groups_ptr,rthresh,iinversion,allcanon_c,printlvl &
+    &                     groups_ptr,rthresh,iinversion,allcanon_c,printlvl, &
+    &                     ethr &
     &                   ) bind(C,name="sorter_exposed_xyz_fortran")
     use,intrinsic :: iso_c_binding
     implicit none
@@ -26,6 +27,7 @@ contains
     integer(c_int),value :: iinversion
     logical(c_bool),value :: allcanon_c
     integer(c_int),value :: printlvl
+    real(c_double),value :: ethr
 
     ! Fortran pointer views of C buffers
     real(c_double),pointer :: xyzall(:)
@@ -64,9 +66,14 @@ contains
     !> init groups to zero (no assignment)
     groups(1:nall) = 0
 
-    !> call the actual routine
-    call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion, &
-      &                    allcanon=allcanon,printlvl=printlvl)
+    !> call the actual routine (with some additional logic)
+    if (ethr >= 0.0_c_double) then
+      call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion, &
+        &                    allcanon=allcanon,printlvl=printlvl,ethr=ethr)
+    else
+      call cregen_irmsd_sort(nall,structures,groups,rthresh,iinversion, &
+        &                    allcanon=allcanon,printlvl=printlvl)
+    end if
 
     !> coordinates for each structure have been aligned and sorted,
     !> so we need to pass them back
@@ -257,6 +264,7 @@ contains
         eii = structures(ii)%energy
         do jj = 1,ii-1
           ediff = structures(jj)%energy-eii
+          write(*,*) ediff
           if (ediff <= ETHR) then
             prune_table(ii) = jj
             exit

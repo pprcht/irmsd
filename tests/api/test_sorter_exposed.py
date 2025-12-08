@@ -16,7 +16,7 @@ class FakeFBackend:
         self.delta_args = None
 
     def sorter_exposed_xyz_fortran_raw(
-        self, nat, nall, xyzall, atall, groups, rthr, iinv, allcanon, printlvl
+        self, nat, nall, xyzall, atall, groups, rthr, iinv, allcanon, printlvl, ethr
     ):
         self.sorter_called = True
         self.sorter_args = (
@@ -29,6 +29,7 @@ class FakeFBackend:
             iinv,
             allcanon,
             printlvl,
+            ethr,
         )
         # Mutate output arrays to verify propagation
         groups[:] = np.arange(groups.size, dtype=np.int32)

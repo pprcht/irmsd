@@ -15,6 +15,8 @@ def sorter_irmsd(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ethr: float = None,
+    #energies_list: Sequence[np.ndarray],
 ) -> Tuple[np.ndarray, List[np.ndarray], List[np.ndarray]]:
     """
     High-level API: call the sorter_exposed_xyz_fortran Fortran routine.
@@ -29,13 +31,15 @@ def sorter_irmsd(
         Number of atoms for which the groups array is defined.
         Must satisfy 1 <= nat <= N.
     rthr : float
-        Distance threshold for the Fortran sorter.
+        Distance threshold for the Fortran sorter. In Angström.
     iinversion : int
         Inversion symmetry flag.
     allcanon : bool
         Canonicalization flag.
     printlvl : int
         Verbosity level.
+    ethr: float
+        Inter-conformer energy threshold (optional) in Hartree.
 
     Returns
     -------
@@ -93,6 +97,12 @@ def sorter_irmsd(
     atall = np.stack(at_list, axis=0)  # (nall, N)
     xyzall = np.stack(xyz_list, axis=0)  # (nall, N, 3)
 
+    # Handling of the optional energy threshold (can't be None for C-bindings)
+    if ethr is not None:
+        pass
+    else:
+        ethr = -99999
+
     # Allocate groups
     groups = np.empty(nall, dtype=np.int32)
 
@@ -107,6 +117,7 @@ def sorter_irmsd(
         int(iinversion),
         bool(allcanon),
         int(printlvl),
+        float(ethr),
     )
 
     # ---- Extract back into per-structure arrays ----
