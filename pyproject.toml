@@ -27,8 +27,8 @@ editable.mode = "redirect"
 wheel.packages = ["src/irmsd"]
 wheel.expand-macos-universal-tags = true
 
-#[tool.scikit-build.cmake]
-#build-type = "Debug"
+[tool.scikit-build.cmake]
+build-type = "Debug"
 
 [project.scripts]
 irmsd = "irmsd.cli:main"

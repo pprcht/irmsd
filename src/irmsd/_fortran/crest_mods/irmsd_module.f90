@@ -318,8 +318,8 @@ contains  !> MODULE PROCEDURES START HERE
     associate (x => ccache%x,y => ccache%y,xi => ccache%xi,yi => ccache%yi)
 
       !> make copies of the original coordinates
-      x(:,:) = xyz1(:,:)
-      y(:,:) = xyz2(:,:)
+      x(1:3,1:nat) = xyz1(1:3,1:nat)
+      y(1:3,1:nat) = xyz2(1:3,1:nat)
 
       !> calculate the barycenters, centroidal coordinates, and the norms
       x_norm = 0.0_wp
@@ -1069,16 +1069,17 @@ contains  !> MODULE PROCEDURES START HERE
     integer,intent(in) :: v(:)
     integer,intent(inout) :: ix(:)
     integer,intent(in) :: l,r
-    integer :: i,j,p,t
+    integer :: i,j,p,t,n
     if (l >= r) return
     p = v(ix((l+r)/2))
+    n = size(v,1)
     i = l; j = r
     do
       do while (v(ix(i)) < p); i = i+1; end do
       do while (v(ix(j)) > p); j = j-1; end do
       if (i <= j) then
         t = ix(i); ix(i) = ix(j); ix(j) = t
-        i = i+1; j = j-1
+        i = min(i+1,n) ; j = max(j-1,1)
       else
         exit
       end if
