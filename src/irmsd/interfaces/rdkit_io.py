@@ -585,3 +585,72 @@ def delta_irmsd_list_rdkit(
     new_molecules_list = molecule_to_rdkit(new_mols)
 
     return delta, new_molecules_list
+
+
+def prune_rdkit(
+    molecules: "Mol" | Sequence["Mol"],
+    rthr: float,
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    ethr: float | None = None,
+) -> Tuple[np.ndarray, List["Mol"]]:
+    """
+    Optional Rdkit utility: operate on a list of Rdkit Molecules.
+    Returns a pruned list of molecules based on iRMSD.
+
+    Parameters
+    ----------
+    molecules : rdkit.Chem.Mol or list of rdkit.Chem.Mol
+        RDKit Molecule object(s) containing multiple conformers.
+    rthr : float
+        iRMSD threshold for grouping.
+    iinversion : int, optional
+        Inversion type for iRMSD calculation. Default is 0. ( 0: 'auto', 1: 'on', 2: 'off' )
+    allcanon : bool, optional
+        Canonicalization flag, passed through to the backend.
+    printlvl : int, optional
+        Verbosity level, passed through to the backend.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
+
+
+    Returns
+    -------
+    groups : np.ndarray
+        Integer array of shape (nat,) with group indices for the first
+        ``nat`` atoms (as defined by the backend).
+    new_molecules_list : list of rdkit.Chem.Mol
+        List of RDKit Molecule objects corresponding to the sorted molecules.
+
+    Raises
+    ------
+    TypeError
+        If the input is not an RDKit Molecule or a list of them.
+    """
+    require_rdkit()
+
+    from rdkit import Chem
+
+    if isinstance(molecules, Chem.Mol):
+        assert (
+            molecules.GetNumConformers() > 1
+        ), "Molecule must have multiple conformers"
+    else:
+        for mol in molecules:
+            if not isinstance(mol, Chem.Mol):
+                raise TypeError("sorter_irmsd_rdkit expects rdkit.Chem.Mol objects")
+
+    mols = rdkit_to_molecule(molecules)
+
+    groups, new_mols = sorter_irmsd_molecule(
+        molecule_list=mols,
+        rthr=rthr,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+    )
+
+    new_molecules_list = molecule_to_rdkit(new_mols)
+
+    return groups, new_molecules_list

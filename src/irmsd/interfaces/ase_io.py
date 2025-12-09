@@ -633,3 +633,66 @@ def delta_irmsd_list_ase(
     new_atoms_list = molecule_to_ase(new_mols)
 
     return delta, new_atoms_list
+
+
+def prune_ase(
+    atoms_list: Sequence["ase.Atoms"],
+    rthr: float,
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    ethr: float | None = None,
+) -> Tuple[np.ndarray, List["ase.Atoms"]]:
+    """ASE wrapper for ``prune()`` from mol_interface.
+
+    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
+    ``prune()``, and converts the resulting Molecules back
+    to ASE ``Atoms`` objects.
+
+    Parameters
+    ----------
+    atoms_list : Sequence[ase.Atoms]
+        Sequence of ASE Atoms objects. All must have the same number of atoms.
+    rthr : float
+        Distance threshold for the sorter.
+    iinversion : int, optional
+        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
+    allcanon : bool, optional
+        Canonicalization flag.
+    printlvl : int, optional
+        Verbosity level.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
+
+    Returns
+    -------
+    new_atoms_list : list[ase.Atoms]
+        New ASE Atoms objects reconstructed from the sorted Molecules.
+    """
+    ase = require_ase()
+    ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
+
+    if not isinstance(atoms_list, (list, tuple)):
+        raise TypeError("prune_ase expects a sequence (list/tuple) of ASE Atoms")
+
+    for i, at in enumerate(atoms_list):
+        if not isinstance(at, ASEAtoms):
+            raise TypeError(
+                "prune_ase expects a sequence of ASE Atoms; "
+                f"item {i} has type {type(at)}"
+            )
+
+    mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
+
+    new_mols = prune_molecule(
+        molecule_list=mols,
+        rthr=rthr,
+        iinversion=iinversion,
+        allcanon=allcanon,
+        printlvl=printlvl,
+        ethr=ethr,
+    )
+
+    new_atoms_list = molecule_to_ase(new_mols)
+
+    return new_atoms_list

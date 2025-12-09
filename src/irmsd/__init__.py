@@ -51,6 +51,7 @@ from .interfaces.mol_interface import (
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
+    prune,
 )
 
 # ---- New: re-export Python utilities ----------------------------------------
@@ -71,6 +72,7 @@ __all__ = [
     "delta_irmsd_list_molecule",
     "sorter_irmsd_molecule",
     "get_energies_from_molecule_list",
+    "prune",
     # ase utils
     "ase_to_molecule",
     "get_cn_ase",
@@ -79,12 +81,14 @@ __all__ = [
     "get_irmsd_ase",
     "get_rmsd_ase",
     "sorter_irmsd_ase",
+    "prune_ase",
     # rdkit utils
     "get_cn_rdkit",
     "get_axis_rdkit",
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
     "get_irmsd_rdkit",
+    "prune_rdkit",
     # sorting
     "sorting",
     # optional cmds
