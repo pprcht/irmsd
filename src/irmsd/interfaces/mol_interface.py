@@ -400,3 +400,81 @@ def delta_irmsd_list_molecule(
         new_molecule_list.append(new_mol)
 
     return delta, new_molecule_list
+
+
+def prune(
+    molecule_list: Sequence[Molecule],
+    rthr: float,
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    ethr: float | None = None,
+) -> List[Molecule]:
+    """
+    High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
+    operates directly on Molecule objects. Returns a pruned list of structures.
+
+    Parameters
+    ----------
+    molecule_list : Sequence[Molecule]
+        Sequence of Molecule objects. All molecules must have the same
+        number of atoms.
+    rthr : float
+        Distance threshold for the sorter (passed through to the backend).
+    iinversion : int, optional
+        Inversion symmetry flag, passed through to the backend.
+    allcanon : bool, optional
+        Canonicalization flag, passed through to the backend.
+    printlvl : int, optional
+        Verbosity level, passed through to the backend.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting
+
+    Returns
+    -------
+    new_molecule_list : list[Molecule]
+        New Molecule objects reconstructed from the sorted atomic numbers
+        and positions returned by the backend. The list contains only n_structures
+        defined as ``unique`` according to the selected thresholds.
+
+    Raises
+    ------
+    TypeError
+        If ``molecule_list`` does not contain Molecule instances.
+    ValueError
+        If ``molecule_list`` is empty or if the Molecules do not all have
+        the same number of atoms.
+    """
+
+    # --- Basic checks on molecule_list ---
+    if not isinstance(molecule_list, (list, tuple)):
+        raise TypeError(
+            "sorter_irmsd_molecule expects a sequence (list/tuple) of Molecule objects"
+        )
+
+    if len(molecule_list) == 0:
+        raise ValueError("molecule_list must contain at least one Molecule object")
+
+    for i, mol in enumerate(molecule_list):
+        if not isinstance(mol, Molecule):
+            raise TypeError(
+                "sorter_irmsd_molecule expects a sequence of Molecule objects; "
+                f"item {i} has type {type(mol)}"
+            )
+
+    # --- Check that all Molecules have the same number of atoms and define nat ---
+    nat = len(molecule_list[0])
+    for i, mol in enumerate(molecule_list):
+        if len(mol) != nat:
+            raise ValueError(
+                "All Molecule objects must have the same number of atoms; "
+                f"item 0 has {nat} atoms, item {i} has {len(mol)} atoms"
+            )
+
+    groups, new_molecule_list = sorter_irmsd_molecule(
+        molecule_list, rthr, iinversion, allcanon, printlvl, ethr
+    )
+
+    new_molecule_list = first_by_assignment(new_molecule_list, groups)
+
+    return new_molecule_list

@@ -535,6 +535,11 @@ contains  !> MODULE PROCEDURES START HERE
       open (newunit=dumpunit,file='debugirmsd.xyz')
       call ref%append(dumpunit)
     end if
+
+!> ----------------------------------------------------
+!> ROTATIONAL AXIS ALIGNMENT AND LSAP CHECKS - START
+!> ----------------------------------------------------
+
     !> initialize to huge
     tmprmsd_sym(:) = inf
     !> initial alignment of mol
@@ -596,6 +601,9 @@ contains  !> MODULE PROCEDURES START HERE
       if (debug) write (*,*) '180°y'
     end select
     cptr%current_order(:) = cptr%order_bkup(:,ii)
+!> ----------------------------------------------------
+!> rotational axis alignment and LSAP checks - END
+!> ----------------------------------------------------
 
     if (debug) then
       write (*,*) 'Determined remapping'
@@ -1079,7 +1087,7 @@ contains  !> MODULE PROCEDURES START HERE
       do while (v(ix(j)) > p); j = j-1; end do
       if (i <= j) then
         t = ix(i); ix(i) = ix(j); ix(j) = t
-        i = min(i+1,n) ; j = max(j-1,1)
+        i = min(i+1,n); j = max(j-1,1)
       else
         exit
       end if
