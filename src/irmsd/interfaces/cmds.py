@@ -135,6 +135,13 @@ def get_ref_and_align_molecules(
         )
     mol_ref = molecule_list[idx_ref]
     mol_align = molecule_list[idx_align]
+    print("Input structures:")
+    print_conformer_structures(
+        mol_ref,
+        mol_align,
+        labels=["Reference", "Probe"],
+    )
+    print()
     return mol_ref, mol_align
 
 
@@ -178,9 +185,8 @@ def compute_quaternion_rmsd_and_print(
         print(f"\nAligned structure written to {outfile}")
         write_structures(outfile, new_atoms)
     else:
-        print_conformer_structures(
-            mol_ref, mol_align, new_atoms, labels=["Ref", "Before", "Aligned"]
-        )
+        print("Aligned structures:")
+        print_conformer_structures(mol_ref, new_atoms, labels=["Reference", "Aligned"])
 
     print_pretty_array("\nU matrix (Fortran order)", umat)
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
@@ -235,10 +241,9 @@ def compute_irmsd_and_print(
         outfile_aligned = outfile_aligned.with_stem(outfile_aligned.stem + "_aligned")
         write_structures(outfile_aligned, new_atoms_aligned)
     else:
+        print("Aligned structures:")
         print_conformer_structures(
-            new_atoms_ref,
-            new_atoms_aligned,
-            labels=["Ref Aligned", "Probe Aligned"],
+            new_atoms_ref, new_atoms_aligned, labels=["Reference", "Aligned"]
         )
 
     print(f"\niRMSD: {irmsd_value:.10f} Å")
