@@ -12,6 +12,7 @@ from ..utils.io import write_structures
 from ..utils.printouts import (
     print_array,
     print_atomwise_properties,
+    print_conformer_structures,
     print_pretty_array,
     print_structure,
     print_structure_summary,
@@ -107,8 +108,42 @@ def compute_canonical_and_print(
     return results
 
 
+def get_ref_and_align_molecules(
+    molecule_list: Sequence["Molecule"],
+    idx_ref: int,
+    idx_align: int,
+) -> Tuple["Molecule", "Molecule"]:
+    n_molecules = len(molecule_list)
+    if n_molecules < 2:
+        raise ValueError("At least two structures are required to compute iRMSD.")
+    if n_molecules > 2:
+        print(
+            f"{n_molecules} structures were provided, comparing only structures {idx_ref} and {idx_align}."
+        )
+    if (
+        idx_ref > n_molecules - 1
+        or idx_ref < 0
+        or idx_align > n_molecules - 1
+        or idx_align < 0
+    ):
+        raise IndexError(
+            f"Reference or align index is out of range. Max index is {n_molecules - 1}, got ref: {idx_ref}, align: {idx_align}."
+        )
+    if idx_ref == idx_align:
+        raise ValueError(
+            "Reference and align indices must be different. Both are {idx_ref}."
+        )
+    mol_ref = molecule_list[idx_ref]
+    mol_align = molecule_list[idx_align]
+    return mol_ref, mol_align
+
+
 def compute_quaternion_rmsd_and_print(
-    molecule_list: Sequence["Molecule"], heavy=False, outfile=None
+    molecule_list: Sequence["Molecule"],
+    heavy=False,
+    outfile=None,
+    idx_ref=0,
+    idx_align=1,
 ) -> None:
     """Computes the canonical atom identifiers for a SINGLE PAIR of molecules
     and print the RMSD in Angström between them.
@@ -117,6 +152,14 @@ def compute_quaternion_rmsd_and_print(
     ----------
     molecule_list : list[irmsd.Molecule]
         Structures to analyze. Must contain exactly two strucutres
+    heavy : bool, optional
+        If True, only heavy atoms are considered in the RMSD calculation.
+    outfile : str or None, optional
+        If not None, write the aligned structure to this file.
+    idx_ref : int, optional
+        Index of the reference structure in molecule_list (default: 0).
+    idx_align : int, optional
+        Index of the structure to align in molecule_list (default: 1).
 
     Returns
     -------
@@ -124,31 +167,31 @@ def compute_quaternion_rmsd_and_print(
         One integer array with the canonical ranks per structure, same order as ``molecule_list``.
     """
 
-    print("Reference structure:")
-    print_structure(molecule_list[0])
-    print("Structure to align:")
-    print_structure(molecule_list[1])
+    mol_ref, mol_align = get_ref_and_align_molecules(molecule_list, idx_ref, idx_align)
     if heavy:
-        mask0 = molecule_list[0].get_atomic_numbers() > 1
+        mask0 = mol_align.get_atomic_numbers() > 1
     else:
         mask0 = None
-    rmsd, new_atoms, umat = get_rmsd_molecule(
-        molecule_list[0], molecule_list[1], mask=mask0
-    )
+    rmsd, new_atoms, umat = get_rmsd_molecule(mol_ref, mol_align, mask=mask0)
 
     if outfile is not None:
         print(f"\nAligned structure written to {outfile}")
         write_structures(outfile, new_atoms)
     else:
-        print("Aligned structure:")
-        print_structure(new_atoms)
+        print_conformer_structures(
+            mol_ref, mol_align, new_atoms, labels=["Ref", "Before", "Aligned"]
+        )
 
-    print_array("\nU matrix (Fortran order)", umat)
+    print_pretty_array("\nU matrix (Fortran order)", umat)
     print(f"Cartesian RMSD: {rmsd:.10f} Å")
 
 
 def compute_irmsd_and_print(
-    molecule_list: Sequence["Molecule"], inversion=None, outfile=None
+    molecule_list: Sequence["Molecule"],
+    inversion=None,
+    outfile=None,
+    idx_ref=0,
+    idx_align=1,
 ) -> None:
     """Computes the iRMSD between a SINGLE PAIR of molecules and print the
     iRMSD value.
@@ -159,25 +202,27 @@ def compute_irmsd_and_print(
         Structures to analyze. Must contain exactly two strucutres
     inversion :
         parameter to instruct inversion in iRMSD routine
+    outfile : str or None, optional
+        If not None, write the aligned structures to this file.
+    idx_ref : int, optional
+        Index of the reference structure in molecule_list (default: 0).
+    idx_align : int, optional
+        Index of the structure to align in molecule_list (default: 1).
 
     Returns
     -------
     None
     """
+    mol_ref, mol_align = get_ref_and_align_molecules(molecule_list, idx_ref, idx_align)
 
     if inversion is not None:
         print(f"Inversion check: {inversion}\n")
-
-    print("Reference structure:")
-    print_structure(molecule_list[0])
-    print("Structure to align:")
-    print_structure(molecule_list[1])
 
     if inversion is not None:
         iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
 
     irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_molecule(
-        molecule_list[0], molecule_list[1], iinversion=iinversion
+        mol_ref, mol_align, iinversion=iinversion
     )
 
     if outfile is not None:
@@ -190,11 +235,11 @@ def compute_irmsd_and_print(
         outfile_aligned = outfile_aligned.with_stem(outfile_aligned.stem + "_aligned")
         write_structures(outfile_aligned, new_atoms_aligned)
     else:
-        print("Aligned reference structure:")
-        print_structure(new_atoms_ref)
-        print()
-        print("Aligned probe structure:")
-        print_structure(new_atoms_aligned)
+        print_conformer_structures(
+            new_atoms_ref,
+            new_atoms_aligned,
+            labels=["Ref Aligned", "Probe Aligned"],
+        )
 
     print(f"\niRMSD: {irmsd_value:.10f} Å")
 
