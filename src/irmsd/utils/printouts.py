@@ -131,19 +131,20 @@ def print_conformer_structures(*mols, labels=None) -> None:
         if len(m) != nat:
             raise ValueError("All Molecule objects must have the same number of atoms")
 
+    sep=' │' 
     if labels is not None:
         if len(labels) != len(mols):
             raise ValueError("Number of labels must match number of Molecule objects")
-        label_line = "        ".join(f"{label:^44}" for label in labels)
+        label_line = sep.join(f"{label:^41}" for label in labels)
         print(label_line)
     for i in range(nat):
-        line = ""
+        fields = []
         for m in mols:
             symbols = m.get_chemical_symbols()
             positions = m.get_positions()
             x, y, z = positions[i]
-            line += f"{symbols[i]:>2}  {x:>12.6f}  {y:>12.6f}  {z:>12.6f}        "
-        print(line)
+            fields.append(f"{symbols[i]:>2} {x:>12.6f} {y:>12.6f} {z:>12.6f}")
+        print(sep.join(fields))
 
 
 def print_structure_summary(
