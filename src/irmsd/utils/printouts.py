@@ -6,6 +6,20 @@ from ..core import Molecule
 
 HARTREE_TO_KCAL_MOL = 627.509474
 
+BANNER= r"""
+    ██╗██████╗ ███╗   ███╗███████╗██████╗ 
+    ╠═╣██╔══██╗████╗ ████║██╔════╝██╔══██╗
+    ██║██████╔╝██╔████╔██║███████╗██║  ██║
+    ██║██╔══██╗██║╚██╔╝██║╚════██║██║  ██║
+    ██║██║  ██║██║ ╚═╝ ██║███████║██████╔╝
+    ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═════╝
+       A tool for structure comparison 
+            and ensemble pruning
+   ────────────────────────────────────────
+     © 2025 Philipp Pracht, Tobias Kaczun
+   https://doi.org/10.1021/acs.jcim.4c02143 
+       https://github.com/pprcht/irmsd
+"""
 
 def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
     """Pretty-print atom-wise properties for a Molecule.

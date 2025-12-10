@@ -405,4 +405,4 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [ ] (implementation) Parallelization via OpenMP
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
 - [ ] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
-- [ ] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
+- [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD

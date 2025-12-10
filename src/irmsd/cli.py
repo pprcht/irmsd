@@ -227,14 +227,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    from .utils.printouts import BANNER
+    print(BANNER)
+
     heavy = args.heavy  # exists in all subparsers
+
+    print(f"Reading structures from: {args.structures}")
+    molecule_list = irmsd.read_structures(args.structures) 
+    print(f"Done! {len(molecule_list)} read in total.\n")
 
     # -------------------------------------------------------------------------
     # prop
     # -------------------------------------------------------------------------
     if args.command == "prop":
-        molecule_list = irmsd.read_structures(args.structures)
-
         ran_any = False
 
         if args.cn:
@@ -260,7 +265,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     # compare
     # -------------------------------------------------------------------------
     if args.command == "compare":
-        molecule_list = irmsd.read_structures(args.structures)
 
         if args.quaternion:
             # Quaternion RMSD (old --rmsd behavior)
@@ -283,7 +287,6 @@ def main(argv: Optional[list[str]] = None) -> int:
     # sort
     # -------------------------------------------------------------------------
     if args.command in ("sort", "prune"):
-        molecule_list = irmsd.read_structures(args.structures)
 
         if args.heavy:
             print("Heavy-atom mapping in sorting functionality is TODO. Sorry.")
