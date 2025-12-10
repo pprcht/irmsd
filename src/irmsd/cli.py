@@ -109,6 +109,24 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Output file name (optional). If not provided, results are only printed.",
     )
+    p_compare.add_argument(
+        "--ref-idx",
+        type=int,
+        default=0,
+        help=(
+            "Index of the reference structure in the provided structure list "
+            "(default: 0, i.e., the first structure)."
+        ),
+    )
+    p_compare.add_argument(
+        "--align-idx",
+        type=int,
+        default=1,
+        help=(
+            "Index of the structure to align to the reference structure "
+            "(default: 1, i.e., the second structure). Used only for quaternion RMSD."
+        ),
+    )
 
     # -------------------------------------------------------------------------
     # sort subparser: sort / cluster structures based on RMSD threshold
@@ -272,6 +290,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 molecule_list,
                 heavy=heavy,
                 outfile=args.output,
+                idx_ref=args.ref_idx,
+                idx_align=args.align_idx,
             )
         else:
             # Default: iRMSD (old --irmsd behavior)
@@ -279,6 +299,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 molecule_list,
                 inversion=args.inversion,
                 outfile=args.output,
+                idx_ref=args.ref_idx,
+                idx_align=args.align_idx,
             )
 
         return 0

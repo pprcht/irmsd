@@ -33,4 +33,12 @@ build-type = "Debug"
 [project.scripts]
 irmsd = "irmsd.cli:main"
 
-
+[tool.pytest.ini_options]
+addopts = [
+  "--color=yes",
+  "--strict-markers",
+]
+markers = [
+  "slow: slow tests",
+]
+testpaths = "tests/"
