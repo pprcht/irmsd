@@ -358,6 +358,6 @@ def cregen_raw(
 
     # ---- Extract back into per-structure arrays ----
     xyz_structs = [xyzall[i, :, :].copy() for i in range(nall)]
-    energies_list = [energies[i, :].copy() for i in range(nall)]
+    energies_list = [energies[i].copy() for i in range(nall)]
 
     return groups, xyz_structs, energies_list

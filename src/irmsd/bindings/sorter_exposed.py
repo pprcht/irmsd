@@ -13,7 +13,7 @@ from .._lib import LIB
 
 _sorter_exposed_xyz_fortran: ct._CFuncPtr | None = None
 _delta_irmsd_list_fortran: ct._CFuncPtr | None = None
-
+_cregen_exposed_fortran: ct._CFuncPtr | None = None 
 
 def _get_sorter_exposed_xyz_fortran() -> ct._CFuncPtr:
     global _sorter_exposed_xyz_fortran

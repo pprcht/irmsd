@@ -22,6 +22,7 @@ from .mol_interface import (
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
+    cregen,
 )
 
 
@@ -263,6 +264,15 @@ def sort_structures_and_print(
         energies = get_energies_from_molecule_list(mol_dict[key])
         print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
 
+        # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
+        if outfile is not None:
+            write_structures(outfile, mol_dict[key])
+            repr = len(mol_dict[key])
+            if printlvl > 0:
+                print(
+                    f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
+                )
+
     else:
         # Multiple molecule types
         for key, molecule_list in mol_dict.items():
@@ -283,6 +293,15 @@ def sort_structures_and_print(
             )
             energies = get_energies_from_molecule_list(mol_dict[key])
             print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
+
+            # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
+            if outfile_key is not None:
+                write_structures(outfile_key, mol_dict[key])
+                repr = len(mol_dict[key])
+                if printlvl > 0:
+                    print(
+                        f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile_key}"
+                    )
 
 
 def Presorted_sort_structures_and_print(
@@ -328,22 +347,7 @@ def Presorted_sort_structures_and_print(
         ethr=ethr,
     )
 
-    # Print groups to screen
-    repr = np.max(groups)
-    if printlvl > 0:
-        print(
-            f"List of structures was processed: {repr} group{'s' if repr != 1 else ''}."
-        )
-
     new_molecule_list = first_by_assignment(new_molecule_list, groups)
-
-    # Optionally write all resulting structures to file (e.g. multi-structure XYZ)
-    if outfile is not None:
-        write_structures(outfile, new_molecule_list)
-        if printlvl > 0:
-            print(
-                f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
-            )
 
     return new_molecule_list
 
@@ -420,3 +424,95 @@ def sort_get_delta_irmsd_and_print(
             )
             energies = get_energies_from_molecule_list(mol_dict[key])
             print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
+
+
+def run_cregen_and_print(
+    molecule_list: Sequence["Molecule"],
+    rthr: float,
+    ethr: float,
+    bthr: float,
+    ewin: float | None = None,
+    printlvl: int = 0,
+    maxprint: int = 25,
+    outfile: str | None = None,
+) -> None:
+    """
+    Convenience wrapper around cregen() from mol_interface.
+    Splits according to sum formula, if necessary
+
+    Parameters
+    ----------
+    molecule_list : sequence of irmsd.Molecule
+        Input structures.
+    rthr: float
+        RMSD thershold for conformer identification
+    ethr: float
+        Energy threshold for conformer identification
+    bthr: float
+        Rotational constant threshold for conformer identification
+    printlvl : int, optional
+        Verbosity level, passed through.
+    maxprint : int, optional
+        Max number of lines to print for each structure result table
+    outfile : str or None, optional
+        If not None, write all resulting structures to this file
+        (e.g. 'sorted.xyz') using a write function.
+        Gets automatic name appendage if there are more than one
+        type of molecule in the molecule_list
+    """
+
+    # sort the molecule_list by chemical sum formula
+    mol_dict = group_by(
+        molecule_list, key=lambda a: a.get_chemical_formula(mode="hill")
+    )
+
+    if len(mol_dict) == 1:
+        # Exactly one molecule type
+        key, molecule_list = next(iter(mol_dict.items()))
+        # Sort by energy (if possible)
+        print()
+        mol_dict[key] = cregen(molecule_list, rthr, ethr, bthr, printlvl)
+
+        # allcanon can be False here because CREGEN requires same atom order.
+        irmsdvals, _ = delta_irmsd_list_molecule(
+            mol_dict[key], iinversion=0, allcanon=False, printlvl=0
+        )
+        energies = get_energies_from_molecule_list(mol_dict[key])
+
+        print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
+
+        if outfile is not None:
+            write_structures(outfile, mol_dict[key])
+            if printlvl > 0:
+                repr = len(mol_dict[key])
+                print(
+                    f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile}"
+                )
+
+    else:
+        # Multiple molecule types
+        for key, molecule_list in mol_dict.items():
+            if outfile is not None:
+                root, ext = os.path.splitext(outfile)
+                outfile_key = f"{root}_{key}{ext}"
+            else:
+                outfile_key = None
+            # Sort by energy (if possible)
+            print()
+            mol_dict[key] = cregen(molecule_list, rthr, ethr, bthr, printlvl)
+
+            # allcanon can be False here because CREGEN requires same atom order.
+            irmsdvals, _ = delta_irmsd_list_molecule(
+                mol_dict[key], iinversion=0, allcanon=False, printlvl=0
+            )
+            energies = get_energies_from_molecule_list(mol_dict[key])
+            print_structure_summary(key, energies, irmsdvals, max_rows=maxprint)
+
+            if outfile_key is not None:
+                write_structures(outfile_key, mol_dict[key])
+
+            if printlvl > 0:
+                repr = len(mol_dict[key])
+                print(
+                    f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile_key}"
+                )

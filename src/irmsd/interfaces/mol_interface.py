@@ -5,6 +5,7 @@ from typing import Sequence, Tuple
 import numpy as np
 
 from ..core.molecule import Molecule
+from ..sorting import first_by_assignment
 
 
 ##########################################################################################
@@ -408,6 +409,7 @@ def cregen(
     ethr: float = 7.96800686e-5,  # == 0.05 kcal/mol
     bthr: float = 0.01,
     printlvl: int = 0,
+    ewin: float | None = None,
 ) -> List[Molecule]:
     """
     High-level wrapper around the Fortran-backed ``cregen_raw`` that
@@ -429,6 +431,10 @@ def cregen(
         Inversion symmetry flag, passed through to the backend.
     printlvl : int, optional
         Verbosity level, passed through to the backend.
+    ewin : float | None
+        Energy window around the lowest conformer. Anything higher 
+        will not be included in the comparison/returned.
+        In Hartree.
 
     Returns
     -------
@@ -474,13 +480,14 @@ def cregen(
 
     # --- Check same order of atomic numbers
     ref = molecule_list[0].get_atomic_numbers()
-
     for i, mol in enumerate(molecule_list[1:], start=1):
         arr = mol.get_atomic_numbers()
         if not np.array_equal(arr, ref):
             raise ValueError(
                 f"Molecule {i} has different atomic numbers than molecule 0"
             )
+
+    # --- Remove structures too high in energy, if needed
 
     # --- Build atom_numbers_list and positions_list ---
     atom_numbers_list: List[np.ndarray] = []
@@ -519,8 +526,9 @@ def cregen(
         # Start from a copy to preserve metadata (cell, pbc, info, energy, etc.)
         new_mol = mol_orig.copy()
         # Update atomic numbers and positions according to sorter output
-        new_mol.set_atomic_numbers(Z_new)
+        #new_mol.set_atomic_numbers(Z_new)
         new_mol.set_positions(P_new)
+        new_mol.set_potential_energy(E_new)
         new_molecule_list.append(new_mol)
 
     new_molecule_list = first_by_assignment(new_molecule_list, groups)

@@ -28,7 +28,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Subcommand to run.",
     )
     p.add_argument(
-        "-v", "--version",
+        "-v",
+        "--version",
         action="version",
         version=f"%(prog)s {__version__}",
     )
@@ -157,6 +158,19 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_sort.add_argument(
+        "--ewin",
+        type=float,
+        required=False,
+        default=None,
+        help=(
+            "Energy window specification for CREGEN. Structures higher in energy"
+            " than this threshold (relative to the lowest energy structure in"
+            " the ensemble) will be removed."    
+            " There is no default (all conformers are considered)."
+        ),
+    )
+
+    p_sort.add_argument(
         "--inversion",
         choices=["on", "off", "auto"],
         default="auto",
@@ -179,6 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Perform conformer classification with the CREGEN workflow"
             " based on a comparison of quaternion RMSD, energy,"
             " interatomic distances, and rotational constants."
+            " This routine is cheaper but more empirical than iRMSD-based sorting."
             " Does NOT restore mismatching atom order."
             " Does not keep individual rotamers."
         ),
@@ -289,7 +304,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             else:
                 ethr = args.ethr
 
-            pass
+            irmsd.run_cregen_and_print(
+                molecule_list,
+                rthr=args.rthr,
+                ethr=ethr,
+                bthr=args.bthr,
+                maxprint=args.maxprint,
+                printlvl=1,
+                outfile=args.output,
+            )
+
         else:
             irmsd.sort_structures_and_print(
                 molecule_list,

@@ -44,6 +44,7 @@ from .interfaces.cmds import (
     compute_quaternion_rmsd_and_print,
     sort_get_delta_irmsd_and_print,
     sort_structures_and_print,
+    run_cregen_and_print,
 )
 from .interfaces.mol_interface import (
     delta_irmsd_list_molecule,
@@ -103,4 +104,5 @@ __all__ = [
     "compute_irmsd_and_print",
     "sort_structures_and_print",
     "sort_get_delta_irmsd_and_print",
+    "run_cregen_and_print",
 ]
