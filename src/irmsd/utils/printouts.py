@@ -104,6 +104,49 @@ def print_structure(mol) -> None:
         print(f"{sym:2} {x:12.6f} {y:12.6f} {z:12.6f}")
 
 
+def print_conformer_structures(*mols, labels=None) -> None:
+    """Print multiple Molecule objects representing different conformers of the
+    same molecule in a combined XYZ-like format side-by-side.
+
+    Parameters
+    ----------
+    *mol : Molecule
+        One or more Molecule instances to print.
+
+    Raises
+    ------
+    TypeError
+        If any input is not a Molecule.
+    ValueError
+        If the Molecule objects do not have the same number of atoms
+        or atom ordering.
+    """
+    assert len(mols) > 0, "At least one Molecule must be provided"
+    for i, m in enumerate(mols):
+        if not isinstance(m, Molecule):
+            raise TypeError(f"Argument {i} is not a Molecule object")
+
+    nat = len(mols[0])
+    for m in mols:
+        if len(m) != nat:
+            raise ValueError("All Molecule objects must have the same number of atoms")
+
+    sep=' │' 
+    if labels is not None:
+        if len(labels) != len(mols):
+            raise ValueError("Number of labels must match number of Molecule objects")
+        label_line = sep.join(f"{label:^41}" for label in labels)
+        print(label_line)
+    for i in range(nat):
+        fields = []
+        for m in mols:
+            symbols = m.get_chemical_symbols()
+            positions = m.get_positions()
+            x, y, z = positions[i]
+            fields.append(f"{symbols[i]:>2} {x:>12.6f} {y:>12.6f} {z:>12.6f}")
+        print(sep.join(fields))
+
+
 def print_structure_summary(
     key: str,
     energies_hartree: Sequence[float] | None = None,

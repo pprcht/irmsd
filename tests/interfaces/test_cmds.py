@@ -6,6 +6,7 @@ from irmsd.interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,
+    get_ref_and_align_molecules,
 )
 from irmsd.utils.xyz import read_extxyz
 
@@ -81,3 +82,31 @@ def test_compute_canonical_and_print(canonical_test_data):
         for i, rank in enumerate(results):
             if heavies[i] == heavy:
                 assert pytest.approx(rank, abs=1e-6) == expected_ranks[k][i]
+
+
+def test_ref_and_align_molecules(caffeine_delta_irmsd_list_test_data):
+    """Test reference and alignment molecule selection."""
+    molecules, _ = caffeine_delta_irmsd_list_test_data
+    atoms_list = []
+    for xyz_string in molecules:
+        xyz_file = StringIO(xyz_string)
+        atoms_list.append(read_extxyz(xyz_file))
+
+    # case 1: both ref_idx and align_idx provided
+    ref_idx = 0
+    align_idx = 1
+    ref_mol, align_mol = get_ref_and_align_molecules(atoms_list, ref_idx, align_idx)
+    assert ref_mol == atoms_list[ref_idx]
+    assert align_mol == atoms_list[align_idx]
+
+    # test all  raises
+    with pytest.raises(IndexError):
+        get_ref_and_align_molecules(atoms_list, 10, 1)
+    with pytest.raises(IndexError):
+        get_ref_and_align_molecules(atoms_list, 0, 10)
+    with pytest.raises(IndexError):
+        get_ref_and_align_molecules(atoms_list, -1, 1)
+    with pytest.raises(IndexError):
+        get_ref_and_align_molecules(atoms_list, 1, -1)
+    with pytest.raises(ValueError):
+        get_ref_and_align_molecules(atoms_list, 0, 0)
