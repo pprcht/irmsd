@@ -6,6 +6,7 @@ from typing import List, Optional
 import numpy as np
 
 import irmsd
+from ._version import __version__
 
 # --- CLI ---------------------------------------------------------------------
 
@@ -25,6 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
         dest="command",
         required=True,
         help="Subcommand to run.",
+    )
+    p.add_argument(
+        "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
 
     # -------------------------------------------------------------------------
@@ -131,10 +137,23 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="?",  # 0 or 1 values allowed
         type=float,  # user value is interpreted as Hartree
         default=None,  # if --ethr is not given at all
-        const=1.5e-5,
+        const=8.0e-5,
         help=(
-            "Optional inter-structure energy threshold in Hartree. "
-            "If set, the default is 1.5e-5 Ha or a user-specified value. "
+            "Inter-structure energy threshold in Hartree."
+            " If set, the default is 8.0e-5 Ha (≈0.05 kcal/mol)"
+            " or a user-specified value."
+            " Optional for iRMSD-based runtypes."
+        ),
+    )
+    p_sort.add_argument(
+        "--bthr",
+        type=float,
+        required=False,
+        default=0.01,
+        help=(
+            "Inter-structure rotational threshold used in"
+            " the classical CREGEN sorting procedure."
+            " The default is 0.01."
         ),
     )
     p_sort.add_argument(
@@ -161,13 +180,14 @@ def build_parser() -> argparse.ArgumentParser:
             " based on a comparison of quaternion RMSD, energy,"
             " interatomic distances, and rotational constants."
             " Does NOT restore mismatching atom order."
+            " Does not keep individual rotamers."
         ),
     )
     p_sort.add_argument(
         "--heavy",
         action="store_true",
         # help=("When sorting structures, consider only heavy atoms."),
-        help=("TODO for sorting routines"),
+        help=("TODO for sorting routines."),
     )
     p_sort.add_argument(
         "--maxprint",
@@ -264,6 +284,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
 
         elif args.classic:
+            if args.ethr is None:
+                ethr = 8.0e-5
+            else:
+                ethr = args.ethr
+
             pass
         else:
             irmsd.sort_structures_and_print(

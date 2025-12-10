@@ -6,8 +6,17 @@ module sorter_exposed
   use axis_module
   use irmsd_module
   use canonical_mod
+  use utilities, only: qsorti
   implicit none
-contains
+  private
+
+  public :: sorter_exposed_xyz_fortran
+  public :: delta_irmsd_list_fortran
+  public :: cregen_exposed_fortran
+
+!================================================================================!
+contains  !> MODULE PROCEDURES START HERE
+!================================================================================!
 
   subroutine sorter_exposed_xyz_fortran( &
     &                     nat,nall,xyzall_ptr,atall_ptr, &
@@ -867,6 +876,30 @@ contains
     !> group assignment (== unique conformers) on "groups" array
 
   end subroutine cregen_exposed_fortran
+
+!=============================================================================!
+
+  subroutine structures_esort(structures)
+    !************************************
+    !* matrix wrapper to qsorti
+    !* order of energies is reflected 
+    !* to the order of structures
+    !************************************
+    type(coord),intent(inout) :: structures(:)
+    integer :: nall,i
+    integer,allocatable :: ix(:)
+    real(wp),allocatable :: energies(:)
+    nall = size(structures,1)
+    allocate (ix(nall),source=0)
+    allocate (energies(nall),source=0.0_wp)
+    do i = 1,nall
+      ix(i) = i
+      energies(i) = structures(i)%energy
+    end do
+    call qsorti(energies(:),ix,1,nall)
+    structures = structures(ix)
+    deallocate(energies,ix)
+  end subroutine structures_esort
 
 !=============================================================================!
 !#############################################################################!

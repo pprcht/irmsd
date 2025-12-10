@@ -1,7 +1,13 @@
 module utilities
+  use,intrinsic :: iso_fortran_env, only: wp => real64
   implicit none
 
   public :: nth_prime
+  public :: qsorti
+  interface qsorti
+    module procedure qsorti_i
+    module procedure qsorti_wp
+  end interface qsorti
 
 contains
 
@@ -141,5 +147,58 @@ contains
     end do
     prime = num
   end function nth_prime
+
+  recursive subroutine qsorti_i(v,ix,l,r)
+    !*********************
+    !* idx'ed quicksort
+    !*********************
+    integer,intent(in) :: v(:)
+    integer,intent(inout) :: ix(:)
+    integer,intent(in) :: l,r
+    integer :: i,j,p,t,n
+    if (l >= r) return
+    p = v(ix((l+r)/2))
+    n = size(v,1)
+    i = l; j = r
+    do
+      do while (v(ix(i)) < p); i = i+1; end do
+      do while (v(ix(j)) > p); j = j-1; end do
+      if (i <= j) then
+        t = ix(i); ix(i) = ix(j); ix(j) = t
+        i = min(i+1,n); j = max(j-1,1)
+      else
+        exit
+      end if
+    end do
+    if (l < j) call qsorti_i(v,ix,l,j)
+    if (i < r) call qsorti_i(v,ix,i,r)
+  end subroutine qsorti_i
+
+  recursive subroutine qsorti_wp(v,ix,l,r)
+    !*********************
+    !* idx'ed quicksort
+    !*********************
+    real(wp),intent(in) :: v(:)
+    integer,intent(inout) :: ix(:)
+    integer,intent(in) :: l,r
+    integer :: i,j,t,n
+    real(wp) :: p
+    if (l >= r) return
+    p = v(ix((l+r)/2))
+    n = size(v,1)
+    i = l; j = r
+    do
+      do while (v(ix(i)) < p); i = i+1; end do
+      do while (v(ix(j)) > p); j = j-1; end do
+      if (i <= j) then
+        t = ix(i); ix(i) = ix(j); ix(j) = t
+        i = min(i+1,n); j = max(j-1,1)
+      else
+        exit
+      end if
+    end do
+    if (l < j) call qsorti_wp(v,ix,l,j)
+    if (i < r) call qsorti_wp(v,ix,i,r)
+  end subroutine qsorti_wp
 
 end module utilities
