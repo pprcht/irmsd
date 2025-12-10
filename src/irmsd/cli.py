@@ -108,7 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     # -------------------------------------------------------------------------
     p_sort = subparsers.add_parser(
         "sort",
-        help="Sort or cluster structures based on inter-structure RMSD.",
+        aliases=["prune"],
+        help="Sort, prune or cluster structures based on inter-structure RMSD.",
     )
     p_sort.add_argument(
         "structures",
@@ -127,10 +128,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_sort.add_argument(
         "--ethr",
-        nargs="?",                # 0 or 1 values allowed
-        type=float,               # user value is interpreted as Hartree
-        default=None,             # if --ethr is not given at all
-        const=1.5e-5, 
+        nargs="?",  # 0 or 1 values allowed
+        type=float,  # user value is interpreted as Hartree
+        default=None,  # if --ethr is not given at all
+        const=1.5e-5,
         help=(
             "Optional inter-structure energy threshold in Hartree. "
             "If set, the default is 1.5e-5 Ha or a user-specified value. "
@@ -143,12 +144,24 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Control coordinate inversion when evaluating RMSDs during sorting: "
             "'on', 'off', or 'auto' (default: auto)."
+            " Only for iRMSD-based runtypes."
         ),
     )
     p_sort.add_argument(
         "--align",
         action="store_true",
         help=("Just sort by energy and align."),
+    )
+    p_sort.add_argument(
+        "--classic",
+        "--cregen",
+        action="store_true",
+        help=(
+            "Perform conformer classification with the CREGEN workflow"
+            " based on a comparison of quaternion RMSD, energy,"
+            " interatomic distances, and rotational constants."
+            " Does NOT restore mismatching atom order."
+        ),
     )
     p_sort.add_argument(
         "--heavy",
@@ -234,7 +247,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     # -------------------------------------------------------------------------
     # sort
     # -------------------------------------------------------------------------
-    if args.command == "sort":
+    if args.command in ("sort", "prune"):
         molecule_list = irmsd.read_structures(args.structures)
 
         if args.heavy:
@@ -250,6 +263,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 outfile=args.output,
             )
 
+        elif args.classic:
+            pass
         else:
             irmsd.sort_structures_and_print(
                 molecule_list,

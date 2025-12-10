@@ -402,6 +402,132 @@ def delta_irmsd_list_molecule(
     return delta, new_molecule_list
 
 
+def cregen(
+    molecule_list: Sequence[Molecule],
+    rthr: float = 0.125,
+    ethr: float = 7.96800686e-5,  # == 0.05 kcal/mol
+    bthr: float = 0.01,
+    printlvl: int = 0,
+) -> List[Molecule]:
+    """
+    High-level wrapper around the Fortran-backed ``cregen_raw`` that
+    operates directly on Molecule objects.
+    Returns a pruned & energy-sorted list of structures.
+
+    Parameters
+    ----------
+    molecule_list : Sequence[Molecule]
+        Sequence of Molecule objects. All molecules must have the same
+        number of atoms.
+    rthr : float
+        Distance threshold for the sorter (passed through to the backend).
+    ethr : float
+        Inter-conformer energy threshold (in Hartree)
+    bthr : float
+        Inter-conformer rotational constant threshold (fractional)
+    iinversion : int, optional
+        Inversion symmetry flag, passed through to the backend.
+    printlvl : int, optional
+        Verbosity level, passed through to the backend.
+
+    Returns
+    -------
+    new_molecule_list : list[Molecule]
+        New Molecule objects reconstructed from the sorted atomic numbers
+        and positions returned by the backend. The list contains only n_structures
+        defined as ``unique`` according to the selected thresholds.
+
+    Raises
+    ------
+    TypeError
+        If ``molecule_list`` does not contain Molecule instances.
+    ValueError
+        If ``molecule_list`` is empty or if the Molecules do not all have
+        the same number of atoms.
+    """
+    from ..api.sorter_exposed import cregen_raw
+
+    # --- Basic checks on molecule_list ---
+    if not isinstance(molecule_list, (list, tuple)):
+        raise TypeError(
+            "sorter_irmsd_molecule expects a sequence (list/tuple) of Molecule objects"
+        )
+
+    if len(molecule_list) == 0:
+        raise ValueError("molecule_list must contain at least one Molecule object")
+
+    for i, mol in enumerate(molecule_list):
+        if not isinstance(mol, Molecule):
+            raise TypeError(
+                "sorter_irmsd_molecule expects a sequence of Molecule objects; "
+                f"item {i} has type {type(mol)}"
+            )
+
+    # --- Check that all Molecules have the same number of atoms and define nat ---
+    nat = len(molecule_list[0])
+    for i, mol in enumerate(molecule_list):
+        if len(mol) != nat:
+            raise ValueError(
+                "All Molecule objects must have the same number of atoms; "
+                f"item 0 has {nat} atoms, item {i} has {len(mol)} atoms"
+            )
+
+    # --- Check same order of atomic numbers
+    ref = molecule_list[0].get_atomic_numbers()
+
+    for i, mol in enumerate(molecule_list[1:], start=1):
+        arr = mol.get_atomic_numbers()
+        if not np.array_equal(arr, ref):
+            raise ValueError(
+                f"Molecule {i} has different atomic numbers than molecule 0"
+            )
+
+    # --- Build atom_numbers_list and positions_list ---
+    atom_numbers_list: List[np.ndarray] = []
+    positions_list: List[np.ndarray] = []
+
+    for mol in molecule_list:
+        Z = np.asarray(mol.get_atomic_numbers(), dtype=np.int32)  # (nat,)
+        P = np.asarray(mol.get_positions(), dtype=np.float64)  # (nat, 3)
+
+        if P.shape != (nat, 3):
+            raise ValueError(
+                "Each Molecule positions array must have shape (nat, 3); "
+                f"got {P.shape}"
+            )
+
+        atom_numbers_list.append(Z)
+        positions_list.append(P)
+
+    energies_list = get_energies_from_molecule_list(molecule_list)
+
+    # --- Call the Fortran-backed sorter_irmsd ---
+    groups, xyz_structs, energies_list = cregen_raw(
+        atom_numbers_list=atom_numbers_list,
+        positions_list=positions_list,
+        energies_list=energies_list,
+        nat=nat,
+        rthr=rthr,
+        ethr=ethr,
+        bthr=bthr,
+        printlvl=printlvl,
+    )
+
+    # --- Reconstruct new Molecule objects ---
+    new_molecule_list: List[Molecule] = []
+    for mol_orig, P_new, E_new in zip(molecule_list, xyz_structs, energies_list):
+        # Start from a copy to preserve metadata (cell, pbc, info, energy, etc.)
+        new_mol = mol_orig.copy()
+        # Update atomic numbers and positions according to sorter output
+        new_mol.set_atomic_numbers(Z_new)
+        new_mol.set_positions(P_new)
+        new_molecule_list.append(new_mol)
+
+    new_molecule_list = first_by_assignment(new_molecule_list, groups)
+
+    return new_molecule_list
+
+
 def prune(
     molecule_list: Sequence[Molecule],
     rthr: float,

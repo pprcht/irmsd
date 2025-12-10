@@ -96,3 +96,41 @@ def delta_irmsd_list_fortran_raw(
     """Low-level wrapper for C symbol 'delta_irmsd_list_fortran'."""
     f = _get_delta_irmsd_list_fortran()
     f(nat, nall, xyzall, atall, iinversion, delta, allcanon, printlvl)
+
+
+#    subroutine cregen_exposed_fortran( &
+#  &                     nat,nall,xyzall_ptr,atall_ptr, &
+#  &                     groups_ptr,rthresh,ethr,bthr,printlvl, &
+#  &                     energies_ptr &
+#  &                   ) bind(C,name="cregen_exposed_fortran")
+
+
+def _get_cregen_exposed_fortran() -> ct._CFuncPtr:
+    global _cregen_exposed_fortran
+    if LIB is None:
+        raise RuntimeError("Library handle not set; call set_library(...) first.")
+    if _cregen_exposed_fortran is None:
+        f = LIB.cregen_exposed_fortran
+        f.argtypes = [
+            ct.c_int,
+            ct.c_int,
+            ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+            ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
+            ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
+            ct.c_double,
+            ct.c_double,
+            ct.c_double,
+            ct.c_int,
+            ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+        ]
+        f.restype = None
+        _get_cregen_exposed_fortran = f
+    return _get_cregen_exposed_fortran
+
+
+def cregen_fortran_raw(
+    nat, nall, xyzall, atall, groups, rthr, ethr, bthr, printlvl, energies
+) -> None:
+    """Low-level wrapper for C symbol 'cregen_exposed_fortran'."""
+    f = _get_cregen_exposed_fortran()
+    f(nat, nall, xyzall, atall, groups, rthr, ethr, bthr, printlvl, energies)

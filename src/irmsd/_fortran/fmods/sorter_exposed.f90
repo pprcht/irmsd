@@ -579,9 +579,10 @@ contains
   subroutine cregen_classic_sort(nall,structures,groups,rthresh,ethr,bthr, &
       &                         printlvl)
 !**************************************************************************************
-!* Re-implementaiton of the CREGEN workflow, classifying conformers
-!* according to their quaternion RMSD, rotational constants, and energy
-!
+!* Re-ractored implementaiton of the original CREGEN workflow, classifying conformers
+!* according to their quaternion RMSD, rotational constants, energy,
+!* and pair-distance sum
+!*
 !* Input arguments:
 !*        nall - total number of structures
 !*  structures - the structures
@@ -595,6 +596,7 @@ contains
 !* Output:
 !*      groups - integer array assigning each structure to a group
 !*************************************************************************************
+    use rotaniso_mod
     implicit none
     !> INPUT
     integer,intent(in) :: nall
@@ -606,18 +608,24 @@ contains
     integer,intent(in),optional  :: printlvl
 
     !> LOCAL
-    integer :: i,ii,jj,T,cc,nat,io
+    integer :: i,ii,jj,kk,T,cc,nat,io
     integer :: gcount
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
     type(canonical_sorter),allocatable :: sorters(:)
     type(coord),pointer :: ref,mol
-    real(wp) :: rmsdval,RTHR,ediff,eii,avmom
+    real(wp) :: rmsdval,RTHR,ediff,eii,avmom,rsq
     real(wp),allocatable :: rot(:,:)
     integer,allocatable :: prune_table(:)
     integer,allocatable :: topo_group(:)
-    logical :: individual_IDs
+    real(wp),allocatable :: enuc(:)
+    logical :: l1,l2
+
+    !> defaults that are practically never touched
+    real(wp),parameter :: bthrmax = 0.025_wp
+    real(wp),parameter :: bthrshift = 0.5_wp
+    real(wp),parameter :: enuc_thr = 1.0d-3
 
     logical,parameter :: debug = .false.
 
@@ -699,6 +707,20 @@ contains
       call axis(mol%nat,mol%at,moL%xyz*autoaa,rot(1:3,ii),avmom)!> B_0 in MHz
     end do
 
+    !> Scaled sum of atom-atom-distances (empirical measure)
+    allocate (enuc(nall),source=0.0_wp)
+    do ii = 1,nall
+      mol => structures(ii)
+      do jj = 1,mol%nat-1
+        do kk = jj+1,mol%nat
+          rsq = (mol%xyz(1,jj)-mol%xyz(1,kk))**2 &
+            &  +(mol%xyz(2,jj)-mol%xyz(2,kk))**2 &
+            &  +(mol%xyz(3,jj)-mol%xyz(3,kk))**2+1.d-12
+          enuc(ii) = enuc(ii)+real(mol%at(jj)*mol%at(kk),wp)/rsq
+        end do
+      end do
+    end do
+
     !> topo_group dynamically keeps track of different topology groups
     !> among the structures. All structures start out as the same topology
     allocate (topo_group(nall),source=1)
@@ -707,6 +729,10 @@ contains
 !> --------------------------------------------
 
 !>--- run the checks
+    if (prlvl > 0) then
+      write (stdout,'(a)',advance='no') 'Running CREGEN checks ... '
+      flush (stdout)
+    end if
     gcount = maxval(groups(:))
     do ii = 1,nall
 !>--- find next unassigned conformer and assign a new group
@@ -717,9 +743,9 @@ contains
 !>--- Then, cross-check all other unassigned conformers
       cc = 1  !> again, serial implementation for now
       ! !$omp parallel &
-      ! !$omp shared(nall, nat, groups, individual_IDs, sorters, rcaches) &
+      ! !$omp shared(nall, nat, groups, sorters, rcaches, rot) &
       ! !$omp shared(workmols, structures, ii, prune_table,topo_group) &
-      ! !$omp private(jj,rmsdval,cc,io)
+      ! !$omp private(jj,rmsdval,cc,io, l1, l2)
       ! !$omp do schedule(dynamic)
       do jj = ii+1,nall
         !cc = omp_get_thread_num()+1
@@ -730,30 +756,28 @@ contains
         workmols(cc)%at(:) = structures(jj)%at(:)
         workmols(cc)%xyz(:,:) = structures(jj)%xyz(:,:)
         rmsdval = rmsd(structures(ii),workmols(cc), &
-          &       scratch=rcaches(cc)%xyzscratch, ccache=rcaches(cc)%ccache)
+          &       scratch=rcaches(cc)%xyzscratch,ccache=rcaches(cc)%ccache)
 !        if (io .ne. 0) then
 !          topo_group(jj) = topo_group(jj)+1
 !          cycle
 !        end if
-        if (rmsdval < RTHR) groups(jj) = gcount
+        if (rmsdval < RTHR) then
+          groups(jj) = gcount
+        else
+          l1 = equalrotaniso(ii,jj,nall,rot,BTHR,bthrmax,bthrshift)
+          l2 = (2.0_wp*abs(enuc(ii)-enuc(jj))/(enuc(ii)+enuc(jj))) .lt. enuc_thr
+          if (l1.and.l2) groups(jj) = gcount
+        end if
       end do
       ! !$omp end do
       ! !$omp end parallel
     end do
-
-    if (debug) then
-      write (*,*) 'assigned groups, and count'
-      do ii = 1,maxval(groups(:))
-        write (*,*) ii,count(groups(:) == ii)
-      end do
-      if (.not.all(topo_group(:) == 1)) then
-        write (*,*) 'assigned topology groups and count'
-        do ii = 1,maxval(topo_group(:))
-          write (*,*) ii,count(topo_group(:) == ii)
-        end do
-      end if
+    if (prlvl > 0) then
+      write (stdout,'(a)') 'done.'
     end if
 
+    if (allocated(enuc)) deallocate (enuc)
+    if (allocated(rot)) deallocate (rot)
     if (allocated(topo_group)) deallocate (topo_group)
     if (allocated(prune_table)) deallocate (prune_table)
   end subroutine cregen_classic_sort
@@ -773,8 +797,8 @@ contains
     type(c_ptr),value :: atall_ptr
     type(c_ptr),value :: groups_ptr
     real(c_double),value :: rthresh
-    real(c_double),value :: ethr 
-    real(c_double),value :: bthr 
+    real(c_double),value :: ethr
+    real(c_double),value :: bthr
     integer(c_int),value :: printlvl
     type(c_ptr),value :: energies_ptr
 
@@ -834,6 +858,7 @@ contains
           xyzall(k2) = structures(i)%xyz(l,j)*autoaa
         end do
       end do
+      energies(i) = structures(i)%energy
     end do
 
     !> free memory

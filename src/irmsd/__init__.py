@@ -51,6 +51,7 @@ from .interfaces.mol_interface import (
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
+    cregen,
     prune,
 )
 
@@ -72,6 +73,7 @@ __all__ = [
     "delta_irmsd_list_molecule",
     "sorter_irmsd_molecule",
     "get_energies_from_molecule_list",
+    "cregen",
     "prune",
     # ase utils
     "ase_to_molecule",
