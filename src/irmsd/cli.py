@@ -252,7 +252,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     print(f"Reading structures from: {args.structures}")
     molecule_list = irmsd.read_structures(args.structures) 
-    print(f"Done! {len(molecule_list)} read in total.\n")
+    print(f"Done! {len(molecule_list)} read in total.")
 
     # -------------------------------------------------------------------------
     # prop
@@ -306,7 +306,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 0
 
     # -------------------------------------------------------------------------
-    # sort
+    # sort/prune
     # -------------------------------------------------------------------------
     if args.command in ("sort", "prune"):
 
@@ -328,12 +328,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                 ethr = 8.0e-5
             else:
                 ethr = args.ethr
-
             irmsd.run_cregen_and_print(
                 molecule_list,
                 rthr=args.rthr,
                 ethr=ethr,
                 bthr=args.bthr,
+                ewin=args.ewin,
                 maxprint=args.maxprint,
                 printlvl=1,
                 outfile=args.output,
@@ -348,6 +348,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 maxprint=args.maxprint,
                 outfile=args.output,
                 ethr=args.ethr,
+                ewin=args.ewin,
             )
 
         return 0

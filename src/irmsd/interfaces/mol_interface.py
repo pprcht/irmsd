@@ -55,6 +55,54 @@ def get_energies_from_molecule_list(
     return np.asarray(energies, dtype=float)
 
 
+def prune_by_energy_window(
+    molecule_list: Sequence[Molecule],
+    energy_window: float | None,
+) -> List[Molecule]:
+    """
+    Prune a list of Molecule objects based on a relative energy window.
+
+    This function identifies the lowest-energy structure in ``molecule_list``
+    and retains only those molecules whose energies lie within
+    ``energy_window`` Hartree above this minimum. Energies are obtained via
+    ``get_energies_from_molecule_list`` and are assumed to be aligned with the
+    order of ``molecule_list``.
+
+    If ``energy_window`` is ``None``, the input list is returned unchanged.
+
+    Parameters
+    ----------
+    molecule_list : list of Molecule
+        The structures to be filtered.
+    energy_window : float or None
+        Allowed energy range above the minimum structure, in Hartree. If
+        ``None``, no pruning is performed.
+
+    Returns
+    -------
+    pruned : list of Molecule
+        A new list containing only the structures within the specified
+        energy window.
+
+    Notes
+    -----
+    The reference energy is the minimum energy found in the provided list.
+    No sorting of the returned molecules is performed; the original order
+    (minus removed entries) is preserved.
+    """
+    if energy_window is None:
+        return molecule_list
+
+    energies = get_energies_from_molecule_list(molecule_list)
+    e_min = float(np.min(energies))
+    threshold = e_min + energy_window
+
+    mask = energies <= threshold
+    pruned = [mol for mol, keep in zip(molecule_list, mask) if keep]
+
+    return pruned
+
+
 ##########################################################################################
 # RMSD utilities
 ##########################################################################################
@@ -187,6 +235,7 @@ def sorter_irmsd_molecule(
     allcanon: bool = True,
     printlvl: int = 0,
     ethr: float | None = None,
+    ewin: float | None = None,
 ) -> Tuple[np.ndarray, List[Molecule]]:
     """
     High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
@@ -207,6 +256,9 @@ def sorter_irmsd_molecule(
         Verbosity level, passed through to the backend.
     ethr : float | None
         Optional energy threshold to accelerate by pre-sorting
+    ewin : float | None
+        Optional energy window to limit ensembe size around lowest energy structure.
+        In Hartree.
 
     Returns
     -------
@@ -252,6 +304,16 @@ def sorter_irmsd_molecule(
                 "All Molecule objects must have the same number of atoms; "
                 f"item 0 has {nat} atoms, item {i} has {len(mol)} atoms"
             )
+
+    # --- Remove structures too high in energy, if needed
+    if printlvl > 0 and ewin is not None:
+        print(f"EWIN energy window : {ewin} Ha ({ewin*627.5095:.2f} kcal/mol)")
+    n_orig = len(molecule_list)
+    molecule_list = prune_by_energy_window(molecule_list, ewin)
+    n_new = len(molecule_list)
+    n_diff = n_orig - n_new
+    if printlvl > 0 and ewin is not None:
+        print(f" --> removed {n_diff} of {n_orig} structures.\n")
 
     # --- Build atom_numbers_list and positions_list ---
     atom_numbers_list: List[np.ndarray] = []
@@ -432,9 +494,9 @@ def cregen(
     printlvl : int, optional
         Verbosity level, passed through to the backend.
     ewin : float | None
-        Energy window around the lowest conformer. Anything higher 
-        will not be included in the comparison/returned.
+        Optional energy window to limit ensembe size around lowest energy structure.
         In Hartree.
+
 
     Returns
     -------
@@ -488,6 +550,14 @@ def cregen(
             )
 
     # --- Remove structures too high in energy, if needed
+    if printlvl > 0 and ewin is not None:
+        print(f"EWIN energy window : {ewin} Ha ({ewin*627.5095:.2f} kcal/mol)")
+    n_orig = len(molecule_list)
+    molecule_list = prune_by_energy_window(molecule_list, ewin)
+    n_new = len(molecule_list)
+    n_diff = n_orig - n_new
+    if printlvl > 0 and ewin is not None:
+        print(f" --> removed {n_diff} of {n_orig} structures.\n")
 
     # --- Build atom_numbers_list and positions_list ---
     atom_numbers_list: List[np.ndarray] = []
@@ -526,7 +596,7 @@ def cregen(
         # Start from a copy to preserve metadata (cell, pbc, info, energy, etc.)
         new_mol = mol_orig.copy()
         # Update atomic numbers and positions according to sorter output
-        #new_mol.set_atomic_numbers(Z_new)
+        # new_mol.set_atomic_numbers(Z_new)
         new_mol.set_positions(P_new)
         new_mol.set_potential_energy(E_new)
         new_molecule_list.append(new_mol)
@@ -543,6 +613,7 @@ def prune(
     allcanon: bool = True,
     printlvl: int = 0,
     ethr: float | None = None,
+    ewin: float | None = None,
 ) -> List[Molecule]:
     """
     High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
@@ -563,6 +634,9 @@ def prune(
         Verbosity level, passed through to the backend.
     ethr : float | None
         Optional energy threshold to accelerate by pre-sorting
+    ewin : float | None
+        Optional energy window to limit ensembe size around lowest energy structure.
+        In Hartree.
 
     Returns
     -------
@@ -604,6 +678,16 @@ def prune(
                 "All Molecule objects must have the same number of atoms; "
                 f"item 0 has {nat} atoms, item {i} has {len(mol)} atoms"
             )
+
+    # --- Remove structures too high in energy, if needed
+    if printlvl > 0 and ewin is not None:
+        print(f"EWIN energy window : {ewin} Ha ({ewin*627.5095:.2f} kcal/mol)")
+    n_orig = len(molecule_list)
+    molecule_list = prune_by_energy_window(molecule_list, ewin)
+    n_new = len(molecule_list)
+    n_diff = n_orig - n_new
+    if printlvl > 0 and ewin is not None:
+        print(f" --> removed {n_diff} of {n_orig} structures.\n")
 
     groups, new_molecule_list = sorter_irmsd_molecule(
         molecule_list, rthr, iinversion, allcanon, printlvl, ethr

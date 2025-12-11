@@ -258,6 +258,7 @@ def sort_structures_and_print(
     printlvl: int = 0,
     maxprint: int = 25,
     ethr: float | None = None,
+    ewin: float | None = None,
     outfile: str | None = None,
 ) -> None:
     """
@@ -281,8 +282,10 @@ def sort_structures_and_print(
         Verbosity level, passed through.
     maxprint : int, optional
         Max number of lines to print for each structure result table
-     ethr: float | None
+    ethr : float | None
         Optional inter-conformer energy threshold for more efficient presorting
+    ewin : float | None
+        Optional energy window to limit ensemble size around lowest energy structure
     outfile : str or None, optional
         If not None, write all resulting structures to this file
         (e.g. 'sorted.xyz') using a write function.
@@ -306,7 +309,14 @@ def sort_structures_and_print(
         molecule_list, energies = sort_by_value(molecule_list, energies)
         print()
         mol_dict[key] = Presorted_sort_structures_and_print(
-            molecule_list, rthr, iinversion, allcanon, printlvl, ethr, outfile
+            molecule_list,
+            rthr,
+            iinversion,
+            allcanon,
+            printlvl,
+            ethr=ethr,
+            ewin=ewin,
+            outfile=outfile,
         )
         irmsdvals, _ = delta_irmsd_list_molecule(
             mol_dict[key], iinversion, allcanon=True, printlvl=0
@@ -336,7 +346,14 @@ def sort_structures_and_print(
             molecule_list, energies = sort_by_value(molecule_list, energies)
             print()
             mol_dict[key] = Presorted_sort_structures_and_print(
-                molecule_list, rthr, iinversion, allcanon, printlvl, ethr, outfile_key
+                molecule_list,
+                rthr,
+                iinversion,
+                allcanon,
+                printlvl,
+                ethr=ethr,
+                ewin=ewin,
+                outfile=outfile_key,
             )
             irmsdvals, _ = delta_irmsd_list_molecule(
                 mol_dict[key], iinversion, allcanon=True, printlvl=0
@@ -361,6 +378,7 @@ def Presorted_sort_structures_and_print(
     allcanon: bool = True,
     printlvl: int = 0,
     ethr: float | None = None,
+    ewin: float | None = None,
     outfile: str | None = None,
 ) -> None:
     """
@@ -382,6 +400,10 @@ def Presorted_sort_structures_and_print(
         Canonicalization flag, passed through.
     printlvl : int, optional
         Verbosity level, passed through.
+    ethr : float | None
+        Optional inter-conformer energy threshold for more efficient presorting
+    ewin : float | None
+        Optional energy window to limit ensemble size around lowest energy structure
     outfile : str or None, optional
         If not None, write all resulting structures to this file
         (e.g. 'sorted.xyz') using a write function.
@@ -395,6 +417,7 @@ def Presorted_sort_structures_and_print(
         allcanon=allcanon,
         printlvl=printlvl,
         ethr=ethr,
+        ewin=ewin,
     )
 
     new_molecule_list = first_by_assignment(new_molecule_list, groups)
@@ -521,7 +544,9 @@ def run_cregen_and_print(
         key, molecule_list = next(iter(mol_dict.items()))
         # Sort by energy (if possible)
         print()
-        mol_dict[key] = cregen(molecule_list, rthr, ethr, bthr, printlvl)
+        mol_dict[key] = cregen(
+            molecule_list, rthr, ethr, bthr, ewin=ewin, printlvl=printlvl
+        )
 
         # allcanon can be False here because CREGEN requires same atom order.
         irmsdvals, _ = delta_irmsd_list_molecule(
@@ -549,7 +574,9 @@ def run_cregen_and_print(
                 outfile_key = None
             # Sort by energy (if possible)
             print()
-            mol_dict[key] = cregen(molecule_list, rthr, ethr, bthr, printlvl)
+            mol_dict[key] = cregen(
+                molecule_list, rthr, ethr, bthr, ewin=ewin, printlvl=printlvl
+            )
 
             # allcanon can be False here because CREGEN requires same atom order.
             irmsdvals, _ = delta_irmsd_list_molecule(

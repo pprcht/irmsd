@@ -49,6 +49,7 @@ from .interfaces.cmds import (
 from .interfaces.mol_interface import (
     delta_irmsd_list_molecule,
     get_energies_from_molecule_list,
+    prune_by_energy_window,
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,

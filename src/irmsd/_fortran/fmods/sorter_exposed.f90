@@ -6,7 +6,7 @@ module sorter_exposed
   use axis_module
   use irmsd_module
   use canonical_mod
-  use utilities, only: qsorti
+  use utilities,only:qsorti
   implicit none
   private
 
@@ -205,7 +205,7 @@ contains  !> MODULE PROCEDURES START HERE
     end if
     ref => structures(1)
     if (prlvl > 0) then
-      write (stdout,'(a)',advance='no') 'Setting up atom IDs ... '
+      write (stdout,'(a,9x,a)',advance='no') 'Setting up atom IDs','... '
       flush (stdout)
     end if
     ! !$omp parallel &
@@ -261,7 +261,6 @@ contains  !> MODULE PROCEDURES START HERE
     end do
     if (prlvl > 0) then
       write (stdout,'(a)') 'done.'
-      write (stdout,*)
     end if
 
 !> ----------------------------------------------
@@ -296,6 +295,11 @@ contains  !> MODULE PROCEDURES START HERE
 !> --------------------------------------------
 
 !>--- run the checks
+    if (prlvl > 0) then
+      write (stdout,'(a)',advance='no') 'Running iRMSD checks        ... '
+      flush (stdout)
+    end if
+
     gcount = maxval(groups(:))
     do ii = 1,nall
 !>--- find next unassigned conformer and assign a new group
@@ -336,6 +340,9 @@ contains  !> MODULE PROCEDURES START HERE
       ! !$omp end do
       ! !$omp end parallel
     end do
+    if (prlvl > 0) then
+      write (stdout,'(a)') 'done.'
+    end if
 
     if (debug) then
       write (*,*) 'assigned groups, and count'
@@ -682,7 +689,6 @@ contains  !> MODULE PROCEDURES START HERE
     end do
     if (prlvl > 0) then
       write (stdout,'(a)') 'done.'
-      write (stdout,*)
     end if
 
 !> ----------------------------------------------
@@ -739,7 +745,7 @@ contains  !> MODULE PROCEDURES START HERE
 
 !>--- run the checks
     if (prlvl > 0) then
-      write (stdout,'(a)',advance='no') 'Running CREGEN checks ... '
+      write (stdout,'(a,6x,a)',advance='no') 'Running CREGEN checks','... '
       flush (stdout)
     end if
     gcount = maxval(groups(:))
@@ -882,7 +888,7 @@ contains  !> MODULE PROCEDURES START HERE
   subroutine structures_esort(structures)
     !************************************
     !* matrix wrapper to qsorti
-    !* order of energies is reflected 
+    !* order of energies is reflected
     !* to the order of structures
     !************************************
     type(coord),intent(inout) :: structures(:)
@@ -898,7 +904,7 @@ contains  !> MODULE PROCEDURES START HERE
     end do
     call qsorti(energies(:),ix,1,nall)
     structures = structures(ix)
-    deallocate(energies,ix)
+    deallocate (energies,ix)
   end subroutine structures_esort
 
 !=============================================================================!

@@ -11,6 +11,8 @@ from .mol_interface import (
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
+    cregen,
+    prune,
 )
 
 # -------------------------------------------------------------------
@@ -19,16 +21,6 @@ from .mol_interface import (
 
 
 def get_energy_ase(atoms):
-    """Return the energy stored in an ASE Atoms object.
-
-    Checks, in order:
-        1. atoms.info["energy"]
-        2. calc.results["energy"] / ["free_energy"] / ["enthalpy"]
-        3. atoms.get_potential_energy() *only if it will NOT trigger a calculation*
-
-    Returns None if nothing is found.
-    """
-    # alternative numpy style docstring
     """Retrieve the energy associated with an ASE Atoms object.
 
     This function attempts to extract the energy of the given ASE Atoms object
@@ -516,6 +508,7 @@ def sorter_irmsd_ase(
     allcanon: bool = True,
     printlvl: int = 0,
     ethr: float | None = None,
+    ewin: float | None = None,
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
     """ASE wrapper for ``sorter_irmsd_molecule``.
 
@@ -536,7 +529,10 @@ def sorter_irmsd_ase(
     printlvl : int, optional
         Verbosity level.
     ethr : float | None
-        Optional energy threshold to accelerate by pre-sorting
+        Optional energy threshold to accelerate by pre-sorting. In Hartree.
+    ewin : float | None
+        Optional energy window to limit ensembe size around lowest energy structure.
+        In Hartree.
 
     Returns
     -------
@@ -568,6 +564,7 @@ def sorter_irmsd_ase(
         allcanon=allcanon,
         printlvl=printlvl,
         ethr=ethr,
+        ewin=ewin,
     )
 
     new_atoms_list = molecule_to_ase(new_mols)
@@ -635,18 +632,18 @@ def delta_irmsd_list_ase(
     return delta, new_atoms_list
 
 
-def prune_ase(
+def cregen_ase(
     atoms_list: Sequence["ase.Atoms"],
-    rthr: float,
-    iinversion: int = 0,
-    allcanon: bool = True,
+    rthr: float = 0.125,
+    ethr: float = 8.0e-5,
+    bthr: float = 0.01,
     printlvl: int = 0,
-    ethr: float | None = None,
+    ewin: float | None = None,
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
-    """ASE wrapper for ``prune()`` from mol_interface.
+    """ASE wrapper for ``cregen()`` from mol_interface.
 
     Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
-    ``prune()``, and converts the resulting Molecules back
+    ``cregen()``, and converts the resulting Molecules back
     to ASE ``Atoms`` objects.
 
     Parameters
@@ -654,15 +651,16 @@ def prune_ase(
     atoms_list : Sequence[ase.Atoms]
         Sequence of ASE Atoms objects. All must have the same number of atoms.
     rthr : float
-        Distance threshold for the sorter.
-    iinversion : int, optional
-        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
-    allcanon : bool, optional
-        Canonicalization flag.
+        Distance threshold for the sorter. In Angström.
+    ethr : float                                                   
+        Energy threshold to accelerate by pre-sorting. In Hartree. 
+    bthr : float
+        Rotational constant comparison threshold. Relative value (default: 0.01)
     printlvl : int, optional
         Verbosity level.
-    ethr : float | None
-        Optional energy threshold to accelerate by pre-sorting
+    ewin : float | None
+        Optional energy window to limit ensembe size around lowest energy structure.
+        In Hartree.
 
     Returns
     -------
@@ -684,13 +682,81 @@ def prune_ase(
 
     mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
 
-    new_mols = prune_molecule(
+    new_mols = cregen(
+        molecule_list=mols,
+        rthr=rthr,
+        printlvl=printlvl,
+        ethr=ethr,
+        bthr=bthr,
+        ewin=ewin,
+    )
+
+    new_atoms_list = molecule_to_ase(new_mols)
+
+    return new_atoms_list
+
+
+def prune_ase(
+    atoms_list: Sequence["ase.Atoms"],
+    rthr: float,
+    iinversion: int = 0,
+    allcanon: bool = True,
+    printlvl: int = 0,
+    ethr: float | None = None,
+    ewin: float | None = None,
+) -> Tuple[np.ndarray, List["ase.Atoms"]]:
+    """ASE wrapper for ``prune()`` from mol_interface.
+
+    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
+    ``prune()``, and converts the resulting Molecules back
+    to ASE ``Atoms`` objects.
+
+    Parameters
+    ----------
+    atoms_list : Sequence[ase.Atoms]
+        Sequence of ASE Atoms objects. All must have the same number of atoms.
+    rthr : float
+        Distance threshold for the sorter.
+    iinversion : int, optional
+        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
+    allcanon : bool, optional
+        Canonicalization flag.
+    printlvl : int, optional
+        Verbosity level.
+    ethr : float | None
+        Optional energy threshold to accelerate by pre-sorting. In Hartree.
+    ewin : float | None
+        Optional energy window to limit ensembe size around lowest energy structure.
+        In Hartree.
+
+    Returns
+    -------
+    new_atoms_list : list[ase.Atoms]
+        New ASE Atoms objects reconstructed from the sorted Molecules.
+    """
+    ase = require_ase()
+    ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
+
+    if not isinstance(atoms_list, (list, tuple)):
+        raise TypeError("prune_ase expects a sequence (list/tuple) of ASE Atoms")
+
+    for i, at in enumerate(atoms_list):
+        if not isinstance(at, ASEAtoms):
+            raise TypeError(
+                "prune_ase expects a sequence of ASE Atoms; "
+                f"item {i} has type {type(at)}"
+            )
+
+    mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
+
+    new_mols = prune(
         molecule_list=mols,
         rthr=rthr,
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
         ethr=ethr,
+        ewin=ewin,
     )
 
     new_atoms_list = molecule_to_ase(new_mols)
