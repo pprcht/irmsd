@@ -296,6 +296,8 @@ def cregen_raw(
         raise ValueError("atom_numbers_list must contain at least one structure")
     if len(atom_numbers_list) != len(positions_list):
         raise ValueError("atom_numbers_list and positions_list must have same length")
+    if len(positions_list) != len(energies_list):
+        raise ValueError("positions_list and energies_list must have same length") 
 
     ref = atom_numbers_list[0]
     for i, arr in enumerate(atom_numbers_list[1:], start=1):
