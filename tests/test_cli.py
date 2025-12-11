@@ -502,5 +502,5 @@ def test_cli_help(caffeine_xyz_file_fixture, capfd):
         retcode == 1
     ), f"Expected return code 1 when no property selected, got {retcode}"
     assert (
-        "CLI to read an arbitrary number of structures with ASE and run selected" in out
+        "CLI to read an arbitrary number of structures and run selected" in out
     ), f"Help message not found in output:\n{out}"

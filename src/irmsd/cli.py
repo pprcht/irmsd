@@ -15,7 +15,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="irmsd",
         description=(
-            "CLI to read an arbitrary number of structures with ASE and run "
+            "CLI to read an arbitrary number of structures and run "
             "selected analysis commands on them."
         ),
     )
