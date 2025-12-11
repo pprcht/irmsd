@@ -639,7 +639,7 @@ def cregen_ase(
     bthr: float = 0.01,
     printlvl: int = 0,
     ewin: float | None = None,
-) -> Tuple[np.ndarray, List["ase.Atoms"]]:
+) -> List["ase.Atoms"]:
     """ASE wrapper for ``cregen()`` from mol_interface.
 
     Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
@@ -692,7 +692,6 @@ def cregen_ase(
     )
 
     new_atoms_list = molecule_to_ase(new_mols)
-
     return new_atoms_list
 
 
@@ -704,7 +703,7 @@ def prune_ase(
     printlvl: int = 0,
     ethr: float | None = None,
     ewin: float | None = None,
-) -> Tuple[np.ndarray, List["ase.Atoms"]]:
+) -> List["ase.Atoms"]:
     """ASE wrapper for ``prune()`` from mol_interface.
 
     Converts a sequence of ASE ``Atoms`` objects to Molecules, calls

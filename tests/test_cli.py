@@ -238,6 +238,15 @@ def test_cli_compare_irmsd(
             ["--align"],
             [0.0, 0.0, 0.1394],
         ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+                "caffeine_xyz_file_fixture",
+                "caffeine_xyz_obabel_file_fixture",
+            ],
+            ["--classic"],
+            [0.0, 0.1394],
+        ),
     ],
 )
 def test_cli_sorter(
@@ -370,7 +379,7 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
             delta_rmsd_str = delta_rmsd_values[current_index]
             delta_rmsd_value = float(delta_rmsd_str)
             assert (
-                pytest.approx(expected_delta, abs=1e-4) ==  delta_rmsd_value
+                pytest.approx(expected_delta, abs=1e-4) == delta_rmsd_value
             ), f"Delta RMSD value mismatch for file {files[i]} at index {j}: expected {expected_delta}, got {delta_rmsd_value}"
             current_index += 1
 

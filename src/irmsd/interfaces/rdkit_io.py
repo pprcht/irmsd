@@ -600,7 +600,7 @@ def cregen_rdkit(
     bthr: float = 0.01,
     printlvl: int = 0,
     ewin: float | None = None,
-) -> Tuple[np.ndarray, List["Mol"]]:
+) -> List["Mol"]:
     """
     Optional Rdkit utility: operate on a list of Rdkit Molecules.
     Returns a pruned list of molecules based on iRMSD.
@@ -671,7 +671,7 @@ def prune_rdkit(
     printlvl: int = 0,
     ethr: float | None = None,
     ewin: float | None = None,
-) -> Tuple[np.ndarray, List["Mol"]]:
+) -> List["Mol"]:
     """
     Optional Rdkit utility: operate on a list of Rdkit Molecules.
     Returns a pruned list of molecules based on iRMSD.
