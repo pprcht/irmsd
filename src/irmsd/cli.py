@@ -134,7 +134,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort = subparsers.add_parser(
         "sort",
         aliases=["prune"],
-        help="Sort, prune or cluster structures based on inter-structure RMSD.",
+        help=(
+            "Sort, prune or cluster structures based on inter-structure measures."
+            " By default, the more expensive iRMSD version is used. The use of the"
+            " molecules' energies is optional (--ethr) is optional but recommended."
+            " To fall back to the quicker, but more empirical CREGEN workflow for"
+            " ensemble sorting (using energies, quaternion RMSDs and rotational"    
+            " constants), use --classic"    
+        ),
     )
     p_sort.add_argument(
         "structures",
@@ -227,7 +234,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=25,
         help=(
-            "Printout option; determine how man rows are printed for each sorted ensemble."
+            "Printout option; determine how many rows are printed for each sorted ensemble."
         ),
     )
     p_sort.add_argument(
@@ -258,24 +265,32 @@ def main(argv: Optional[list[str]] = None) -> int:
     # prop
     # -------------------------------------------------------------------------
     if args.command == "prop":
-        ran_any = False
+        print()
+        from .utils.printouts import  print_molecule_summary
 
+        ran_any = False
+        flags =[args.cn, args.rot, args.canonical]
+        run_multiple = sum(flags) >= 2
+
+        results = dict()
         if args.cn:
-            irmsd.compute_cn_and_print(molecule_list)
+            results["CN"] = irmsd.compute_cn_and_print(molecule_list, run_multiple)
             ran_any = True
 
         if args.rot:
-            irmsd.compute_axis_and_print(molecule_list)
+            results["axis"] = irmsd.compute_axis_and_print(molecule_list, run_multiple)
             ran_any = True
 
         if args.canonical:
-            irmsd.compute_canonical_and_print(molecule_list, heavy=heavy)
+            results["Canonical ID"] = irmsd.compute_canonical_and_print(molecule_list, heavy=heavy, run_multiple=run_multiple)
             ran_any = True
 
         if not ran_any:
             # No specific property selected: show help for the whole CLI
             parser.print_help()
             return 1
+
+        print_molecule_summary(molecule_list, **results)
 
         return 0
 

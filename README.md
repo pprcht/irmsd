@@ -302,12 +302,18 @@ The iRSMD package comes with an CLI tool `irmsd`. This tool allows you to read m
 ```
 usage: irmsd [-h] [-v] {prop,compare,sort,prune} ...
 
+CLI to read an arbitrary number of structures and run selected analysis commands on them.
+
 positional arguments:
   {prop,compare,sort,prune}
                         Subcommand to run.
     prop                Compute structural properties (CN, rotational constants, canonical IDs).
     compare             Compare structures via iRMSD (default) or quaternion RMSD.
-    sort (prune)        Sort, prune or cluster structures based on inter-structure RMSD.
+    sort (prune)        Sort, prune or cluster structures based on inter-structure measures. By
+                        default, the more expensive iRMSD version is used. The use of the molecules'
+                        energies is optional (--ethr) is optional but recommended. To fall back to
+                        the quicker, but more empirical CREGEN workflow for ensemble sorting (using
+                        energies, quaternion RMSDs and rotational constants), use --classic
 
 options:
   -h, --help            show this help message and exit
@@ -385,7 +391,7 @@ options:
                         constants. This routine is cheaper but more empirical than iRMSD-based
                         sorting. Does NOT restore mismatching atom order. Does not keep individual
                         rotamers.
-  --maxprint MAXPRINT   Printout option; determine how man rows are printed for each sorted ensemble.
+  --maxprint MAXPRINT   Printout option; determine how many rows are printed for each sorted ensemble.
   -o OUTPUT, --output OUTPUT
                         Optional output file for sorted / clustered results.
 ```

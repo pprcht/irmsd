@@ -27,7 +27,15 @@ from .mol_interface import (
 )
 
 
-def compute_cn_and_print(molecule_list: Sequence["Molecule"]) -> List[np.ndarray]:
+# ------------------------------------------------------
+# CMDs for "prop" runtypes
+# ------------------------------------------------------
+
+
+def compute_cn_and_print(
+    molecule_list: Sequence["Molecule"],
+    run_multiple: bool = False,
+) -> List[np.ndarray]:
     """Compute coordination numbers for each structure and print them.
 
     Parameters
@@ -45,13 +53,15 @@ def compute_cn_and_print(molecule_list: Sequence["Molecule"]) -> List[np.ndarray
     for i, mol in enumerate(molecule_list, start=1):
         cn_vec = mol.get_cn()
         results.append(cn_vec)
-        print(f"Coordination numbers for structure {i}:")
-        print_atomwise_properties(mol, cn_vec, "CN")
+        if not run_multiple:
+            print(f"Coordination numbers for structure {i}:")
+            print_atomwise_properties(mol, cn_vec, "CN")
     return results
 
 
 def compute_axis_and_print(
     molecule_list: Sequence["Molecule"],
+    run_multiple: bool = False,
 ) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Compute rotational constants, averge momentum and rotation matrix for
     each structure and prints them.
@@ -70,21 +80,28 @@ def compute_axis_and_print(
 
     results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
     for i, mol in enumerate(molecule_list, start=1):
+        axd = dict()
         rot, avmom, evec = mol.get_axis()
-        results.append((rot, avmom, evec))
-        print(f"Results for structure {i}:")
-
-        print_pretty_array(f"Rotational constants (MHz):", rot)
-        print()
-        print(f"Average momentum a.u. (10⁻⁴⁷kg m²): {avmom[0]:1.6e}")
-        print()
-        print_pretty_array(f"Rotation matrix:", evec)
-        print()
+        axd["Rotational constants (MHz)"] = rot
+        axd["Rotation matrix"] = evec
+        if not run_multiple:
+            results.append((rot, avmom, evec))
+            print(f"Results for structure {i}:")
+            print_pretty_array(f"Rotational constants (MHz):", rot)
+            print()
+            print(f"Average momentum a.u. (10⁻⁴⁷kg m²): {avmom[0]:1.6e}")
+            print()
+            print_pretty_array(f"Rotation matrix:", evec)
+            print()
+        else:
+            results.append(axd)
     return results
 
 
 def compute_canonical_and_print(
-    molecule_list: Sequence["Molecule"], heavy=False
+    molecule_list: Sequence["Molecule"],
+    heavy: bool = False,
+    run_multiple: bool = False,
 ) -> List[np.ndarray]:
     """Computes the canonical atom identifiers for each structure and prints
     them.
@@ -93,6 +110,8 @@ def compute_canonical_and_print(
     ----------
     molecule_list : list[irmsd.Molecule]
         Structures to analyze.
+     heavy: bool
+        Consider only heavy atoms
 
     Returns
     -------
@@ -104,9 +123,15 @@ def compute_canonical_and_print(
     for i, mol in enumerate(molecule_list, start=1):
         rank = mol.get_canonical(heavy=heavy)
         results.append(rank)
-        print(f"Canonical ranks for structure {i}:")
-        print_atomwise_properties(mol, rank, "Canonical Rank", fmt="{:14d}")
+        if not run_multiple:
+            print(f"Canonical ranks for structure {i}:")
+            print_atomwise_properties(mol, rank, "Canonical Rank", fmt="{:14d}")
     return results
+
+
+# ------------------------------------------------------
+# CMDs for "compare" runtypes
+# ------------------------------------------------------
 
 
 def get_ref_and_align_molecules(
@@ -248,6 +273,11 @@ def compute_irmsd_and_print(
         )
 
     print(f"\niRMSD: {irmsd_value:.10f} Å")
+
+
+# ------------------------------------------------------
+# CMDs for "sort"/"prune" runtypes
+# ------------------------------------------------------
 
 
 def sort_structures_and_print(

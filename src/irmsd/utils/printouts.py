@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from collections.abc import Sequence, Mapping
+from typing import Any
 
 import numpy as np
 
@@ -6,7 +7,7 @@ from ..core import Molecule
 
 HARTREE_TO_KCAL_MOL = 627.509474
 
-BANNER= r"""
+BANNER = r"""
     ██╗██████╗ ███╗   ███╗███████╗██████╗ 
     ╠═╣██╔══██╗████╗ ████║██╔════╝██╔══██╗
     ██║██████╔╝██╔████╔██║███████╗██║  ██║
@@ -20,6 +21,7 @@ BANNER= r"""
    https://doi.org/10.1021/acs.jcim.4c02143 
        https://github.com/pprcht/irmsd
 """
+
 
 def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
     """Pretty-print atom-wise properties for a Molecule.
@@ -92,6 +94,133 @@ def print_array(title: str, arr: np.ndarray) -> None:
     print()
 
 
+def _print_atomwise_table(
+    mol,
+    properties: Mapping[str, np.ndarray],
+) -> None:
+    """Pretty-print multiple atom-wise properties for a single Molecule."""
+    if not properties:
+        return
+
+    def _infer_fmt(arr):
+        if np.issubdtype(arr.dtype, np.integer):
+            return "{:14d}"
+        elif np.issubdtype(arr.dtype, np.floating):
+            return "{:14.6f}"
+        elif np.issubdtype(arr.dtype, np.bool_):
+            return "{:>14}"  # prints True/False
+            # or "{:14d}" to print 1/0
+        else:
+            return "{:>14}"  # fallback for strings or objects
+
+    nat = len(mol)
+    # basic checks
+    for name, arr in properties.items():
+        arr = np.asarray(arr)
+        if arr.ndim != 1:
+            raise ValueError(f"Property '{name}' is not 1D (shape={arr.shape}).")
+        if len(arr) != nat:
+            raise ValueError(
+                f"Property '{name}' length {len(arr)} != number of atoms {nat}"
+            )
+
+    prop_names = list(properties.keys())
+
+    # header
+    header = f"{'Atom':>4} {'Symbol':>6}"
+    for name in prop_names:
+        header += f" {name:>14}"
+    print(header)
+
+    # separator
+    sep = "---- ------"
+    for _ in prop_names:
+        sep += " " + "-" * 14
+    print(sep)
+
+    symbols = mol.get_chemical_symbols()
+
+    for i in range(nat):
+        row = f"{i+1:4d} {symbols[i]:>6}"
+        for name in prop_names:
+            arr = np.asarray(properties[name])
+            fmt_this = _infer_fmt(arr)
+            row += " " + fmt_this.format(arr[i])
+        print(row)
+
+    print()
+
+
+def print_molecule_summary(
+    molecule_list: Sequence[Any],
+    **results_by_name: Sequence[Any],
+) -> None:
+    """
+    Print a summary for each molecule, plus a combined atom-wise table
+    for any results that are 1D per-atom arrays.
+
+    Parameters
+    ----------
+    molecule_list : sequence of Molecule
+        List of molecules.
+    **results_by_name :
+        Each keyword argument is a sequence aligned with molecule_list,
+        e.g. energies=[...], charges=[...], spin=[...].
+    """
+    n_mol = len(molecule_list)
+
+    # sanity: all result lists must match length of molecule_list
+    for name, seq in results_by_name.items():
+        if len(seq) != n_mol:
+            raise ValueError(
+                f"Result '{name}' has length {len(seq)}, expected {n_mol}."
+            )
+
+    for idx, mol in enumerate(molecule_list):
+        print("\n" + "=" * 60)
+        print(f"###  MOLECULE {idx+1:>3}  ###")
+        print("=" * 60)
+        print()
+
+        # Split per-molecule vs atom-wise for THIS molecule
+        per_mol_values: dict[str, Any] = {}
+        atomwise_values: dict[str, np.ndarray] = {}
+
+        for name, seq in results_by_name.items():
+            value = seq[idx]
+
+            # Detect atom-wise: 1D array, length == number of atoms
+            if (
+                isinstance(value, np.ndarray)
+                and value.ndim == 1
+                and len(value) == len(mol)
+            ):
+                atomwise_values[name] = value
+            else:
+                per_mol_values[name] = value
+
+        # 1) Print per-molecule values
+        for name, value in per_mol_values.items():
+            # Case A: the value itself is a dict → iterate through it
+            if isinstance(value, dict):
+                for subname, subval in value.items():
+                    # print(f"  {subname}: {subval}")
+                    # placeholder(subname, subval)  # call your routine
+                    print_pretty_array(subname, subval)
+                print()
+
+            # Case B: normal scalar or non-dict value
+            else:
+                print(f"{name}: {value}")
+                print()
+
+        # 2) Combined atom-wise table (if any)
+        if atomwise_values:
+            _print_atomwise_table(mol, atomwise_values)
+
+        print()  # spacing between molecules
+
+
 def print_structure(mol) -> None:
     """Print basic information about a Molecule object in a simple XYZ-like
     format.
@@ -145,7 +274,7 @@ def print_conformer_structures(*mols, labels=None) -> None:
         if len(m) != nat:
             raise ValueError("All Molecule objects must have the same number of atoms")
 
-    sep=' │' 
+    sep = " │"
     if labels is not None:
         if len(labels) != len(mols):
             raise ValueError("Number of labels must match number of Molecule objects")
