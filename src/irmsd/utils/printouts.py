@@ -76,11 +76,11 @@ def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -
     """
     print(title)
     if arr.ndim == 1:
-        print(sep.join(fmt.format(x) for x in arr))
+        print(sep+sep.join(fmt.format(x) for x in arr))
 
     elif arr.ndim == 2:
         for row in arr:
-            print(sep.join(fmt.format(x) for x in row))
+            print(sep+sep.join(fmt.format(x) for x in row))
 
     else:
         raise ValueError("Only 1D or 2D arrays are supported.")
@@ -204,9 +204,7 @@ def print_molecule_summary(
             # Case A: the value itself is a dict → iterate through it
             if isinstance(value, dict):
                 for subname, subval in value.items():
-                    # print(f"  {subname}: {subval}")
-                    # placeholder(subname, subval)  # call your routine
-                    print_pretty_array(subname, subval)
+                    print_pretty_array(f"{subname}:", subval)
                 print()
 
             # Case B: normal scalar or non-dict value

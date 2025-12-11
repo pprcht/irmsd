@@ -64,12 +64,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Calculate the canonical identifiers.",
     )
     p_prop.add_argument(
+        "--all", action="store_true", help="Calculate all of the above."
+    )
+    p_prop.add_argument(
         "--heavy",
         action="store_true",
         help=(
             "When calculating canonical atom identifiers, consider only heavy atoms."
         ),
     )
+    p_prop.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=None,
+        help="Output file name (optional). For properties only pickle (pkl) files are allowed.",
+    )
+
 
     # -------------------------------------------------------------------------
     # compare subparser: compare (exactly) two structures
@@ -139,8 +150,8 @@ def build_parser() -> argparse.ArgumentParser:
             " By default, the more expensive iRMSD version is used. The use of the"
             " molecules' energies is optional (--ethr) is optional but recommended."
             " To fall back to the quicker, but more empirical CREGEN workflow for"
-            " ensemble sorting (using energies, quaternion RMSDs and rotational"    
-            " constants), use --classic"    
+            " ensemble sorting (using energies, quaternion RMSDs and rotational"
+            " constants), use --classic"
         ),
     )
     p_sort.add_argument(
@@ -190,7 +201,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Energy window specification for CREGEN. Structures higher in energy"
             " than this threshold (relative to the lowest energy structure in"
-            " the ensemble) will be removed."    
+            " the ensemble) will be removed."
             " There is no default (all conformers are considered)."
         ),
     )
@@ -253,12 +264,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     from .utils.printouts import BANNER
+
     print(BANNER)
 
     heavy = args.heavy  # exists in all subparsers
 
     print(f"Reading structures from: {args.structures}")
-    molecule_list = irmsd.read_structures(args.structures) 
+    molecule_list = irmsd.read_structures(args.structures)
     print(f"Done! {len(molecule_list)} read in total.")
 
     # -------------------------------------------------------------------------
@@ -266,23 +278,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     # -------------------------------------------------------------------------
     if args.command == "prop":
         print()
-        from .utils.printouts import  print_molecule_summary
+        from .utils.printouts import print_molecule_summary
 
         ran_any = False
-        flags =[args.cn, args.rot, args.canonical]
-        run_multiple = sum(flags) >= 2
+        flags = [args.cn, args.rot, args.canonical]
+        run_multiple = sum(flags) >= 2 or args.all
 
         results = dict()
-        if args.cn:
+        if args.cn or args.all:
             results["CN"] = irmsd.compute_cn_and_print(molecule_list, run_multiple)
             ran_any = True
 
-        if args.rot:
+        if args.rot or args.all:
             results["axis"] = irmsd.compute_axis_and_print(molecule_list, run_multiple)
             ran_any = True
 
-        if args.canonical:
-            results["Canonical ID"] = irmsd.compute_canonical_and_print(molecule_list, heavy=heavy, run_multiple=run_multiple)
+        if args.canonical or args.all:
+            results["Canonical ID"] = irmsd.compute_canonical_and_print(
+                molecule_list, heavy=heavy, run_multiple=run_multiple
+            )
             ran_any = True
 
         if not ran_any:
@@ -290,7 +304,15 @@ def main(argv: Optional[list[str]] = None) -> int:
             parser.print_help()
             return 1
 
-        print_molecule_summary(molecule_list, **results)
+        if run_multiple:
+            print_molecule_summary(molecule_list, **results)
+
+        if args.output is not None:
+            from .utils.io import dump_results_to_pickle
+
+            outfile = dump_results_to_pickle(molecule_list, args.output, results=results)
+            print(f"--> WROTE OUTPUT FILE {outfile}\n") 
+
 
         return 0
 

@@ -463,14 +463,14 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
             ],
             ["--rot"],
             """Rotational constants (MHz):
-1068.0731    710.7118    430.2612
+    1068.0731    710.7118    430.2612
 
 Average momentum a.u. (10⁻⁴⁷kg m²): 1.305645e-44
 
 Rotation matrix:
-  0.6712     -0.7413      0.0012
-  0.7413      0.6712     -0.0011
-  0.0000      0.0017      1.0000
+      0.6712     -0.7413      0.0012
+      0.7413      0.6712     -0.0011
+      0.0000      0.0017      1.0000
 """,
         ),
     ],

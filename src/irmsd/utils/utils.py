@@ -2,8 +2,13 @@ from __future__ import annotations
 
 import sys
 from typing import TYPE_CHECKING, List, Optional
+import os
+import pickle
+from collections.abc import Sequence
+from typing import Any, Mapping
 
 import numpy as np
+from ..core import Molecule
 
 if TYPE_CHECKING:  # avoid hard dependency at import time
     from ase import Atoms  # type: ignore
@@ -45,3 +50,5 @@ def require_rdkit() -> None:
         raise ImportError(
             "rdkit is required for this function. Install optional extra: pip install 'irmsd[rdkit]'"
         ) from e
+
+
