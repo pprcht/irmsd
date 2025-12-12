@@ -7,7 +7,7 @@
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
 [![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0) 
-<!-- ![CI workflow](https://github.com/pprcht/irmsd/actions/workflows/ci.yaml/badge.svg) -->
+[![Wheels Build](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml)
 [![Tests & Coverage](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml)
 [![codecov](https://codecov.io/gh/pprcht/irmsd/graph/badge.svg?token=Q1O7IRNITG)](https://codecov.io/gh/pprcht/irmsd)
 
@@ -454,5 +454,5 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [x] codecov
 - [ ] (implementation) Parallelization via OpenMP
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
-- [ ] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
+- [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
 - [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
