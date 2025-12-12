@@ -1,6 +1,7 @@
 # src/irmsd/__init__.py
 from __future__ import annotations
 
+from ._version import __version__
 from . import sorting
 from .api.axis_exposed import get_axis
 from .api.canonical_exposed import get_canonical_fortran
@@ -61,6 +62,7 @@ from .interfaces.mol_interface import (
 from .utils.io import read_structures, write_structures
 
 __all__ = [
+    "__version__",
     "Molecule",
     # core API
     "get_cn_fortran",
