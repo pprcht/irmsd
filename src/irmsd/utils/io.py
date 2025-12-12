@@ -185,6 +185,10 @@ def write_structures(
         write_extxyz(path, structures, mode=mode)
         return
 
+    if ext in {".pkl"}:
+        dump_results_to_pickle(structures,path)
+        return
+
     # ASE branch for all other extensions
     require_ase()
     from ase.io import write as ase_write  # type: ignore[import]
