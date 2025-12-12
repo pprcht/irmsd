@@ -34,7 +34,7 @@ iRMSD is designed for researchers working in computational chemistry, conformati
 
 ## Installation 🔧
 
-iRMSD is available via both **PyPI** and **conda-forge**.
+iRMSD is available via **PyPI**. <!-- both **PyPI** and **conda-forge**. -->
 
 **PyPI:**
 
@@ -45,14 +45,15 @@ pip install irmsd
 Prebuilt wheels are available for Linux (`manylinux`) and macOS (`arm64`), so installation is typically straightforward. On macOS, wheel compatibility follows the version of the `macos-latest` runner
 used by GitHub Actions. 
 
-We currently do not provide prebuilt wheels for Windows. On Windows, pip install irmsd will build the package from source. This requires: 1) Python 3.10 or newer, 2) A C/C++ compiler (e.g. Visual Studio Build Tools), 3) A Fortran compiler (e.g. Intel oneAPI Fortran, or MinGW gfortran configured for CMake). If you don’t have a Fortran toolchain available, the installation will likely fail. As an alternative, you can use WSL (Linux subsystem) and install the Linux wheels there.
+We currently do not provide prebuilt wheels for Windows. On Windows, `pip install irmsd` will build the package *from source*. This requires: **1**) Python 3.10 or newer, **2**) A C/C++ compiler (e.g. Visual Studio Build Tools), **3**) A Fortran compiler (e.g. Intel oneAPI Fortran, or MinGW gfortran configured for CMake). If you don’t have a Fortran toolchain available, the installation will likely fail. As an alternative, you can use WSL (Linux subsystem) and install the Linux wheels there.
 
+<!--
 **Conda:**
 
 ```bash
 conda install -c conda-forge irmsd
 ```
-
+-->
 
 For basic usage instructions, both via the CLI and in-code, [**see below**](#when-and-how-to-use-irmsd).
 
@@ -449,7 +450,7 @@ If you use this software in academic work, please acknowledge it and cite the [*
 # OTHER TODOs
 - [ ] docstrings and actual docs (GH pages?)
 - [ ] conda-forge package
-- [ ] ci.yml
+- [x] ci.yml/wheels.yml
 - [x] codecov
 - [ ] (implementation) Parallelization via OpenMP
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
