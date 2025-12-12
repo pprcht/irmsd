@@ -2,9 +2,9 @@ name: Build wheels
 
 on:
   pull_request:
-    branches: [ wheels, dev ]
+    branches: [ wheels ]
   push:
-    branches: [ wheels, dev ]
+    branches: [ wheels ]
 
 jobs:
   build_wheels:
