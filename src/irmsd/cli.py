@@ -50,7 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--cn",
         action="store_true",
         help=(
-            "Calculate coordination numbers for each structure and print them as numpy arrays."
+            "Calculate coordination numbers according to the covalent D4 scheme."
         ),
     )
     p_prop.add_argument(

@@ -46,6 +46,7 @@ module irmsd_module
     integer,allocatable :: iwork2(:,:)
     logical,allocatable :: assigned(:)  !> atom-wise
     logical,allocatable :: rassigned(:) !> rank-wise
+    logical,allocatable :: lwork(:)
 
     integer :: nranks = 0
     integer,allocatable :: ngroup(:)
@@ -136,6 +137,7 @@ contains  !> MODULE PROCEDURES START HERE
     if (allocated(self%iwork2)) deallocate (self%iwork2)
     if (allocated(self%assigned)) deallocate (self%assigned)
     if (allocated(self%rassigned)) deallocate (self%rassigned)
+    if (allocated(self%lwork)) deallocate (self%lwork)
     if (allocated(self%ngroup)) deallocate (self%ngroup)
     if (allocated(self%proxy_topo_ref)) deallocate (self%proxy_topo_ref)
     if (allocated(self%proxy_topo)) deallocate (self%proxy_topo)
@@ -166,16 +168,16 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   function rmsd(ref,mol,mask,scratch,rotmat,gradient,ccache) result(rmsdval)
-!************************************************************************
-!* function rmsd
-!* Calculate the molecular RMSD via a quaternion algorithm
-!*
-!* Optional arguments are
-!*   mask - boolean array to select a substructure for RMSD calculation
-!*   scratch - workspace to create the substructures
-!*   rotmat  - rotation matrix as return argument
-!*   gradient - Cartesian gradient of the RMSD
-!************************************************************************
+    !************************************************************************
+    !* function rmsd
+    !* Calculate the molecular RMSD via a quaternion algorithm
+    !*
+    !* Optional arguments are
+    !*   mask - boolean array to select a substructure for RMSD calculation
+    !*   scratch - workspace to create the substructures
+    !*   rotmat  - rotation matrix as return argument
+    !*   gradient - Cartesian gradient of the RMSD
+    !************************************************************************
     implicit none
     real(wp) :: rmsdval
     type(coord),intent(in) :: ref
@@ -272,7 +274,7 @@ contains  !> MODULE PROCEDURES START HERE
       if (allocated(tmpscratch)) deallocate (tmpscratch)
 
     else
-!>--- standard calculation (Quarternion algorithm)
+!>--- standard calculation (quaternion algorithm, no mask)
       call rmsd_core(ref%nat,mol%xyz,ref%xyz, &
       &          calc_u,Udum,rmsdval,getgrad,grdptr,ccptr)
     end if
@@ -285,12 +287,12 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   subroutine rmsd_core(nat,xyz1,xyz2,calc_u,U,error,calc_g,grad,ccache)
-!**********************************************************
-!* Rewrite or RMSD code with modified memory management
-!* Adapted from ls_rmsd, and using some of its subroutines
-!* The goal is to offload memory allocation to outside
-!* the routine in case it is repeadetly called
-!**********************************************************
+    !**********************************************************
+    !* Rewrite or RMSD code with modified memory management
+    !* Adapted from ls_rmsd, and using some of its subroutines
+    !* The goal is to offload memory allocation to outside
+    !* the routine in case it is repeadetly called
+    !**********************************************************
     use ls_rmsd,only:dstmev,rotation_matrix
     implicit none
     integer,intent(in) :: nat
@@ -400,18 +402,18 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   subroutine min_rmsd(ref,mol,rcache,rmsdout,align,topocheck,io)
-!****************************************************************************
-!* Main routine to determine minium RMSD considering atom permutation
-!* Input
-!*   ref  - the reference structure
-!*   mol  - the structure to be matched to ref
-!* Optinal arguments
-!*   rcache    - memory cache
-!*   rmsdout   - the calculated RMSD scalar
-!*   align     - quarternion-align mol in the last stage
-!*   topocheck - check molecule topology? if absent, doing check is default
-!*   io        - return status
-!****************************************************************************
+    !****************************************************************************
+    !* Main routine to determine minium RMSD considering atom permutation
+    !* Input
+    !*   ref  - the reference structure
+    !*   mol  - the structure to be matched to ref
+    !* Optinal arguments
+    !*   rcache    - memory cache
+    !*   rmsdout   - the calculated RMSD scalar
+    !*   align     - quarternion-align mol in the last stage
+    !*   topocheck - check molecule topology? if absent, doing check is default
+    !*   io        - return status
+    !****************************************************************************
     implicit none
     !> IN & OUTPUT
     type(coord),intent(in) :: ref
@@ -426,6 +428,7 @@ contains  !> MODULE PROCEDURES START HERE
     type(rmsd_cache),pointer :: cptr
     type(rmsd_cache),allocatable,target :: local_rcache
     integer :: nat,ii,rnk,dumpunit,uniquenesscase,ioloc
+    integer :: nunique
     real(wp) :: calc_rmsd
     real(wp) :: tmprmsd_sym(32)
     real(wp) :: rotmat(3,3),rotconst(3)
@@ -534,6 +537,28 @@ contains  !> MODULE PROCEDURES START HERE
     if (debug) then
       open (newunit=dumpunit,file='debugirmsd.xyz')
       call ref%append(dumpunit)
+    end if
+
+!>--- Check how many indices are unique
+    cptr%lwork = unique_rank_mask(cptr%rank(:,1))
+    nunique = count(cptr%lwork)
+
+!> ----------------------------------------------------
+!> Substructure alignment for unique indices - START
+!> ----------------------------------------------------
+    if (nunique >= 3) then
+       !align
+       !compute LSAP
+       !restore
+       if ( cptr%stereocheck)then
+         !invert
+         !align
+         !compute LSAP
+         !resotre
+       endif
+       !check which was better
+       !set fixed atom order
+       !
     end if
 
 !> ----------------------------------------------------
@@ -674,10 +699,10 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   subroutine min_rmsd_rotcheck_unique(rot,uniquenesscase,thr)
-!*******************************************************
-!* Based on the rotational constants, determine what we
-!* need to do with the molecule in the following
-!*******************************************************
+    !*******************************************************
+    !* Based on the rotational constants, determine what we
+    !* need to do with the molecule in the following
+    !*******************************************************
     implicit none
     real(wp),intent(in) :: rot(3)
     integer,intent(out) :: uniquenesscase
@@ -793,10 +818,10 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   subroutine fallbackranks(ref,mol,nat,ranks)
-!*****************************************************************
-!* If we are doing ranks on-the-fly (i.e. without canonical algo)
-!* we can fall back to just using the atom types
-!*****************************************************************
+    !*****************************************************************
+    !* If we are doing ranks on-the-fly (i.e. without canonical algo)
+    !* we can fall back to just using the atom types
+    !*****************************************************************
     implicit none
     type(coord),intent(in) :: ref,mol
     integer,intent(in) :: nat
@@ -839,10 +864,10 @@ contains  !> MODULE PROCEDURES START HERE
 
   subroutine compute_linear_sum_assignment(ref,mol,ranks, &
                         & ngroups,targetrank,iwork2,acache,val0)
-!**************************************************************
-!* Run the linear assignment algorithm on the desired subset
-!* of atoms (via rank and targetrank)
-!**************************************************************
+    !**************************************************************
+    !* Run the linear assignment algorithm on the desired subset
+    !* of atoms (via rank and targetrank)
+    !**************************************************************
     implicit none
     !> IN & OUTPUT
     type(coord),intent(in) :: ref
@@ -949,10 +974,10 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 
   function checkranks(nat,ranks1,ranks2) result(yesno)
-!***********************************************************************
-!* Check two rank arrays to see if we have the same amount of
-!* atoms in the same ranks (a condition to bein able to work with them)
-!***********************************************************************
+    !***********************************************************************
+    !* Check two rank arrays to see if we have the same amount of
+    !* atoms in the same ranks (a condition to bein able to work with them)
+    !***********************************************************************
     implicit none
     logical :: yesno
     integer,intent(in) :: nat
@@ -981,6 +1006,26 @@ contains  !> MODULE PROCEDURES START HERE
     !> if we reach this point we can assume the given ranks are o.k.
     yesno = .true.
   end function checkranks
+
+!========================================================================================!
+  function unique_rank_mask(ranks) result(mask)
+    !*********************************************
+    !* Takes a rank array and creates a mask that
+    !* contains .true. if the respective rank
+    !* appears only a single time
+    !*********************************************
+    implicit none
+    integer,intent(in) :: ranks(:)
+    logical,allocatable :: mask(:)
+    integer :: ii,jj,n,k,rii
+    n = size(ranks,1)
+    allocate (mask(n),source=.false.)
+    do ii = 1,n
+      rii = ranks(ii)
+      k = count(ranks == rii)
+      if (k == 1) mask(ii) = .true.
+    end do
+  end function unique_rank_mask
 
 !========================================================================================!
 
