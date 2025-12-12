@@ -200,10 +200,11 @@ C   0.1996  -2.3349  -0.3081
   </tr>
 </table>
 
-```
-rmsd compare struc1.xyz struc2.xyz | tail -1
-iRMSD: 0.0000879248 Å
-```
+<p align="center">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/Screenshot_20251212_103904.png
+" width="100%"> 
+</p>
+
 
 
 <br>
