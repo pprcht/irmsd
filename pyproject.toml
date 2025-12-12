@@ -42,7 +42,7 @@ markers = [
   "slow: slow tests",
 ]
 testpaths = "tests/"
-=======
+
 [tool.cibuildwheel]
 build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*"]
 skip = ["pp*", "*-musllinux*"]
