@@ -7,6 +7,7 @@ module sorter_exposed
   use irmsd_module
   use canonical_mod
   use utilities,only:qsorti
+  use term_ui
   implicit none
   private
 
@@ -143,7 +144,7 @@ contains  !> MODULE PROCEDURES START HERE
 
     !> LOCAL
     integer :: i,ii,jj,T,cc,nat,io
-    integer :: gcount
+    integer :: gcount,ggcount
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
@@ -153,6 +154,8 @@ contains  !> MODULE PROCEDURES START HERE
     integer,allocatable :: prune_table(:)
     integer,allocatable :: topo_group(:)
     logical :: stereocheck,individual_IDs
+    type(progress_state) :: ps
+    character(len=:),allocatable :: tmpstr
 
     logical,parameter :: debug = .false.
 
@@ -177,7 +180,12 @@ contains  !> MODULE PROCEDURES START HERE
 
 !>--- print some sorting data
     if (prlvl > 0) then
-      write (stdout,'(a)') 'Info for iRMSD sorting:'
+      tmpstr = 'Info for iRMSD sorting:'
+      if (prlvl > 1) then
+        call printc(style(S_BOLD)//fg(YELLOW,bright=.true.)//trim(tmpstr)//reset())
+      else
+        write (stdout,'(a)') trim(tmpstr)
+      end if
       write (stdout,'(2x,a,i10)') 'number of structures     :',nall
       write (stdout,'(2x,a,f10.5,a)') 'RTHR (RMSD threshold)    :',RTHR*autoaa,' Å'
       if (present(ETHR)) then
@@ -197,6 +205,14 @@ contains  !> MODULE PROCEDURES START HERE
       write (stdout,*)
     end if
 
+    if (prlvl > 0) then
+      tmpstr = "Starting calculations..."
+      if (prlvl > 1) then
+        call printc(style(S_BOLD)//fg(YELLOW,bright=.true.)//trim(tmpstr)//reset())
+      else
+        write (stdout,'(a)') trim(tmpstr)
+      end if
+    end if
 !>--- Set up atom identities (either for all, or just the first structure)
     if (individual_IDs) then
       allocate (sorters(nall))
@@ -207,6 +223,12 @@ contains  !> MODULE PROCEDURES START HERE
     if (prlvl > 0) then
       write (stdout,'(a,9x,a)',advance='no') 'Setting up atom IDs','... '
       flush (stdout)
+      if (prlvl > 1) then
+        write (stdout,*)
+        call progress_init(ps,width=50,prefix=" ↳", &
+          & suffix="",show_time=.true.,show_eta=.false.)
+        call progress_update(ps,0,nall)
+      end if
     end if
     ! !$omp parallel &
     ! !$omp shared(sorters, structures, stereocheck) &
@@ -224,10 +246,19 @@ contains  !> MODULE PROCEDURES START HERE
       if (individual_IDs.or.ii == 1) then
         call sorters(ii)%shrink()
       end if
+      if (prlvl > 1) then
+        call progress_update(ps,ii,nall)
+      end if
     end do
     ! !$omp end do
     ! !$omp end parallel
-    if (prlvl > 0) write (stdout,'(a)') 'done.'
+    if (prlvl > 0) then
+      if (prlvl > 1) then
+        call progress_finish(ps)
+      else
+        write (stdout,'(a)') 'done.'
+      end if
+    end if
 
     !>--- allow user to set inversion check (false rotamers)
     select case (iinversion)
@@ -298,6 +329,12 @@ contains  !> MODULE PROCEDURES START HERE
     if (prlvl > 0) then
       write (stdout,'(a)',advance='no') 'Running iRMSD checks        ... '
       flush (stdout)
+      if (prlvl > 1) then
+        write (stdout,*)
+        call progress_init(ps,width=50,prefix=" ↳", &
+          & suffix="",show_time=.true.,show_eta=.false.)
+        call progress_update(ps,0,nall)
+      end if
     end if
 
     gcount = maxval(groups(:))
@@ -336,24 +373,20 @@ contains  !> MODULE PROCEDURES START HERE
           cycle
         end if
         if (rmsdval < RTHR) groups(jj) = gcount
+
       end do
+      if (prlvl > 1) then
+        call progress_update(ps,ii,nall)
+      end if
       ! !$omp end do
       ! !$omp end parallel
     end do
     if (prlvl > 0) then
-      write (stdout,'(a)') 'done.'
-    end if
-
-    if (debug) then
-      write (*,*) 'assigned groups, and count'
-      do ii = 1,maxval(groups(:))
-        write (*,*) ii,count(groups(:) == ii)
-      end do
-      if (.not.all(topo_group(:) == 1)) then
-        write (*,*) 'assigned topology groups and count'
-        do ii = 1,maxval(topo_group(:))
-          write (*,*) ii,count(topo_group(:) == ii)
-        end do
+      if (prlvl > 1) then
+        call progress_update(ps,nall,nall)
+        call progress_finish(ps)
+      else
+        write (stdout,'(a)') 'done.'
       end if
     end if
 
@@ -625,7 +658,7 @@ contains  !> MODULE PROCEDURES START HERE
 
     !> LOCAL
     integer :: i,ii,jj,kk,T,cc,nat,io
-    integer :: gcount
+    integer :: gcount,ggcount
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
@@ -637,6 +670,8 @@ contains  !> MODULE PROCEDURES START HERE
     integer,allocatable :: topo_group(:)
     real(wp),allocatable :: enuc(:)
     logical :: l1,l2
+    character(len=:),allocatable :: tmpstr
+    type(progress_state) :: ps
 
     !> defaults that are practically never touched
     real(wp),parameter :: bthrmax = 0.025_wp
@@ -661,7 +696,12 @@ contains  !> MODULE PROCEDURES START HERE
 
 !>--- print some sorting data
     if (prlvl > 0) then
-      write (stdout,'(a)') 'Info for CREGEN sorting:'
+      tmpstr = 'Info for CREGEN sorting:'
+      if (prlvl > 1) then
+        call printc(style(S_BOLD)//fg(YELLOW,bright=.true.)//trim(tmpstr)//reset())
+      else
+        write (stdout,'(a)') 'Info for CREGEN sorting:'
+      end if
       write (stdout,'(2x,a,i10)') 'number of structures     :',nall
       write (stdout,'(2x,a,f10.5,a)') 'RTHR (RMSD threshold)    :',RTHR*autoaa,' Å'
       write (stdout,'(2x,a,es10.2,a)') 'ETHR (energy threshold)  :',ETHR,' Ha'
@@ -671,6 +711,14 @@ contains  !> MODULE PROCEDURES START HERE
       write (stdout,*)
     end if
 
+    if (prlvl > 0) then
+      tmpstr = "Starting calculations..."
+      if (prlvl > 1) then
+        call printc(style(S_BOLD)//fg(YELLOW,bright=.true.)//trim(tmpstr)//reset())
+      else
+        write (stdout,'(a)') trim(tmpstr)
+      end if
+    end if
 !>--- allocate work cache
     if (prlvl > 0) then
       write (stdout,'(a)',advance='no') 'Allocating RMSD work cache ... '
@@ -747,6 +795,12 @@ contains  !> MODULE PROCEDURES START HERE
     if (prlvl > 0) then
       write (stdout,'(a,6x,a)',advance='no') 'Running CREGEN checks','... '
       flush (stdout)
+      if (prlvl > 1) then
+        write (stdout,*)
+        call progress_init(ps,width=50,prefix=" ↳", &
+          & suffix="",show_time=.true.,show_eta=.false.)
+        call progress_update(ps,0,nall)
+      end if
     end if
     gcount = maxval(groups(:))
     do ii = 1,nall
@@ -784,11 +838,19 @@ contains  !> MODULE PROCEDURES START HERE
           if (l1.and.l2) groups(jj) = gcount
         end if
       end do
+      if (prlvl > 1) then
+        call progress_update(ps,ii,nall)
+      end if
       ! !$omp end do
       ! !$omp end parallel
     end do
     if (prlvl > 0) then
-      write (stdout,'(a)') 'done.'
+      if (prlvl > 1) then
+        call progress_update(ps,nall,nall)
+        call progress_finish(ps)
+      else
+        write (stdout,'(a)') 'done.'
+      end if
     end if
 
     if (allocated(enuc)) deallocate (enuc)

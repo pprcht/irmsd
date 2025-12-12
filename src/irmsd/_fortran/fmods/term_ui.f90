@@ -238,12 +238,14 @@ contains  !> MODULE PROCEDURES START HERE
       ps%left_cap = left_cap
     else
       ps%left_cap = "["
+      ps%left_cap = "┃"
     end if
 
     if (present(right_cap)) then
       ps%right_cap = right_cap
     else
       ps%right_cap = "]"
+      ps%right_cap = "┃"
     end if
 
     ps%last_draw_ms = -huge(0_int64)
@@ -261,7 +263,7 @@ contains  !> MODULE PROCEDURES START HERE
     logical :: do_force
     integer(int64) :: ms,elapsed_ms
     real(wp) :: frac,elapsed_s,rate,eta_s
-    integer :: filled,i
+    integer :: filled,i,nfilled
     character(:),allocatable :: line,pct,time_str,eta_str
     character(:),allocatable :: bar
 
@@ -289,6 +291,7 @@ contains  !> MODULE PROCEDURES START HERE
 
     filled = int(frac*real(ps%width,wp))
     filled = max(0,min(ps%width,filled))
+    nfilled = max(0, (ps%width-filled))
 
     !> Percent string
     pct = fmt_percent(frac)
@@ -314,25 +317,24 @@ contains  !> MODULE PROCEDURES START HERE
     end if
 
     !> Build bar (optionally color it)
-    bar = ""
-    bar = bar//ps%left_cap
-    do i = 1,filled
-      bar = bar//ps%fill_char
-    end do
-    do i = filled+1,ps%width
-      bar = bar//ps%empty_char
-    end do
-    bar = bar//ps%right_cap
-
-    !> A subtle green->yellow->red could be done; here we do green while running, cyan at start, green at end.
     if (ansi_enabled) then
-      if (frac >= 1.0_wp) then
-        bar = fg(GREEN,bright=.true.)//bar//reset()
-      else if (frac <= 0.05_wp) then
-        bar = fg(CYAN,bright=.true.)//bar//reset()
+      if (frac >= 0.999_wp) then
+        bar = ps%left_cap// &
+          & fg(GREEN,bright=.true.)//repeat(ps%fill_char,filled)//reset()// &
+          & repeat(ps%empty_char,nfilled)//ps%right_cap
+      !else if (frac <= 0.0_wp) then
+      ! bar = ps%left_cap// &
+      !    & fg(WHITE,bright=.true.)//repeat(ps%fill_char,filled)//reset()// &
+      !    & repeat(ps%empty_char,nfilled)//ps%right_cap
       else
-        bar = fg(GREEN)//bar//reset()
+        bar = ps%left_cap// &
+          & fg(GREEN,bright=.false.)//repeat(ps%fill_char,filled)//reset()// &
+          & fg(YELLOW,bright=.false.)//repeat(ps%empty_char,nfilled)//reset()// &
+          & ps%right_cap
       end if
+    else
+      bar = ps%left_cap//repeat(ps%fill_char,filled)// &
+            & repeat(ps%empty_char,nfilled)//ps%right_cap
     end if
 
     line = clear_line()//ps%prefix//bar//" "//pct//ps%suffix//eta_str//time_str
@@ -389,9 +391,10 @@ contains  !> MODULE PROCEDURES START HERE
     real(wp),intent(in) :: frac
     character(:),allocatable :: s
     integer :: p
-    character(5) :: buf
-    p = int(100.0_wp*max(0.0_wp,min(1.0_wp,frac))+0.5_wp)
-    write (buf,'(i3,a)') p,"%"
+    real(wp) :: rp
+    character(8) :: buf
+    rp = min(100.0_wp*max(0.0_wp,min(1.0_wp,frac))+0.5_wp,100.0_wp)
+    write (buf,'(f5.1,a)') rp,"%"
     s = adjustl(buf)
   end function fmt_percent
 

@@ -243,7 +243,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sort.add_argument(
         "--maxprint",
         type=int,
-        default=25,
+        default=15,
         help=(
             "Printout option; determine how many rows are printed for each sorted ensemble."
         ),
@@ -263,8 +263,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    from .utils.printouts import BANNER
+    printlevel = 2 if sys.stdout.isatty() else 1
 
+    from .utils.printouts import BANNER
     print(BANNER)
 
     heavy = args.heavy  # exists in all subparsers
@@ -272,6 +273,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"Reading structures from: {args.structures}")
     molecule_list = irmsd.read_structures(args.structures)
     print(f"Done! {len(molecule_list)} read in total.")
+    sys.stdout.flush()
+    sys.stderr.flush()
 
     # -------------------------------------------------------------------------
     # prop
@@ -355,7 +358,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             irmsd.sort_get_delta_irmsd_and_print(
                 molecule_list,
                 inversion=args.inversion,
-                printlvl=1,
+                printlvl=printlevel,
                 maxprint=args.maxprint,
                 outfile=args.output,
             )
@@ -372,7 +375,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 bthr=args.bthr,
                 ewin=args.ewin,
                 maxprint=args.maxprint,
-                printlvl=1,
+                printlvl=printlevel,
                 outfile=args.output,
             )
 
@@ -381,7 +384,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 molecule_list,
                 rthr=args.rthr,
                 inversion=args.inversion,
-                printlvl=1,
+                printlvl=printlevel,
                 maxprint=args.maxprint,
                 outfile=args.output,
                 ethr=args.ethr,
