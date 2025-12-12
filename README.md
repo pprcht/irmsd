@@ -201,8 +201,7 @@ C   0.1996  -2.3349  -0.3081
 </table>
 
 <p align="center">
-  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/Screenshot_20251212_103904.png
-" width="100%"> 
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/Screenshot_20251212_105945.jpg" width="100%"> 
 </p>
 
 
