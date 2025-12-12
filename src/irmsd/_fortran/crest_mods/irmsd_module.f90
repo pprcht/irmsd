@@ -431,7 +431,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: nunique
     real(wp) :: calc_rmsd
     real(wp) :: tmprmsd_sym(32)
-    real(wp) :: rotmat(3,3),rotconst(3)
+    real(wp) :: rotmat(3,3),rotconst(3),shift(3)
     logical :: topocheck_l = .true.
     logical,parameter :: debug = .false.
 
@@ -550,7 +550,10 @@ contains  !> MODULE PROCEDURES START HERE
     !> The logic here is: if we have enough unique atoms
     !> we can align the molecule with them and identify
     !> symmetry equivalent atoms via LSAP in those thereafter
-    IF (nunique >= 3) then
+    IF (nunique >= 3)then
+      !> mol still needs a first alignment and CMA shift
+       call CMAtrf(mol%nat,mol%nat,mol%at,mol%xyz)
+
       tmprmsd_sym(:) = inf
       tmprmsd_sym(1) = rmsd(ref,mol,cptr%lwork, &
         &                   cptr%xyzscratch,rotmat=rotmat, &
