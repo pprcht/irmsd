@@ -543,91 +543,109 @@ contains  !> MODULE PROCEDURES START HERE
     cptr%lwork = unique_rank_mask(cptr%rank(:,1))
     nunique = count(cptr%lwork)
 
-!> ----------------------------------------------------
-!> Substructure alignment for unique indices - START
-!> ----------------------------------------------------
-    if (nunique >= 3) then
-       !align
-       !compute LSAP
-       !restore
-       if ( cptr%stereocheck)then
-         !invert
-         !align
-         !compute LSAP
-         !resotre
-       endif
-       !check which was better
-       !set fixed atom order
-       !
-    end if
+!> --------------------------------------------------------
+!> SUBSTRUCTURE-BASED ALIGNMENT with enough unique indices
+!> --------------------------------------------------------
 
+    !> The logic here is: if we have enough unique atoms
+    !> we can align the molecule with them and identify
+    !> symmetry equivalent atoms via LSAP in those thereafter
+    IF (nunique >= 3) then
+      tmprmsd_sym(:) = inf
+      tmprmsd_sym(1) = rmsd(ref,mol,cptr%lwork, &
+        &                   cptr%xyzscratch,rotmat=rotmat, &
+        &                   ccache=cptr%ccache)
+      mol%xyz = matmul(rotmat,mol%xyz)
+      call min_rmsd_iterate_through_groups(ref,mol,cptr,tmprmsd_sym(1))
+      cptr%order_bkup(:,1) = cptr%iwork(:)
+      if (cptr%stereocheck) then
+        mol%xyz(3,:) = -mol%xyz(3,:)
+
+        tmprmsd_sym(2) = rmsd(ref,mol,cptr%lwork, &
+          &                   cptr%xyzscratch,rotmat=rotmat, &
+          &                   ccache=cptr%ccache)
+        mol%xyz = matmul(rotmat,mol%xyz)
+        call min_rmsd_iterate_through_groups(ref,mol,cptr,tmprmsd_sym(2))
+        cptr%order_bkup(:,2) = cptr%iwork(:)
+        mol%xyz(3,:) = -mol%xyz(3,:)
+      end if
+
+      ii = minloc(tmprmsd_sym,1)
+      if (ii == 2) then
+        !> if the non-mirrored check was lower, revert the mirroring
+        mol%xyz(3,:) = -mol%xyz(3,:)
+      end if
+!> ----------------------------------------------------
+    ELSE
 !> ----------------------------------------------------
 !> ROTATIONAL AXIS ALIGNMENT AND LSAP CHECKS - START
 !> ----------------------------------------------------
 
-    !> initialize to huge
-    tmprmsd_sym(:) = inf
-    !> initial alignment of mol
-    call axis(mol%nat,mol%at,mol%xyz,rotconst)
-    call min_rmsd_rotcheck_unique(rotconst,uniquenesscase)
+      !> initialize to huge
+      tmprmsd_sym(:) = inf
+      !> initial alignment of mol
+      call axis(mol%nat,mol%at,mol%xyz,rotconst)
+      call min_rmsd_rotcheck_unique(rotconst,uniquenesscase)
 
-    !> Running the checks and check of uniqueness of rotational axes
-    call min_rmsd_rotcheck_permute(ref,mol,cptr,tmprmsd_sym,1,uniquenesscase)
-    if (debug) then
-      write (*,*) 'Total LSAP cost:',minval(tmprmsd_sym(1:16))
-      call mol%append(dumpunit)
-    end if
-
-    !> mirror z and re-run the same checks (i.e. the false rotamer inversion)
-    if (cptr%stereocheck) then
-      mol%xyz(3,:) = -mol%xyz(3,:)  !> mirror z
-      call axis(mol%nat,mol%at,mol%xyz) !> align
-
-      !> Running the checks
-      call min_rmsd_rotcheck_permute(ref,mol,cptr,tmprmsd_sym,2,uniquenesscase)
+      !> Running the checks and check of uniqueness of rotational axes
+      call min_rmsd_rotcheck_permute(ref,mol,cptr,tmprmsd_sym,1,uniquenesscase)
       if (debug) then
-        write (*,*) 'Total LSAP cost (inverted):',minval(tmprmsd_sym(17:32))
+        write (*,*) 'Total LSAP cost:',minval(tmprmsd_sym(1:16))
         call mol%append(dumpunit)
       end if
-      mol%xyz(3,:) = -mol%xyz(3,:)  !> restore z
-    end if
+
+      !> mirror z and re-run the same checks (i.e. the false rotamer inversion)
+      if (cptr%stereocheck) then
+        mol%xyz(3,:) = -mol%xyz(3,:)  !> mirror z
+        call axis(mol%nat,mol%at,mol%xyz) !> align
+
+        !> Running the checks
+        call min_rmsd_rotcheck_permute(ref,mol,cptr,tmprmsd_sym,2,uniquenesscase)
+        if (debug) then
+          write (*,*) 'Total LSAP cost (inverted):',minval(tmprmsd_sym(17:32))
+          call mol%append(dumpunit)
+        end if
+        mol%xyz(3,:) = -mol%xyz(3,:)  !> restore z
+      end if
 
 !>--- select the best match among the ones after symmetry operations and use its ordering
-    ii = minloc(tmprmsd_sym(1:32),1)
-    if (debug) then
-      write (*,*) 'final alignment:',ii,"/ 32"
-    end if
-    if (ii > 16) then
-      mol%xyz(3,:) = -mol%xyz(3,:)
-      if (debug) write (*,*) 'inverting'
-    end if
-    if ((ii > 4.and.ii < 9).or.(ii > 20.and.ii < 25)) then
-      if (uniquenesscase == 1) mol%xyz = matmul(Rx90,mol%xyz)
-      if (uniquenesscase == 2) mol%xyz = matmul(Rz90,mol%xyz)
-      if (uniquenesscase == 3) mol%xyz = matmul(Rz90,mol%xyz)
-      if (debug) write (*,*) '90° tilt'
-    else if ((ii > 8.and.ii < 13).or.(ii > 24.and.ii < 29)) then
-      mol%xyz = matmul(Ry90,mol%xyz)
-    else if ((ii > 12.and.ii < 17).or.(ii > 28)) then
-      mol%xyz = matmul(Rx90,mol%xyz)
-    end if
-    select case (ii) !> 180° rotations
-    case (1,5,9,13,17,21,25,29)
-      continue
-    case (2,6,10,14,18,22,26,30)
-      mol%xyz = matmul(Rx180,mol%xyz)
-      if (debug) write (*,*) '180°x'
-    case (3,7,11,15,19,23,27,31)
-      mol%xyz = matmul(Rx180,mol%xyz)
-      mol%xyz = matmul(Ry180,mol%xyz)
-      if (debug) write (*,*) '180°x, 180°y'
-    case (4,8,12,16,20,24,28,32)
-      mol%xyz = matmul(Ry180,mol%xyz)
-      if (debug) write (*,*) '180°y'
-    end select
-    cptr%current_order(:) = cptr%order_bkup(:,ii)
+      ii = minloc(tmprmsd_sym(1:32),1)
+      if (debug) then
+        write (*,*) 'final alignment:',ii,"/ 32"
+      end if
+      if (ii > 16) then
+        mol%xyz(3,:) = -mol%xyz(3,:)
+        if (debug) write (*,*) 'inverting'
+      end if
+      if ((ii > 4.and.ii < 9).or.(ii > 20.and.ii < 25)) then
+        if (uniquenesscase == 1) mol%xyz = matmul(Rx90,mol%xyz)
+        if (uniquenesscase == 2) mol%xyz = matmul(Rz90,mol%xyz)
+        if (uniquenesscase == 3) mol%xyz = matmul(Rz90,mol%xyz)
+        if (debug) write (*,*) '90° tilt'
+      else if ((ii > 8.and.ii < 13).or.(ii > 24.and.ii < 29)) then
+        mol%xyz = matmul(Ry90,mol%xyz)
+      else if ((ii > 12.and.ii < 17).or.(ii > 28)) then
+        mol%xyz = matmul(Rx90,mol%xyz)
+      end if
+      select case (ii) !> 180° rotations
+      case (1,5,9,13,17,21,25,29)
+        continue
+      case (2,6,10,14,18,22,26,30)
+        mol%xyz = matmul(Rx180,mol%xyz)
+        if (debug) write (*,*) '180°x'
+      case (3,7,11,15,19,23,27,31)
+        mol%xyz = matmul(Rx180,mol%xyz)
+        mol%xyz = matmul(Ry180,mol%xyz)
+        if (debug) write (*,*) '180°x, 180°y'
+      case (4,8,12,16,20,24,28,32)
+        mol%xyz = matmul(Ry180,mol%xyz)
+        if (debug) write (*,*) '180°y'
+      end select
 !> ----------------------------------------------------
 !> rotational axis alignment and LSAP checks - END
+!> ----------------------------------------------------
+    END IF
+    cptr%current_order(:) = cptr%order_bkup(:,ii)
 !> ----------------------------------------------------
 
     if (debug) then
