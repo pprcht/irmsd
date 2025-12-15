@@ -1,21 +1,12 @@
 from __future__ import annotations
 
-import sys
-from typing import TYPE_CHECKING, List, Optional
-import os
-import pickle
-from collections.abc import Sequence
-from typing import Any, Mapping
-
-import numpy as np
-from ..core import Molecule
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # avoid hard dependency at import time
     from ase import Atoms  # type: ignore
 
 __all__ = [
     "require_ase",
-    "print_array",
 ]
 
 
@@ -25,9 +16,8 @@ __all__ = [
 
 
 def require_ase() -> ModuleType:
-    """
-    Import and return the ASE module, or raise a clear error if it is missing.
-    """
+    """Import and return the ASE module, or raise a clear error if it is
+    missing."""
     try:
         import ase  # type: ignore[import]
     except ImportError as exc:
@@ -50,5 +40,3 @@ def require_rdkit() -> None:
         raise ImportError(
             "rdkit is required for this function. Install optional extra: pip install 'irmsd[rdkit]'"
         ) from e
-
-

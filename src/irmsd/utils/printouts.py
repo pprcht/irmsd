@@ -1,4 +1,4 @@
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
@@ -23,38 +23,6 @@ BANNER = r"""
 """
 
 
-def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
-    """Pretty-print atom-wise properties for a Molecule.
-
-    Parameters
-    ----------
-    mol : Molecule
-        Molecule instance.
-    array : 1D numpy.ndarray
-        Array of properties, one per atom.
-    title : str
-        Header title to print before the data.
-
-    Raises
-    ------
-    ValueError
-        If the length of the array does not match the number of atoms.
-    """
-    nat = len(mol)
-    if len(array) != nat:
-        raise ValueError(
-            f"Length of array ({len(array)}) does not match number of atoms ({nat})."
-        )
-
-    print(f"{'Atom':>4} {'Symbol':>6} {name:>14}")
-    print("---- ------ --------------")
-    symbols = mol.get_chemical_symbols()
-    for i in range(nat):
-        print_string = f"{i+1:4d} {symbols[i]:>6} " + fmt.format(array[i])
-        print(print_string)
-    print()
-
-
 def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -> None:
     """Pretty-print a 1D or 2D numpy array with a header.
 
@@ -76,22 +44,14 @@ def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -
     """
     print(title)
     if arr.ndim == 1:
-        print(sep+sep.join(fmt.format(x) for x in arr))
+        print(sep + sep.join(fmt.format(x) for x in arr))
 
     elif arr.ndim == 2:
         for row in arr:
-            print(sep+sep.join(fmt.format(x) for x in row))
+            print(sep + sep.join(fmt.format(x) for x in row))
 
     else:
         raise ValueError("Only 1D or 2D arrays are supported.")
-
-
-def print_array(title: str, arr: np.ndarray) -> None:
-    """Pretty-print a numpy array with a header and spacing."""
-    print(title)
-    with np.printoptions(precision=6, suppress=True):
-        print(arr)
-    print()
 
 
 def _print_atomwise_table(
@@ -155,9 +115,8 @@ def print_molecule_summary(
     molecule_list: Sequence[Any],
     **results_by_name: Sequence[Any],
 ) -> None:
-    """
-    Print a summary for each molecule, plus a combined atom-wise table
-    for any results that are 1D per-atom arrays.
+    """Print a summary for each molecule, plus a combined atom-wise table for
+    any results that are 1D per-atom arrays.
 
     Parameters
     ----------
@@ -217,32 +176,6 @@ def print_molecule_summary(
             _print_atomwise_table(mol, atomwise_values)
 
         print()  # spacing between molecules
-
-
-def print_structure(mol) -> None:
-    """Print basic information about a Molecule object in a simple XYZ-like
-    format.
-
-    Parameters
-    ----------
-    mol : Molecule
-        Molecule instance to print.
-
-    Raises
-    ------
-    TypeError
-        If the input is not a Molecule.
-    """
-    if not isinstance(mol, Molecule):
-        raise TypeError("print_structure expects a Molecule object")
-
-    nat = len(mol)
-    symbols = mol.get_chemical_symbols()
-    positions = mol.get_positions()
-
-    print(f"{nat}\n")
-    for sym, (x, y, z) in zip(symbols, positions):
-        print(f"{sym:2} {x:12.6f} {y:12.6f} {z:12.6f}")
 
 
 def print_conformer_structures(*mols, labels=None) -> None:

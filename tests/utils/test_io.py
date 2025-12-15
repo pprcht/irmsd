@@ -1,8 +1,14 @@
+import bz2
+import gzip
+import lzma
+import os
+import pickle
+
 import pytest
 
 pytest.importorskip("ase")
 
-from irmsd.utils.io import read_structures
+from irmsd.utils.io import dump_results_to_pickle, read_structures
 
 CAFFEINE_SINGLE_SDF = """
   Avogadro
@@ -290,3 +296,150 @@ def test_read_structures_ase(file_fixture, request):
     structures = read_structures([file])
     assert len(structures) > 0
     assert all(structure.get_atomic_numbers() is not None for structure in structures)
+
+
+@pytest.fixture
+def molecules():
+    # simple pickleable stand-ins
+    return [{"id": 1}, {"id": 2}]
+
+
+@pytest.fixture
+def results():
+    return {"energy": -123.4, "status": "ok"}
+
+
+def load_pickle(path, compress):
+    """Helper to load a pickle with optional compression."""
+    if compress is None:
+        open_fn = open
+    elif compress == "gz":
+        open_fn = gzip.open
+    elif compress == "bz2":
+        open_fn = bz2.open
+    elif compress == "xz":
+        open_fn = lzma.open
+    else:
+        raise AssertionError("unexpected compress")
+
+    with open_fn(path, "rb") as f:
+        return pickle.load(f)
+
+
+def test_dump_without_results_no_compression(tmp_path, molecules):
+    outfile = tmp_path / "test.pkl"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        results=None,
+        compress=None,
+    )
+
+    assert final_path == str(outfile)
+    assert os.path.exists(final_path)
+
+    payload = load_pickle(final_path, compress=None)
+    assert payload == molecules
+
+
+def test_dump_with_results_no_compression(tmp_path, molecules, results):
+    outfile = tmp_path / "test.pkl"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        results=results,
+        compress=None,
+    )
+
+    payload = load_pickle(final_path, compress=None)
+
+    assert isinstance(payload, dict)
+    assert payload["molecules"] == molecules
+    for k, v in results.items():
+        assert payload[k] == v
+
+
+@pytest.mark.parametrize("compress", ["gz", "bz2", "xz"])
+def test_dump_with_compression(tmp_path, molecules, results, compress):
+    outfile = tmp_path / "test.pkl"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        results=results,
+        compress=compress,
+    )
+
+    assert final_path.endswith(f".pkl.{compress}")
+    assert os.path.exists(final_path)
+
+    payload = load_pickle(final_path, compress=compress)
+    assert payload["molecules"] == molecules
+    assert payload["energy"] == results["energy"]
+
+
+def test_outfile_extension_is_normalized(tmp_path, molecules):
+    # wrong extension should be replaced by .pkl
+    outfile = tmp_path / "data.txt"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        compress=None,
+    )
+
+    assert final_path.endswith(".pkl")
+    assert os.path.exists(final_path)
+
+
+def test_double_extension_handling(tmp_path, molecules):
+    # foo.pkl.gz with compress=None should normalize to foo.pkl
+    outfile = tmp_path / "foo.pkl.gz"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        compress=None,
+    )
+
+    assert final_path.endswith("foo.pkl")
+    assert os.path.exists(final_path)
+
+
+def test_results_with_molecules_key_raises(tmp_path, molecules):
+    outfile = tmp_path / "test.pkl"
+    bad_results = {"molecules": "oops"}
+
+    with pytest.raises(ValueError, match="contains a key 'molecules'"):
+        dump_results_to_pickle(
+            molecules=molecules,
+            outfile=str(outfile),
+            results=bad_results,
+        )
+
+
+def test_invalid_compression_raises(molecules, tmp_path):
+    outfile = tmp_path / "test.pkl"
+
+    with pytest.raises(ValueError, match="Invalid compress"):
+        dump_results_to_pickle(
+            molecules=molecules,
+            outfile=str(outfile),
+            compress="zip",
+        )
+
+
+def test_existing_pkl_extension_with_compression(tmp_path, molecules):
+    outfile = tmp_path / "data.pkl"
+
+    final_path = dump_results_to_pickle(
+        molecules=molecules,
+        outfile=str(outfile),
+        compress="gz",
+    )
+
+    assert final_path.endswith(".pkl.gz")
+    payload = load_pickle(final_path, compress="gz")
+    assert payload == molecules

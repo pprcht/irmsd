@@ -10,22 +10,19 @@ from ..core import Molecule
 from ..sorting import first_by_assignment, group_by, sort_by_value
 from ..utils.io import write_structures
 from ..utils.printouts import (
-    print_array,
-    print_atomwise_properties,
     print_conformer_structures,
+    print_molecule_summary,
     print_pretty_array,
-    print_structure,
     print_structure_summary,
 )
 from .mol_interface import (
+    cregen,
     delta_irmsd_list_molecule,
     get_energies_from_molecule_list,
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
-    cregen,
 )
-
 
 # ------------------------------------------------------
 # CMDs for "prop" runtypes
@@ -53,16 +50,15 @@ def compute_cn_and_print(
     for i, mol in enumerate(molecule_list, start=1):
         cn_vec = mol.get_cn()
         results.append(cn_vec)
-        if not run_multiple:
-            print(f"Coordination numbers for structure {i}:")
-            print_atomwise_properties(mol, cn_vec, "CN")
+    if not run_multiple:
+        print_molecule_summary(molecule_list, **{"CN": results})
     return results
 
 
 def compute_axis_and_print(
     molecule_list: Sequence["Molecule"],
     run_multiple: bool = False,
-) -> List[Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+) -> List[Tuple[np.ndarray, np.ndarray]]:
     """Compute rotational constants, averge momentum and rotation matrix for
     each structure and prints them.
 
@@ -84,17 +80,9 @@ def compute_axis_and_print(
         rot, avmom, evec = mol.get_axis()
         axd["Rotational constants (MHz)"] = rot
         axd["Rotation matrix"] = evec
-        if not run_multiple:
-            results.append((rot, avmom, evec))
-            print(f"Results for structure {i}:")
-            print_pretty_array(f"Rotational constants (MHz):", rot)
-            print()
-            print(f"Average momentum a.u. (10⁻⁴⁷kg m²): {avmom[0]:1.6e}")
-            print()
-            print_pretty_array(f"Rotation matrix:", evec)
-            print()
-        else:
-            results.append(axd)
+        results.append(axd)
+    if not run_multiple:
+        print_molecule_summary(molecule_list, axis=results)
     return results
 
 
@@ -123,9 +111,8 @@ def compute_canonical_and_print(
     for i, mol in enumerate(molecule_list, start=1):
         rank = mol.get_canonical(heavy=heavy)
         results.append(rank)
-        if not run_multiple:
-            print(f"Canonical ranks for structure {i}:")
-            print_atomwise_properties(mol, rank, "Canonical Rank", fmt="{:14d}")
+    if not run_multiple:
+        print_molecule_summary(molecule_list, **{"Canonical ID": results})
     return results
 
 
@@ -539,9 +526,8 @@ def run_cregen_and_print(
     maxprint: int = 25,
     outfile: str | None = None,
 ) -> None:
-    """
-    Convenience wrapper around cregen() from mol_interface.
-    Splits according to sum formula, if necessary
+    """Convenience wrapper around cregen() from mol_interface. Splits according
+    to sum formula, if necessary.
 
     Parameters
     ----------
