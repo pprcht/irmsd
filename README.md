@@ -7,7 +7,7 @@
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
 [![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0) 
-<!-- ![CI workflow](https://github.com/pprcht/irmsd/actions/workflows/ci.yaml/badge.svg) -->
+[![Wheels Build](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml)
 [![Tests & Coverage](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml)
 [![codecov](https://codecov.io/gh/pprcht/irmsd/graph/badge.svg?token=Q1O7IRNITG)](https://codecov.io/gh/pprcht/irmsd)
 
@@ -34,7 +34,7 @@ iRMSD is designed for researchers working in computational chemistry, conformati
 
 ## Installation 🔧
 
-iRMSD is available via both **PyPI** and **conda-forge**.
+iRMSD is available via **PyPI**. <!-- both **PyPI** and **conda-forge**. -->
 
 **PyPI:**
 
@@ -42,12 +42,18 @@ iRMSD is available via both **PyPI** and **conda-forge**.
 pip install irmsd
 ```
 
+Prebuilt wheels are available for Linux (`manylinux`) and macOS (`arm64`), so installation is typically straightforward. On macOS, wheel compatibility follows the version of the `macos-latest` runner
+used by GitHub Actions. 
+
+We currently do not provide prebuilt wheels for Windows. On Windows, `pip install irmsd` will build the package *from source*. This requires: **1**) Python 3.10 or newer, **2**) A C/C++ compiler (e.g. Visual Studio Build Tools), **3**) A Fortran compiler (e.g. Intel oneAPI Fortran, or MinGW gfortran configured for CMake). If you don’t have a Fortran toolchain available, the installation will likely fail. As an alternative, you can use WSL (Linux subsystem) and install the Linux wheels there.
+
+<!--
 **Conda:**
 
 ```bash
 conda install -c conda-forge irmsd
 ```
-
+-->
 
 For basic usage instructions, both via the CLI and in-code, [**see below**](#when-and-how-to-use-irmsd).
 
@@ -93,108 +99,118 @@ A simple application example is seen below. Here, we have two copies of the same
   <td >
 
 <p align="center">
-  <img src="assets/images/fluoxetine1.jpg" width="50%">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine1.jpg" width="75%">
 </p>
 
-   ```
-   40
+`struc1.xyz`:
 
-C       -0.01987163       0.21585450       0.53084229
-F       -5.02463830      -0.24646228       0.55935722
-H       -2.02078596       0.07612714       3.28881405
-H        2.02217107       5.03032049       0.48927133
-C       -0.40321997       0.20036704       1.87489113
-H        1.45420890       5.18901427      -1.19371547
-C        2.17733833       2.66864582      -0.76268897
-F       -4.67751877       0.82944620       2.41720231
-F       -4.36672604      -1.32184164       2.32896140
-N        3.05552607       3.82905962      -0.92334538
-C        2.33719322       5.04674518      -0.56018219
-H        3.70511862       1.19476594      -0.34348568
-O        1.33057234       0.20761810       0.33646497
-C       -2.35768371       0.13869000      -0.09508508
-C        3.33675576      -3.74750034      -2.09446622
-C       -2.74269982       0.04812179       1.24847416
-C       -4.18552434      -0.16594973       1.62929095
-C        2.46510694      -1.17503088      -1.33196962
-H        1.79066092       2.65122477       0.26603672
-C        2.89633035       1.34737137      -1.06798449
-H        1.32035063       2.77529913      -1.44056976
-C        1.88069391       0.19085596      -0.99054876
-H       -0.78657354       0.26628333      -1.51013041
-H        3.35277236       1.39254113      -2.06515939
-H        1.12828446       0.39627859      -1.75415357
-H        2.85290238      -0.65540250      -3.39999372
-H        2.95472656      -4.31081052      -0.05306773
-H        3.86264326       3.72503009      -0.30378434
-H        0.35812587       0.22941766       2.65225391
-C       -1.75119800       0.11650566       2.23458197
-H        2.98864128       5.91460759      -0.70023613
-H        2.19806826      -2.07238586       0.62783765
-H        3.61939256      -2.90096167      -4.05301199
-H       -3.10849602       0.11742007      -0.88451613
-C        2.51626740      -2.22605411      -0.40151847
-C       -1.00752799       0.22167753      -0.45082349
-H        3.65020338      -4.74303245      -2.39363218
-C        2.94335708      -3.50256427      -0.78117933
-C        2.88629837      -1.43730500      -2.64753502
-C        3.31583545      -2.71173570      -3.02569967
+   ```
+40
+
+C  -0.0198   0.2158   0.5308
+F  -5.0246  -0.2464   0.5593
+H  -2.0207   0.0761   3.2888
+H   2.0221   5.0303   0.4892
+C  -0.4032   0.2003   1.8748
+H   1.4542   5.1890  -1.1937
+C   2.1773   2.6686  -0.7626
+F  -4.6775   0.8294   2.4172
+F  -4.3667  -1.3218   2.3289
+N   3.0555   3.8290  -0.9233
+C   2.3371   5.0467  -0.5601
+H   3.7051   1.1947  -0.3434
+O   1.3305   0.2076   0.3364
+C  -2.3576   0.1386  -0.0950
+C   3.3367  -3.7475  -2.0944
+C  -2.7426   0.0481   1.2484
+C  -4.1855  -0.1659   1.6292
+C   2.4651  -1.1750  -1.3319
+H   1.7906   2.6512   0.2660
+C   2.8963   1.3473  -1.0679
+H   1.3203   2.7752  -1.4405
+C   1.8806   0.1908  -0.9905
+H  -0.7865   0.2662  -1.5101
+H   3.3527   1.3925  -2.0651
+H   1.1282   0.3962  -1.7541
+H   2.8529  -0.6554  -3.3999
+H   2.9547  -4.3108  -0.0530
+H   3.8626   3.7250  -0.3037
+H   0.3581   0.2294   2.6522
+C  -1.7511   0.1165   2.2345
+H   2.9886   5.9146  -0.7002
+H   2.1980  -2.0723   0.6278
+H   3.6193  -2.9009  -4.0530
+H  -3.1084   0.1174  -0.8845
+C   2.5162  -2.2260  -0.4015
+C  -1.0075   0.2216  -0.4508
+H   3.6502  -4.7430  -2.3936
+C   2.9433  -3.5025  -0.7811
+C   2.8862  -1.4373  -2.6475
+C   3.3158  -2.7117  -3.0256
    ```
 
   </td><td>
 
 <p align="center">
-  <img src="assets/images/fluoxetine2.jpg" width="50%"> 
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine2.jpg" width="75%"> 
 </p>
 
-   ```
-   40
+`struc2.xyz`:
 
-C       -0.24704090      -1.01437504      -0.42131871
-H        0.08281196       4.25648110      -4.45174101
-C       -2.11932720       2.61781842       0.01445529
-C        1.20899262      -1.82043595       1.81603259
-C        0.06190045      -0.08045642       0.56433738
-C        0.96325609      -2.74361258       0.79254870
-H       -5.94318235       1.81171553       2.40855988
-H       -3.29334088       0.80998500       0.13668371
-H        2.45550716       4.58283581      -3.81023846
-H       -0.03284719      -3.03840102      -1.10722359
-H       -3.98561760       3.07772980       1.87898342
-H       -2.46402973       1.23328206       1.64736387
-C       -0.42557689       3.20374316      -2.63835549
-H        1.75819318       2.53315188      -0.11120094
-C        1.36401460       2.91213412      -1.05217616
-C        1.55024853      -4.13062528       0.85755848
-C       -5.02082585       1.33577106       2.06226491
-H       -4.46954169       0.99207120       2.94477135
-F        1.12537189      -4.83404752       1.94307811
-C        2.23386967       3.59149971      -1.91115269
-H       -1.77441710       3.41406760       0.68479077
-C        0.44278317       3.88505195      -3.49477440
-C        0.75999111      -0.50199863       1.69951785
-F        1.25250628      -4.89901106      -0.22700852
-H       -1.33602978       1.09312678      -1.23580562
-H        1.77634708      -2.11513027       2.69749589
-H        0.97850985       0.21068905       2.49268249
-H       -5.30292779       0.46548036       1.45870976
-H       -0.81291545      -0.76799726      -1.31127696
-H       -2.69322590       3.09272084      -0.79167457
-C       -0.91816948       1.84289748      -0.56153015
-F        2.91122354      -4.11008178       0.93361023
-H       -1.45194769       3.04703738      -2.95566792
-H        3.27528235       3.73258624      -1.62991966
-C        1.77551163       4.07214665      -3.13522992
-C        0.02303033       2.69241111      -1.40782985
-N       -4.23963014       2.28871248       1.27977938
-O       -0.23030633       1.25222222       0.55284285
-C       -3.01762671       1.64629297       0.79234818
-C        0.19969720      -2.33497332      -0.30817072
+   ```
+40
+
+C  -0.2470  -1.0143  -0.4213
+H   0.0828   4.2564  -4.4517
+C  -2.1193   2.6178   0.0144
+C   1.2089  -1.8204   1.8160
+C   0.0619  -0.0804   0.5643
+C   0.9632  -2.7436   0.7925
+H  -5.9431   1.8117   2.4085
+H  -3.2933   0.8099   0.1366
+H   2.4555   4.5828  -3.8102
+H  -0.0328  -3.0384  -1.1072
+H  -3.9856   3.0777   1.8789
+H  -2.4640   1.2332   1.6473
+C  -0.4255   3.2037  -2.6383
+H   1.7581   2.5331  -0.1112
+C   1.3640   2.9121  -1.0521
+C   1.5502  -4.1306   0.8575
+C  -5.0208   1.3357   2.0622
+H  -4.4695   0.9920   2.9447
+F   1.1253  -4.8340   1.9430
+C   2.2338   3.5914  -1.9111
+H  -1.7744   3.4140   0.6847
+C   0.4427   3.8850  -3.4947
+C   0.7599  -0.5019   1.6995
+F   1.2525  -4.8990  -0.2270
+H  -1.3360   1.0931  -1.2358
+H   1.7763  -2.1151   2.6974
+H   0.9785   0.2106   2.4926
+H  -5.3029   0.4654   1.4587
+H  -0.8129  -0.7679  -1.3112
+H  -2.6932   3.0927  -0.7916
+C  -0.9181   1.8428  -0.5615
+F   2.9112  -4.1100   0.9336
+H  -1.4519   3.0470  -2.9556
+H   3.2752   3.7325  -1.6299
+C   1.7755   4.0721  -3.1352
+C   0.0230   2.6924  -1.4078
+N  -4.2396   2.2887   1.2797
+O  -0.2303   1.2522   0.5528
+C  -3.0176   1.6462   0.7923
+C   0.1996  -2.3349  -0.3081
    ```       
 
   </td>
   </tr>
 </table>
+
+<p align="center">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/Screenshot_20251212_105945.jpg" width="100%"> 
+</p>
+
+
 
 <br>
 <br>
@@ -204,7 +220,7 @@ C        0.19969720      -2.33497332      -0.30817072
 ### Example 1 - Symmetric Rotamers (Pentane C<sub>5</sub>H<sub>12</sub>)
 
 <p align="center">
-  <img src="assets/images/example1.jpg" width="100%">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example1.jpg" width="100%">
 </p>
 
 Most pentane conformers have *four* rotamers that differ only by permutation or inversion of terminal methyl groups.
@@ -221,7 +237,7 @@ This simple example illustrates a key problem with classical (quaternion) RMSD-b
 ### Example 2 - Validation on Randomized Atom Order Structures
 
 <p align="center">
-  <img src="assets/images/example2.jpg" width="100%"> 
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example2.jpg" width="100%"> 
 </p>
 
 A robust permutation-handling alignment algorithm must correctly classify structures as identical even if:
@@ -239,7 +255,7 @@ Figures 7a–d (pages 6–7) show that iRMSD successfully returns ~0 Å for **ev
 
 
 <p align="center">
-  <img src="assets/images/example3.jpg" width="100%">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example3.jpg" width="100%">
 </p>
 
 Noncovalent clusters break most RMSD algorithms because:
@@ -261,7 +277,7 @@ For LJ<sub>75</sub>, the full 75×75 LSAP is solved successfully.
 ### Example 4 - Conformer-Rotamer Ensemble (CRE) Pruning
 
 <p align="center">
-  <img src="assets/images/example4.jpg" width="100%"> 
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example4.jpg" width="100%"> 
 </p>
 
 iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
@@ -288,21 +304,31 @@ Use iRMSD whenever you wish to:
 
 
 ### Python CLI Usage
-The iRSMD package comes with an CLI tool `irmsd`. This tool allows you to read multiple structures (e.g. from an extended `xyz`-format file), an perform operations on them. There are three subcommands that can be chosen: `prop`, `compare`, and `sort`:
+The iRSMD package comes with an CLI tool `irmsd`. This tool allows you to read multiple structures (e.g. from an extended `xyz`-format file), an perform operations on them. There are three subcommands that can be chosen: `prop`, `compare`, and `sort`/`prune`:
 ```
-irmsd {prop,compare,sort} ...
+usage: irmsd [-h] [-v] {prop,compare,sort,prune} ...
 
-positional arguments:   
-{prop,compare,sort}  Subcommand to run.     
-prop               Compute structural properties (CN, rotational constants, canonical IDs).     
-compare            Compare structures via iRMSD (default) or quaternion RMSD.     
-sort               Sort or cluster structures based on inter-structure RMSD.
+CLI to read an arbitrary number of structures and run selected analysis commands on them.
+
+positional arguments:
+  {prop,compare,sort,prune}
+                        Subcommand to run.
+    prop                Compute structural properties (CN, rotational constants, canonical IDs).
+    compare             Compare structures via iRMSD (default) or quaternion RMSD.
+    sort (prune)        Sort, prune or cluster structures based on inter-structure measures. By
+                        default, the more expensive iRMSD version is used. The use of the molecules'
+                        energies is optional (--ethr) is optional but recommended. To fall back to
+                        the quicker, but more empirical CREGEN workflow for ensemble sorting (using
+                        energies, quaternion RMSDs and rotational constants), use --classic
+
+options:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
 ```
 
-The `sort` functionality exists as an utility function and can be used to determine some atomic properties for each structure provided:
+The `prop` functionality exists as an utility function and can be used to determine some atomic properties for each structure provided:
 ```
-irmsd prop [-h] [--cn] [--rot] [--canonical] [--heavy] structures [structures ...]
-
+usage: irmsd prop [-h] [--cn] [--rot] [--canonical] [--heavy] structures [structures ...]
 
 positional arguments:
   structures   Paths to structure files (e.g. .xyz, .pdb, .cif).
@@ -317,7 +343,9 @@ options:
 
 The `compare` subcommand performs a quaternion RMSD or an iRMSD comparison of the *first two* structures provided. It will return the alisgned structures.
 ```
-usage: irmsd compare [-h] [--quaternion] [--inversion {on,off,auto}] [--heavy] [-o OUTPUT] structures [structures ...]
+usage: irmsd compare [-h] [--quaternion] [--inversion {on,off,auto}] [--heavy] [-o OUTPUT]
+                     [--ref-idx REF_IDX] [--align-idx ALIGN_IDX]
+                     structures [structures ...]
 
 positional arguments:
   structures            Paths to structure files (e.g. .xyz, .pdb, .cif).
@@ -326,15 +354,23 @@ options:
   -h, --help            show this help message and exit
   --quaternion          Use the quaternion-based Cartesian RMSD instead of the invariant RMSD.
   --inversion {on,off,auto}
-                        Control coordinate inversion in iRMSD runtypes: 'on', 'off', or 'auto' (default: auto). Used only for iRMSD.
+                        Control coordinate inversion in iRMSD runtypes: 'on', 'off', or 'auto'
+                        (default: auto). Used only for iRMSD.
   --heavy               When comparing structures, consider only heavy atoms.
   -o OUTPUT, --output OUTPUT
                         Output file name (optional). If not provided, results are only printed.
+  --ref-idx REF_IDX     Index of the reference structure in the provided structure list (default: 0,
+                        i.e., the first structure).
+  --align-idx ALIGN_IDX
+                        Index of the structure to align to the reference structure (default: 1, i.e.,
+                        the second structure). Used only for quaternion RMSD.
 ```
 
-Finally, the `sort` runtype performs ensemble pruning to remove redundant structures from a given structure list. It also splits the structure list into chemically distinct ensembles, should different molecules be included (currently decided via the sum formula).
+Finally, the `sort` (or `prune`) runtype performs ensemble pruning to remove redundant structures from a given structure list. It also splits the structure list into chemically distinct ensembles, should different molecules be included (currently decided via the sum formula).
 ```
-usage: irmsd sort [-h] [--rthr RTHR] [--inversion {on,off,auto}] [--align] [--heavy] [--maxprint MAXPRINT] [-o OUTPUT]
+usage: irmsd sort [-h] [--rthr RTHR] [--ethr [ETHR]] [--bthr BTHR] [--ewin EWIN]
+                  [--inversion {on,off,auto}] [--align] [--classic] [--heavy] [--maxprint MAXPRINT]
+                  [-o OUTPUT]
                   structures [structures ...]
 
 positional arguments:
@@ -342,12 +378,26 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --rthr RTHR           Inter-structure RMSD threshold for sorting in Angström. Structures closer than this threshold are treated as
-                        similar.
+  --rthr RTHR           Inter-structure RMSD threshold for sorting in Angström. Structures closer
+                        than this threshold are treated as similar.
+  --ethr [ETHR]         Inter-structure energy threshold in Hartree. If set, the default is 8.0e-5 Ha
+                        (≈0.05 kcal/mol) or a user-specified value. Optional for iRMSD-based
+                        runtypes.
+  --bthr BTHR           Inter-structure rotational threshold used in the classical CREGEN sorting
+                        procedure. The default is 0.01.
+  --ewin EWIN           Energy window specification for CREGEN. Structures higher in energy than this
+                        threshold (relative to the lowest energy structure in the ensemble) will be
+                        removed. There is no default (all conformers are considered).
   --inversion {on,off,auto}
-                        Control coordinate inversion when evaluating RMSDs during sorting: 'on', 'off', or 'auto' (default: auto).
+                        Control coordinate inversion when evaluating RMSDs during sorting: 'on',
+                        'off', or 'auto' (default: auto). Only for iRMSD-based runtypes.
   --align               Just sort by energy and align.
-  --maxprint MAXPRINT   Printout option; determine how man rows are printed for each sorted ensemble.
+  --classic, --cregen   Perform conformer classification with the CREGEN workflow based on a
+                        comparison of quaternion RMSD, energy, interatomic distances, and rotational
+                        constants. This routine is cheaper but more empirical than iRMSD-based
+                        sorting. Does NOT restore mismatching atom order. Does not keep individual
+                        rotamers.
+  --maxprint MAXPRINT   Printout option; determine how many rows are printed for each sorted ensemble.
   -o OUTPUT, --output OUTPUT
                         Optional output file for sorted / clustered results.
 ```
@@ -400,9 +450,9 @@ If you use this software in academic work, please acknowledge it and cite the [*
 # OTHER TODOs
 - [ ] docstrings and actual docs (GH pages?)
 - [ ] conda-forge package
-- [ ] ci.yml
-- [ ] codecov
+- [x] ci.yml/wheels.yml
+- [x] codecov
 - [ ] (implementation) Parallelization via OpenMP
-- [ ] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
-- [ ] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
-- [ ] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
+- [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
+- [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
+- [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD

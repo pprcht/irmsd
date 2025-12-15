@@ -19,6 +19,8 @@ from irmsd.interfaces.rdkit_io import (
     get_rmsd_rdkit,
     rdkit_to_molecule,
     sorter_irmsd_rdkit,
+    cregen_rdkit,
+    prune_rdkit,
 )
 
 CAFFEINE_WBO = np.asarray(
@@ -483,3 +485,25 @@ def test_delta_irmsd_list_rdkit(caffeine_delta_irmsd_list_test_data):
 
     delta, new_rdkit_mol_list = delta_irmsd_list_rdkit(rdkit_mol_list)
     assert pytest.approx(delta, abs=1e-4) == expected_delta
+
+
+def test_cregen_rdkit(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    rdkit_mol_list = []
+    for conf_xyz in conformer_list:
+        rdkit_mol = Chem.MolFromXYZBlock(conf_xyz)
+        rdkit_mol_list.append(rdkit_mol)
+
+    new_rdkit_mol_list = cregen_rdkit(rdkit_mol_list, rthr)
+    assert len(new_rdkit_mol_list) == np.max(expected_groups)
+
+
+def test_prune_rdkit(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    rdkit_mol_list = []
+    for conf_xyz in conformer_list:
+        rdkit_mol = Chem.MolFromXYZBlock(conf_xyz)
+        rdkit_mol_list.append(rdkit_mol)
+
+    new_rdkit_mol_list = prune_rdkit(rdkit_mol_list, rthr)
+    assert len(new_rdkit_mol_list) == np.max(expected_groups)

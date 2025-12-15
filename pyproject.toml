@@ -4,16 +4,17 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "irmsd"
-version = "0.0.0a"
+version = "0.0.0a2"
 description = "irmsd: A package for the calculation of the permutation-invariant root-mean-square-deviation (RMSD) of atomic positions."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [{ name = "Philipp Pracht" }, { name = "Tobias Kaczun"}]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["numpy>=2.0"]
 
 [project.optional-dependencies]
 ase = ["ase>=3.22.1"]
+rdkit = ["rdkit>=2025.9.2"]
 dev = ["pytest", "pytest-cov"]
 docs = ["sphinx>=8.2.3", "shibuya"]
 
@@ -27,7 +28,32 @@ editable.mode = "redirect"
 wheel.packages = ["src/irmsd"]
 wheel.expand-macos-universal-tags = true
 
+#[tool.scikit-build.cmake]
+#build-type = "Debug"
+
 [project.scripts]
 irmsd = "irmsd.cli:main"
 
+[tool.pytest.ini_options]
+addopts = [
+  "--color=yes",
+  "--strict-markers",
+]
+markers = [
+  "slow: slow tests",
+]
+testpaths = "tests/"
+
+[tool.cibuildwheel]
+build = ["cp310-*", "cp311-*", "cp312-*", "cp313-*"]
+skip = ["pp*", "*-musllinux*"]
+test-command = "pytest -q {project}/tests"
+test-requires = ["pytest", "numpy"]
+
+[tool.cibuildwheel.linux]
+before-all = "yum install -y gcc-gfortran"
+environment = { FC = "gfortran" }
+
+[tool.cibuildwheel.macos]
+environment = { FC = "gfortran" }
 

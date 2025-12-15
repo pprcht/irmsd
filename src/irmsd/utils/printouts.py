@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import numpy as np
 
@@ -6,37 +7,20 @@ from ..core import Molecule
 
 HARTREE_TO_KCAL_MOL = 627.509474
 
-
-def print_atomwise_properties(mol, array, name: str, fmt="{:14.6f}") -> None:
-    """Pretty-print atom-wise properties for a Molecule.
-
-    Parameters
-    ----------
-    mol : Molecule
-        Molecule instance.
-    array : 1D numpy.ndarray
-        Array of properties, one per atom.
-    title : str
-        Header title to print before the data.
-
-    Raises
-    ------
-    ValueError
-        If the length of the array does not match the number of atoms.
-    """
-    nat = len(mol)
-    if len(array) != nat:
-        raise ValueError(
-            f"Length of array ({len(array)}) does not match number of atoms ({nat})."
-        )
-
-    print(f"{'Atom':>4} {'Symbol':>6} {name:>14}")
-    print("---- ------ --------------")
-    symbols = mol.get_chemical_symbols()
-    for i in range(nat):
-        print_string = f"{i+1:4d} {symbols[i]:>6} " + fmt.format(array[i])
-        print(print_string)
-    print()
+BANNER = r"""
+    ██╗██████╗ ███╗   ███╗███████╗██████╗ 
+    ╠═╣██╔══██╗████╗ ████║██╔════╝██╔══██╗
+    ██║██████╔╝██╔████╔██║███████╗██║  ██║
+    ██║██╔══██╗██║╚██╔╝██║╚════██║██║  ██║
+    ██║██║  ██║██║ ╚═╝ ██║███████║██████╔╝
+    ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚═════╝
+       A tool for structure comparison 
+            and ensemble pruning
+   ────────────────────────────────────────
+     © 2025 Philipp Pracht, Tobias Kaczun
+   https://doi.org/10.1021/acs.jcim.4c02143 
+       https://github.com/pprcht/irmsd
+"""
 
 
 def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -> None:
@@ -60,48 +44,181 @@ def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -
     """
     print(title)
     if arr.ndim == 1:
-        print(sep.join(fmt.format(x) for x in arr))
+        print(sep + sep.join(fmt.format(x) for x in arr))
 
     elif arr.ndim == 2:
         for row in arr:
-            print(sep.join(fmt.format(x) for x in row))
+            print(sep + sep.join(fmt.format(x) for x in row))
 
     else:
         raise ValueError("Only 1D or 2D arrays are supported.")
 
 
-def print_array(title: str, arr: np.ndarray) -> None:
-    """Pretty-print a numpy array with a header and spacing."""
-    print(title)
-    with np.printoptions(precision=6, suppress=True):
-        print(arr)
+def _print_atomwise_table(
+    mol,
+    properties: Mapping[str, np.ndarray],
+) -> None:
+    """Pretty-print multiple atom-wise properties for a single Molecule."""
+    if not properties:
+        return
+
+    def _infer_fmt(arr):
+        if np.issubdtype(arr.dtype, np.integer):
+            return "{:14d}"
+        elif np.issubdtype(arr.dtype, np.floating):
+            return "{:14.6f}"
+        elif np.issubdtype(arr.dtype, np.bool_):
+            return "{:>14}"  # prints True/False
+            # or "{:14d}" to print 1/0
+        else:
+            return "{:>14}"  # fallback for strings or objects
+
+    nat = len(mol)
+    # basic checks
+    for name, arr in properties.items():
+        arr = np.asarray(arr)
+        if arr.ndim != 1:
+            raise ValueError(f"Property '{name}' is not 1D (shape={arr.shape}).")
+        if len(arr) != nat:
+            raise ValueError(
+                f"Property '{name}' length {len(arr)} != number of atoms {nat}"
+            )
+
+    prop_names = list(properties.keys())
+
+    # header
+    header = f"{'Atom':>4} {'Symbol':>6}"
+    for name in prop_names:
+        header += f" {name:>14}"
+    print(header)
+
+    # separator
+    sep = "---- ------"
+    for _ in prop_names:
+        sep += " " + "-" * 14
+    print(sep)
+
+    symbols = mol.get_chemical_symbols()
+
+    for i in range(nat):
+        row = f"{i+1:4d} {symbols[i]:>6}"
+        for name in prop_names:
+            arr = np.asarray(properties[name])
+            fmt_this = _infer_fmt(arr)
+            row += " " + fmt_this.format(arr[i])
+        print(row)
+
     print()
 
 
-def print_structure(mol) -> None:
-    """Print basic information about a Molecule object in a simple XYZ-like
-    format.
+def print_molecule_summary(
+    molecule_list: Sequence[Any],
+    **results_by_name: Sequence[Any],
+) -> None:
+    """Print a summary for each molecule, plus a combined atom-wise table for
+    any results that are 1D per-atom arrays.
 
     Parameters
     ----------
-    mol : Molecule
-        Molecule instance to print.
+    molecule_list : sequence of Molecule
+        List of molecules.
+    **results_by_name :
+        Each keyword argument is a sequence aligned with molecule_list,
+        e.g. energies=[...], charges=[...], spin=[...].
+    """
+    n_mol = len(molecule_list)
+
+    # sanity: all result lists must match length of molecule_list
+    for name, seq in results_by_name.items():
+        if len(seq) != n_mol:
+            raise ValueError(
+                f"Result '{name}' has length {len(seq)}, expected {n_mol}."
+            )
+
+    for idx, mol in enumerate(molecule_list):
+        print("\n" + "=" * 60)
+        print(f"###  MOLECULE {idx+1:>3}  ###")
+        print("=" * 60)
+        print()
+
+        # Split per-molecule vs atom-wise for THIS molecule
+        per_mol_values: dict[str, Any] = {}
+        atomwise_values: dict[str, np.ndarray] = {}
+
+        for name, seq in results_by_name.items():
+            value = seq[idx]
+
+            # Detect atom-wise: 1D array, length == number of atoms
+            if (
+                isinstance(value, np.ndarray)
+                and value.ndim == 1
+                and len(value) == len(mol)
+            ):
+                atomwise_values[name] = value
+            else:
+                per_mol_values[name] = value
+
+        # 1) Print per-molecule values
+        for name, value in per_mol_values.items():
+            # Case A: the value itself is a dict → iterate through it
+            if isinstance(value, dict):
+                for subname, subval in value.items():
+                    print_pretty_array(f"{subname}:", subval)
+                print()
+
+            # Case B: normal scalar or non-dict value
+            else:
+                print(f"{name}: {value}")
+                print()
+
+        # 2) Combined atom-wise table (if any)
+        if atomwise_values:
+            _print_atomwise_table(mol, atomwise_values)
+
+        print()  # spacing between molecules
+
+
+def print_conformer_structures(*mols, labels=None) -> None:
+    """Print multiple Molecule objects representing different conformers of the
+    same molecule in a combined XYZ-like format side-by-side.
+
+    Parameters
+    ----------
+    *mol : Molecule
+        One or more Molecule instances to print.
 
     Raises
     ------
     TypeError
-        If the input is not a Molecule.
+        If any input is not a Molecule.
+    ValueError
+        If the Molecule objects do not have the same number of atoms
+        or atom ordering.
     """
-    if not isinstance(mol, Molecule):
-        raise TypeError("print_structure expects a Molecule object")
+    assert len(mols) > 0, "At least one Molecule must be provided"
+    for i, m in enumerate(mols):
+        if not isinstance(m, Molecule):
+            raise TypeError(f"Argument {i} is not a Molecule object")
 
-    nat = len(mol)
-    symbols = mol.get_chemical_symbols()
-    positions = mol.get_positions()
+    nat = len(mols[0])
+    for m in mols:
+        if len(m) != nat:
+            raise ValueError("All Molecule objects must have the same number of atoms")
 
-    print(f"{nat}\n")
-    for sym, (x, y, z) in zip(symbols, positions):
-        print(f"{sym:2} {x:12.6f} {y:12.6f} {z:12.6f}")
+    sep = " │"
+    if labels is not None:
+        if len(labels) != len(mols):
+            raise ValueError("Number of labels must match number of Molecule objects")
+        label_line = sep.join(f"{label:^41}" for label in labels)
+        print(label_line)
+    for i in range(nat):
+        fields = []
+        for m in mols:
+            symbols = m.get_chemical_symbols()
+            positions = m.get_positions()
+            x, y, z = positions[i]
+            fields.append(f"{symbols[i]:>2} {x:>12.6f} {y:>12.6f} {z:>12.6f}")
+        print(sep.join(fields))
 
 
 def print_structure_summary(

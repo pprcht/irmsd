@@ -251,7 +251,7 @@ contains   !> MODULE PROCEDURES START HERE
     implicit none
     class(coord) :: self
     real(wp),intent(out),allocatable :: z(:)
-    integer :: i,j,k
+    integer :: i
     if (self%nat <= 0) return
     if (.not.allocated(self%xyz).or..not.allocated(self%at)) return
     allocate (z(self%nat),source=0.0_wp)
@@ -332,6 +332,7 @@ contains   !> MODULE PROCEDURES START HERE
     integer,intent(in) :: iat
     character(len=*),intent(in),optional :: spec  !> this is ignored, legacy arg
     character(len=:),allocatable :: esym
+    if(present(spec)) continue !> again, some legacy stuff
     esym = PSE(iat)
   end function i2e
 

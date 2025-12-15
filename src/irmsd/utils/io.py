@@ -185,6 +185,10 @@ def write_structures(
         write_extxyz(path, structures, mode=mode)
         return
 
+    if ext in {".pkl"}:
+        dump_results_to_pickle(structures,path)
+        return
+
     # ASE branch for all other extensions
     require_ase()
     from ase.io import write as ase_write  # type: ignore[import]
@@ -192,3 +196,103 @@ def write_structures(
     # molecule_to_ase must itself handle single vs sequence
     ase_obj = molecule_to_ase(structures)
     ase_write(str(path), ase_obj)
+
+
+# -----------------------------------------------------------
+# More general data dump: pickle files!
+# -----------------------------------------------------------
+import os
+import pickle
+import gzip
+import bz2
+import lzma
+
+from collections.abc import Sequence, Mapping
+from typing import Any
+
+
+def dump_results_to_pickle(
+    molecules: Sequence[Any],
+    outfile: str,
+    results: Mapping[str, Any] | None = None,
+    compress: str | None = None,
+) -> str:
+    """
+    Dump a sequence of Molecule objects (and optionally a results mapping)
+    into a pickle file, optionally compressed.
+
+    Parameters
+    ----------
+    molecules : Sequence[Any]
+        Sequence of Molecule objects.
+    outfile : str
+        Output filename. If extension is missing or wrong, '.pkl' is used.
+    results : Mapping[str, Any] or None
+        Optional results dictionary. If provided, its entries become top-level
+        keys in the payload and 'molecules' is added. If None, the payload
+        is simply `molecules`.
+    compress : {None, "gz", "bz2", "xz"}, optional
+        Compression type.
+
+    Returns
+    -------
+    str
+        Final filename used.
+    """
+
+    # --- Validate compression option ---
+    valid_compress = {None, "gz", "bz2", "xz"}
+    if compress not in valid_compress:
+        raise ValueError(
+            f"Invalid compress={compress!r}; " f"expected {valid_compress}."
+        )
+
+    # --- Normalize filename ---
+    base, ext = os.path.splitext(outfile)
+
+    # Handle cases like "foo.pkl.gz"
+    if ext in (".gz", ".bz2", ".xz"):
+        base, pkl_ext = os.path.splitext(base)
+        ext = pkl_ext
+
+    if ext == "" or ext.lower() != ".pkl":
+        if ext not in ("", ".pkl"):
+            print(f"Warning: changing extension '{ext}' to '.pkl'")
+        ext = ".pkl"
+
+    if compress is None:
+        outfile = base + ext
+    else:
+        outfile = f"{base}{ext}.{compress}"
+
+    # --- Build payload ---
+    if results is None:
+        # simplest case: payload is just the sequence of molecules
+        payload = molecules
+    else:
+        if "molecules" in results:
+            raise ValueError(
+                "The results mapping contains a key 'molecules', "
+                "which would conflict with the payload key."
+            )
+
+        payload = {
+            **results,
+            "molecules": molecules,
+        }
+
+    # --- Select opener ---
+    if compress is None:
+        open_fn = open
+    elif compress == "gz":
+        open_fn = gzip.open
+    elif compress == "bz2":
+        open_fn = bz2.open
+    elif compress == "xz":
+        open_fn = lzma.open
+
+    # --- Write pickle ---
+    with open_fn(outfile, "wb") as f:
+        pickle.dump(payload, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return outfile
