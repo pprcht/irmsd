@@ -21,6 +21,8 @@ from irmsd.interfaces.ase_io import (
     get_irmsd_ase,
     get_rmsd_ase,
     sorter_irmsd_ase,
+    cregen_ase,
+    prune_ase,
 )
 
 # -------------------------------------------------------------------
@@ -421,3 +423,27 @@ def test_delta_irmsd_list_ase(caffeine_delta_irmsd_list_test_data):
 
     delta, new_atoms = delta_irmsd_list_ase(atoms_list)
     assert pytest.approx(delta, abs=1e-6) == expected_delta
+
+
+def test_cregen_ase(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    atoms_list = []
+    for conf_xyz in conformer_list:
+        conf_file = StringIO(conf_xyz)
+        atoms = ase_read(conf_file, format="xyz")
+        atoms_list.append(atoms)
+
+    new_atoms_list = cregen_ase(atoms_list, rthr)
+    assert len(new_atoms_list) == np.max(expected_groups)
+
+
+def test_prune_ase(caffeine_sorter_irmsd_test_data):
+    conformer_list, rthr, expected_groups = caffeine_sorter_irmsd_test_data
+    atoms_list = []
+    for conf_xyz in conformer_list:
+        conf_file = StringIO(conf_xyz)
+        atoms = ase_read(conf_file, format="xyz")
+        atoms_list.append(atoms)
+
+    new_atoms_list = prune_ase(atoms_list, rthr)
+    assert len(new_atoms_list) == np.max(expected_groups)

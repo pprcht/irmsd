@@ -7,7 +7,7 @@
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
 [![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0) 
-<!-- ![CI workflow](https://github.com/pprcht/irmsd/actions/workflows/ci.yaml/badge.svg) -->
+[![Wheels Build](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml)
 [![Tests & Coverage](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml)
 [![codecov](https://codecov.io/gh/pprcht/irmsd/graph/badge.svg?token=Q1O7IRNITG)](https://codecov.io/gh/pprcht/irmsd)
 
@@ -34,7 +34,7 @@ iRMSD is designed for researchers working in computational chemistry, conformati
 
 ## Installation 🔧
 
-iRMSD is available via both **PyPI** and **conda-forge**.
+iRMSD is available via **PyPI**. <!-- both **PyPI** and **conda-forge**. -->
 
 **PyPI:**
 
@@ -42,12 +42,18 @@ iRMSD is available via both **PyPI** and **conda-forge**.
 pip install irmsd
 ```
 
+Prebuilt wheels are available for Linux (`manylinux`) and macOS (`arm64`), so installation is typically straightforward. On macOS, wheel compatibility follows the version of the `macos-latest` runner
+used by GitHub Actions. 
+
+We currently do not provide prebuilt wheels for Windows. On Windows, `pip install irmsd` will build the package *from source*. This requires: **1**) Python 3.10 or newer, **2**) A C/C++ compiler (e.g. Visual Studio Build Tools), **3**) A Fortran compiler (e.g. Intel oneAPI Fortran, or MinGW gfortran configured for CMake). If you don’t have a Fortran toolchain available, the installation will likely fail. As an alternative, you can use WSL (Linux subsystem) and install the Linux wheels there.
+
+<!--
 **Conda:**
 
 ```bash
 conda install -c conda-forge irmsd
 ```
-
+-->
 
 For basic usage instructions, both via the CLI and in-code, [**see below**](#when-and-how-to-use-irmsd).
 
@@ -95,6 +101,8 @@ A simple application example is seen below. Here, we have two copies of the same
 <p align="center">
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine1.jpg" width="75%">
 </p>
+
+`struc1.xyz`:
 
    ```
 40
@@ -147,6 +155,8 @@ C   3.3158  -2.7117  -3.0256
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/fluoxetine2.jpg" width="75%"> 
 </p>
 
+`struc2.xyz`:
+
    ```
 40
 
@@ -195,6 +205,12 @@ C   0.1996  -2.3349  -0.3081
   </td>
   </tr>
 </table>
+
+<p align="center">
+  <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/Screenshot_20251212_105945.jpg" width="100%"> 
+</p>
+
+
 
 <br>
 <br>
@@ -288,21 +304,31 @@ Use iRMSD whenever you wish to:
 
 
 ### Python CLI Usage
-The iRSMD package comes with an CLI tool `irmsd`. This tool allows you to read multiple structures (e.g. from an extended `xyz`-format file), an perform operations on them. There are three subcommands that can be chosen: `prop`, `compare`, and `sort`:
+The iRSMD package comes with an CLI tool `irmsd`. This tool allows you to read multiple structures (e.g. from an extended `xyz`-format file), an perform operations on them. There are three subcommands that can be chosen: `prop`, `compare`, and `sort`/`prune`:
 ```
-irmsd {prop,compare,sort} ...
+usage: irmsd [-h] [-v] {prop,compare,sort,prune} ...
 
-positional arguments:   
-{prop,compare,sort}  Subcommand to run.     
-prop               Compute structural properties (CN, rotational constants, canonical IDs).     
-compare            Compare structures via iRMSD (default) or quaternion RMSD.     
-sort               Sort or cluster structures based on inter-structure RMSD.
+CLI to read an arbitrary number of structures and run selected analysis commands on them.
+
+positional arguments:
+  {prop,compare,sort,prune}
+                        Subcommand to run.
+    prop                Compute structural properties (CN, rotational constants, canonical IDs).
+    compare             Compare structures via iRMSD (default) or quaternion RMSD.
+    sort (prune)        Sort, prune or cluster structures based on inter-structure measures. By
+                        default, the more expensive iRMSD version is used. The use of the molecules'
+                        energies is optional (--ethr) is optional but recommended. To fall back to
+                        the quicker, but more empirical CREGEN workflow for ensemble sorting (using
+                        energies, quaternion RMSDs and rotational constants), use --classic
+
+options:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
 ```
 
-The `sort` functionality exists as an utility function and can be used to determine some atomic properties for each structure provided:
+The `prop` functionality exists as an utility function and can be used to determine some atomic properties for each structure provided:
 ```
-irmsd prop [-h] [--cn] [--rot] [--canonical] [--heavy] structures [structures ...]
-
+usage: irmsd prop [-h] [--cn] [--rot] [--canonical] [--heavy] structures [structures ...]
 
 positional arguments:
   structures   Paths to structure files (e.g. .xyz, .pdb, .cif).
@@ -317,7 +343,9 @@ options:
 
 The `compare` subcommand performs a quaternion RMSD or an iRMSD comparison of the *first two* structures provided. It will return the alisgned structures.
 ```
-usage: irmsd compare [-h] [--quaternion] [--inversion {on,off,auto}] [--heavy] [-o OUTPUT] structures [structures ...]
+usage: irmsd compare [-h] [--quaternion] [--inversion {on,off,auto}] [--heavy] [-o OUTPUT]
+                     [--ref-idx REF_IDX] [--align-idx ALIGN_IDX]
+                     structures [structures ...]
 
 positional arguments:
   structures            Paths to structure files (e.g. .xyz, .pdb, .cif).
@@ -326,15 +354,23 @@ options:
   -h, --help            show this help message and exit
   --quaternion          Use the quaternion-based Cartesian RMSD instead of the invariant RMSD.
   --inversion {on,off,auto}
-                        Control coordinate inversion in iRMSD runtypes: 'on', 'off', or 'auto' (default: auto). Used only for iRMSD.
+                        Control coordinate inversion in iRMSD runtypes: 'on', 'off', or 'auto'
+                        (default: auto). Used only for iRMSD.
   --heavy               When comparing structures, consider only heavy atoms.
   -o OUTPUT, --output OUTPUT
                         Output file name (optional). If not provided, results are only printed.
+  --ref-idx REF_IDX     Index of the reference structure in the provided structure list (default: 0,
+                        i.e., the first structure).
+  --align-idx ALIGN_IDX
+                        Index of the structure to align to the reference structure (default: 1, i.e.,
+                        the second structure). Used only for quaternion RMSD.
 ```
 
-Finally, the `sort` runtype performs ensemble pruning to remove redundant structures from a given structure list. It also splits the structure list into chemically distinct ensembles, should different molecules be included (currently decided via the sum formula).
+Finally, the `sort` (or `prune`) runtype performs ensemble pruning to remove redundant structures from a given structure list. It also splits the structure list into chemically distinct ensembles, should different molecules be included (currently decided via the sum formula).
 ```
-usage: irmsd sort [-h] [--rthr RTHR] [--inversion {on,off,auto}] [--align] [--heavy] [--maxprint MAXPRINT] [-o OUTPUT]
+usage: irmsd sort [-h] [--rthr RTHR] [--ethr [ETHR]] [--bthr BTHR] [--ewin EWIN]
+                  [--inversion {on,off,auto}] [--align] [--classic] [--heavy] [--maxprint MAXPRINT]
+                  [-o OUTPUT]
                   structures [structures ...]
 
 positional arguments:
@@ -342,12 +378,26 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --rthr RTHR           Inter-structure RMSD threshold for sorting in Angström. Structures closer than this threshold are treated as
-                        similar.
+  --rthr RTHR           Inter-structure RMSD threshold for sorting in Angström. Structures closer
+                        than this threshold are treated as similar.
+  --ethr [ETHR]         Inter-structure energy threshold in Hartree. If set, the default is 8.0e-5 Ha
+                        (≈0.05 kcal/mol) or a user-specified value. Optional for iRMSD-based
+                        runtypes.
+  --bthr BTHR           Inter-structure rotational threshold used in the classical CREGEN sorting
+                        procedure. The default is 0.01.
+  --ewin EWIN           Energy window specification for CREGEN. Structures higher in energy than this
+                        threshold (relative to the lowest energy structure in the ensemble) will be
+                        removed. There is no default (all conformers are considered).
   --inversion {on,off,auto}
-                        Control coordinate inversion when evaluating RMSDs during sorting: 'on', 'off', or 'auto' (default: auto).
+                        Control coordinate inversion when evaluating RMSDs during sorting: 'on',
+                        'off', or 'auto' (default: auto). Only for iRMSD-based runtypes.
   --align               Just sort by energy and align.
-  --maxprint MAXPRINT   Printout option; determine how man rows are printed for each sorted ensemble.
+  --classic, --cregen   Perform conformer classification with the CREGEN workflow based on a
+                        comparison of quaternion RMSD, energy, interatomic distances, and rotational
+                        constants. This routine is cheaper but more empirical than iRMSD-based
+                        sorting. Does NOT restore mismatching atom order. Does not keep individual
+                        rotamers.
+  --maxprint MAXPRINT   Printout option; determine how many rows are printed for each sorted ensemble.
   -o OUTPUT, --output OUTPUT
                         Optional output file for sorted / clustered results.
 ```
@@ -400,9 +450,9 @@ If you use this software in academic work, please acknowledge it and cite the [*
 # OTHER TODOs
 - [ ] docstrings and actual docs (GH pages?)
 - [ ] conda-forge package
-- [ ] ci.yml
+- [x] ci.yml/wheels.yml
 - [x] codecov
 - [ ] (implementation) Parallelization via OpenMP
-- [ ] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
-- [ ] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
-- [ ] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
+- [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
+- [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
+- [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD

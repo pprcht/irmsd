@@ -63,7 +63,7 @@ module hungarian_module
   end type assignment_cache
 
   interface ckmin
-    module procedure ckmin_int
+  !  module procedure ckmin_int
     module procedure ckmin_sp
   end interface ckmin
 
@@ -140,16 +140,16 @@ contains  !> MODULE PROCEDURES START HERE
 
 !========================================================================================!
 
-  logical function ckmin_int(a,b) result(yesno)
-    !> Helper function to compute the minimum and update
-    integer,intent(inout) :: a
-    integer,intent(in) :: b
-    yesno = .false.
-    if (b < a) then
-      a = b
-      yesno = .true.
-    end if
-  end function ckmin_int
+  !logical function ckmin_int(a,b) result(yesno)
+  !  !> Helper function to compute the minimum and update
+  !  integer,intent(inout) :: a
+  !  integer,intent(in) :: b
+  !  yesno = .false.
+  !  if (b < a) then
+  !    a = b
+  !    yesno = .true.
+  !  end if
+  !end function ckmin_int
 
   logical function ckmin_sp(a,b) result(yesno)
     !> Helper function to compute the minimum and update
@@ -425,10 +425,8 @@ contains  !> MODULE PROCEDURES START HERE
     integer,intent(in) :: nr,nc
     logical,intent(in) :: maximize
     integer :: iostatus
-    integer :: curRow,curRow_iter,currowtmp,i,j,jj,sink
+    integer :: curRow,currowtmp,i,j,jj,sink
     real(sp) :: minValue
-    logical :: transposed
-    integer :: tmpx
     !> error codes
     integer,parameter :: RECTANGULAR_LSAP_TRANSPOSED = 1
     integer,parameter :: RECTANGULAR_LSAP_INFEASIBLE = 2

@@ -20,11 +20,10 @@ contains
     type(c_ptr),value :: Umat_ptr
     type(c_ptr),value :: mask_ptr
     real(c_double),intent(out) :: rmsd_c
-    integer(c_int) :: i
     !> LOCAL
     real(c_double),pointer :: Umat(:,:)        ! (3,3) each
-    logical(c_bool),pointer :: mask_c(:)        
-    logical,ALLOCATABLE :: mask_f(:)        
+    logical(c_bool),pointer :: mask_c(:)
+    logical,ALLOCATABLE :: mask_f(:)
 
     real(wp) :: rmsdval,rotmat(3,3)
     type(coord) :: ref
@@ -34,16 +33,16 @@ contains
     call mol%C_to_mol(natoms2,types2_ptr,coords2_ptr,.true.)
 
     if (natoms1 /= natoms2) then
-        error stop 'both molecules need to have the same number of atoms'
-    end if 
+      error stop 'both molecules need to have the same number of atoms'
+    end if
     !> the quaternion rmsd, converted to angström
     if (c_associated(mask_ptr)) then
-        call c_f_pointer(mask_ptr,mask_c, [natoms1]) ! at this point of the code natoms1 == natoms2
-        ! Convert to standard logical
-        mask_f = merge(.true., .false., mask_c)
-        rmsdval = rmsd(ref,mol,mask=mask_f,rotmat=rotmat)*autoaa
+      call c_f_pointer(mask_ptr,mask_c, [natoms1]) ! at this point of the code natoms1 == natoms2
+      ! Convert to standard logical
+      mask_f = merge(.true.,.false.,mask_c)
+      rmsdval = rmsd(ref,mol,mask=mask_f,rotmat=rotmat)*autoaa
     else
-        rmsdval = rmsd(ref,mol,rotmat=rotmat)*autoaa
+      rmsdval = rmsd(ref,mol,rotmat=rotmat)*autoaa
     end if
 
     call c_f_pointer(Umat_ptr,Umat, [3,3])

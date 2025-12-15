@@ -1,6 +1,7 @@
 # src/irmsd/__init__.py
 from __future__ import annotations
 
+from ._version import __version__
 from . import sorting
 from .api.axis_exposed import get_axis
 from .api.canonical_exposed import get_canonical_fortran
@@ -44,19 +45,24 @@ from .interfaces.cmds import (
     compute_quaternion_rmsd_and_print,
     sort_get_delta_irmsd_and_print,
     sort_structures_and_print,
+    run_cregen_and_print,
 )
 from .interfaces.mol_interface import (
     delta_irmsd_list_molecule,
     get_energies_from_molecule_list,
+    prune_by_energy_window,
     get_irmsd_molecule,
     get_rmsd_molecule,
     sorter_irmsd_molecule,
+    cregen,
+    prune,
 )
 
 # ---- New: re-export Python utilities ----------------------------------------
 from .utils.io import read_structures, write_structures
 
 __all__ = [
+    "__version__",
     "Molecule",
     # core API
     "get_cn_fortran",
@@ -71,6 +77,8 @@ __all__ = [
     "delta_irmsd_list_molecule",
     "sorter_irmsd_molecule",
     "get_energies_from_molecule_list",
+    "cregen",
+    "prune",
     # ase utils
     "ase_to_molecule",
     "get_cn_ase",
@@ -79,12 +87,14 @@ __all__ = [
     "get_irmsd_ase",
     "get_rmsd_ase",
     "sorter_irmsd_ase",
+    "prune_ase",
     # rdkit utils
     "get_cn_rdkit",
     "get_axis_rdkit",
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
     "get_irmsd_rdkit",
+    "prune_rdkit",
     # sorting
     "sorting",
     # optional cmds
@@ -97,4 +107,5 @@ __all__ = [
     "compute_irmsd_and_print",
     "sort_structures_and_print",
     "sort_get_delta_irmsd_and_print",
+    "run_cregen_and_print",
 ]

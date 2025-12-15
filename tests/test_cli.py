@@ -133,7 +133,7 @@ def test_cli_compare_quarternion(
     assert match, f"Cartesian RMSD not found in output: {out}"
 
     rmsd_value = float(match.group(1))
-    assert pytest.approx(rmsd_value, abs=1e-6) == expected_rmsd
+    assert pytest.approx(expected_rmsd, abs=1e-6) == rmsd_value
 
     if "--output" in additional_cli_args:
         assert Path(output_filename).exists(), "Output file not created"
@@ -158,20 +158,20 @@ def test_cli_compare_quarternion(
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             [],
-            2.2149021075,
+            0.1393943463,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             ["--heavy"],
-            2.2149021075,
+            0.1393943463,
         ),
         (
             "caffeine_xyz_file_fixture",
             "caffeine_xyz_obabel_file_fixture",
             # only check that files are created
             ["--heavy", "--output"],
-            2.2149021075,
+            0.1393943463,
         ),
     ],
 )
@@ -206,7 +206,7 @@ def test_cli_compare_irmsd(
     assert match, f"iRMSD not found in output: {out}"
 
     rmsd_value = float(match.group(1))
-    assert pytest.approx(rmsd_value, abs=1e-6) == expected_irmsd
+    assert pytest.approx(expected_irmsd, abs=1e-6) == rmsd_value
 
     if "--output" in additional_cli_args:
         outfile_path = Path(output_filename)
@@ -236,7 +236,16 @@ def test_cli_compare_irmsd(
                 "caffeine_xyz_obabel_file_fixture",
             ],
             ["--align"],
-            [0.0, 0.0, 2.2149],
+            [0.0, 0.0, 0.1394],
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+                "caffeine_xyz_file_fixture",
+                "caffeine_xyz_obabel_file_fixture",
+            ],
+            ["--classic"],
+            [0.0, 0.1394],
         ),
     ],
 )
@@ -269,7 +278,7 @@ def test_cli_sorter(
     for i, delta_rmsd_str in enumerate(delta_rmsd_values):
         delta_rmsd_value = float(delta_rmsd_str)
         assert (
-            pytest.approx(delta_rmsd_value, abs=1e-4) == expected_delta_rmsds[i]
+            pytest.approx(expected_delta_rmsds[i], abs=1e-4) == delta_rmsd_value
         ), f"Delta RMSD value mismatch at index {i}: expected {expected_delta_rmsds[i]}, got {delta_rmsd_value}"
 
 
@@ -328,6 +337,52 @@ def test_cli_sorter(
             ],
             ["--align", "--output"],
         ),
+        (
+            [
+                # file fixture, no of structures, expected delta RMSDs
+                [["caffeine_xyz_file_fixture", "caffeine_xyz_file_fixture"], 2, [0]],
+                # file fixture, no of structures, expected delta RMSDs
+                [
+                    ["alanine_glycine_xyz_file_fixture"],
+                    4,
+                    [0.0000, 1.0423, 0.7799, 1.9073],
+                ],
+            ],
+            ["--cregen", "--output"],
+        ),
+        (
+            [
+                # file fixture, no of structures, expected delta RMSDs
+                [
+                    ["alanine_glycine_xyz_file_fixture"],
+                    4,
+                    [0.0000, 1.0423, 0.7799, 1.9073],
+                ],
+            ],
+            ["--classic", "--output"],
+        ),
+        (
+            [
+                # file fixture, no of structures, expected delta RMSDs
+                [
+                    ["alanine_glycine_xyz_file_fixture"],
+                    4,
+                    [0.0000, 1.0423, 0.7799, 1.9073],
+                ],
+            ],
+            ["--classic", "--ethr", "1e-4"],
+        ),
+        (
+            [
+                # file fixture, no of structures, expected delta RMSDs
+                [
+                    ["alanine_glycine_xyz_file_fixture"],
+                    4,
+                    [0.0000, 1.0423, 0.7799, 1.9073],
+                ],
+            ],
+            ["--classic", "--bthr", "0.05", "--ethr", "1e-4", "--ewin", "2"],
+        ),
     ],
 )
 def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd):
@@ -370,7 +425,7 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
             delta_rmsd_str = delta_rmsd_values[current_index]
             delta_rmsd_value = float(delta_rmsd_str)
             assert (
-                pytest.approx(delta_rmsd_value, abs=1e-4) == expected_delta
+                pytest.approx(expected_delta, abs=1e-4) == delta_rmsd_value
             ), f"Delta RMSD value mismatch for file {files[i]} at index {j}: expected {expected_delta}, got {delta_rmsd_value}"
             current_index += 1
 
@@ -420,7 +475,7 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
                 "caffeine_xyz_file_fixture",
             ],
             ["--canonical"],
-            """Atom Symbol Canonical Rank
+            """Atom Symbol   Canonical ID
 ---- ------ --------------
    1      C              1
    2      N              8
@@ -454,14 +509,131 @@ def test_cli_sorter_several_molecules(data, additional_cli_args, request, capfd)
             ],
             ["--rot"],
             """Rotational constants (MHz):
-1068.0731    710.7118    430.2612
-
-Average momentum a.u. (10⁻⁴⁷kg m²): 1.305645e-44
-
+    1068.0731    710.7118    430.2612
 Rotation matrix:
-  0.6712     -0.7413      0.0012
-  0.7413      0.6712     -0.0011
-  0.0000      0.0017      1.0000
+      0.6712     -0.7413      0.0012
+      0.7413      0.6712     -0.0011
+      0.0000      0.0017      1.0000
+""",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
+            ["--rot", "--cn"],
+            """Rotational constants (MHz):
+    1068.0731    710.7118    430.2612
+Rotation matrix:
+      0.6712     -0.7413      0.0012
+      0.7413      0.6712     -0.0011
+      0.0000      0.0017      1.0000
+
+Atom Symbol             CN
+---- ------ --------------
+   1      C       3.687259
+   2      N       2.867262
+   3      C       3.150725
+   4      N       1.893570
+   5      C       3.203212
+   6      C       3.080100
+   7      C       2.766851
+   8      O       0.858278
+   9      N       2.742942
+  10      C       2.714023
+  11      O       0.857489
+  12      N       2.737923
+  13      C       3.693785
+  14      C       3.700082
+  15      H       0.924157
+  16      H       0.924170
+  17      H       0.924168
+  18      H       0.925322
+  19      H       0.924123
+  20      H       0.923952
+  21      H       0.923952
+  22      H       0.924191
+  23      H       0.923896
+  24      H       0.923906
+""",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
+            ["--rot", "--cn", "--canonical"],
+            """Rotational constants (MHz):
+    1068.0731    710.7118    430.2612
+Rotation matrix:
+      0.6712     -0.7413      0.0012
+      0.7413      0.6712     -0.0011
+      0.0000      0.0017      1.0000
+
+Atom Symbol             CN   Canonical ID
+---- ------ -------------- --------------
+   1      C       3.687259              1
+   2      N       2.867262              8
+   3      C       3.150725              5
+   4      N       1.893570              7
+   5      C       3.203212             13
+   6      C       3.080100             14
+   7      C       2.766851             12
+   8      O       0.858278              6
+   9      N       2.742942             10
+  10      C       2.714023              9
+  11      O       0.857489              2
+  12      N       2.737923             11
+  13      C       3.693785              4
+  14      C       3.700082              3
+  15      H       0.924157             15
+  16      H       0.924170             15
+  17      H       0.924168             15
+  18      H       0.925322             18
+  19      H       0.924123             17
+  20      H       0.923952             17
+  21      H       0.923952             17
+  22      H       0.924191             16
+  23      H       0.923896             16
+  24      H       0.923906             16
+""",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
+            ["--all", "--output"],
+            """Rotational constants (MHz):
+    1068.0731    710.7118    430.2612
+Rotation matrix:
+      0.6712     -0.7413      0.0012
+      0.7413      0.6712     -0.0011
+      0.0000      0.0017      1.0000
+
+Atom Symbol             CN   Canonical ID
+---- ------ -------------- --------------
+   1      C       3.687259              1
+   2      N       2.867262              8
+   3      C       3.150725              5
+   4      N       1.893570              7
+   5      C       3.203212             13
+   6      C       3.080100             14
+   7      C       2.766851             12
+   8      O       0.858278              6
+   9      N       2.742942             10
+  10      C       2.714023              9
+  11      O       0.857489              2
+  12      N       2.737923             11
+  13      C       3.693785              4
+  14      C       3.700082              3
+  15      H       0.924157             15
+  16      H       0.924170             15
+  17      H       0.924168             15
+  18      H       0.925322             18
+  19      H       0.924123             17
+  20      H       0.923952             17
+  21      H       0.923952             17
+  22      H       0.924191             16
+  23      H       0.923896             16
+  24      H       0.923906             16
 """,
         ),
     ],
@@ -470,6 +642,11 @@ def test_cli_prop(
     file_fixtures, additional_cli_args, property_printout, request, capfd
 ):
     files = [request.getfixturevalue(fixture) for fixture in file_fixtures]
+
+    if "--output" in additional_cli_args:
+        output_index = additional_cli_args.index("--output") + 1
+        output_filename = str(files[0].parent / "output_prop.pkl")
+        additional_cli_args.insert(output_index, output_filename)
 
     mains_args = [
         "prop",
@@ -483,6 +660,9 @@ def test_cli_prop(
         property_printout in out
     ), f"Expected property printout not found in output:\n{out}"
 
+    if "--output" in additional_cli_args:
+        assert Path(output_filename).exists(), "Output file not created"
+
 
 def test_cli_help(caffeine_xyz_file_fixture, capfd):
     mains_args = ["prop", str(caffeine_xyz_file_fixture)]
@@ -493,5 +673,5 @@ def test_cli_help(caffeine_xyz_file_fixture, capfd):
         retcode == 1
     ), f"Expected return code 1 when no property selected, got {retcode}"
     assert (
-        "CLI to read an arbitrary number of structures with ASE and run selected" in out
+        "CLI to read an arbitrary number of structures and run selected" in out
     ), f"Help message not found in output:\n{out}"

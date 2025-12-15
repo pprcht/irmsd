@@ -31,11 +31,14 @@ def axis_test_data(caffeine_axis_test_data_all):
 
 def test_compute_axis_and_print(axis_test_data):
     atoms_list, expected_rot, expected_avmom, expected_evecs = axis_test_data
+    # avmom is not returned by compute_axis_and_print, so we don't test it here
     results = compute_axis_and_print(atoms_list)
-    for i, (rot, avmom, evecs) in enumerate(results):
-        assert pytest.approx(rot, abs=1e-6) == expected_rot[i]
-        assert pytest.approx(avmom, rel=1e-4) == expected_avmom[i]
-        assert pytest.approx(evecs, abs=1e-6) == expected_evecs[i]
+    for i, res in enumerate(results):
+        assert (
+            pytest.approx(res["Rotational constants (MHz)"], abs=1e-6)
+            == expected_rot[i]
+        )
+        assert pytest.approx(res["Rotation matrix"], abs=1e-6) == expected_evecs[i]
 
 
 @pytest.fixture(scope="module")
