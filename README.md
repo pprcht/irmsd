@@ -25,7 +25,7 @@ The package offers:
 
 *  *Fast RMSD evaluation* including symmetry handling, canonicalization, and optimal superposition
 * *Structure grouping and pruning* based on distance thresholds or iRMSD criteria
-* *Flexible Molecule class* with XYZ/extXYZ parsing and ASE interoperability
+* *Flexible Molecule class* with XYZ/extXYZ parsing and ASE/RDKit interoperability
 * *Low- and high-level APIs* that expose direct Fortran wrappers as well as convenient Python abstractions
 * *Extendable infrastructure* for future shape metrics and ensemble workflows
 
@@ -402,12 +402,12 @@ options:
                         Optional output file for sorted / clustered results.
 ```
 
-For more information refer to the docs.
+For more information refer to the docs (pprcht.github.io/irmsd/)[https://pprcht.github.io/irmsd/].
 
 <br>
 
 ### Python Script Usage
-A list of the provided functions and types can be found in the docs. A simple function could look like this:
+A list of the provided functions and types can be found in the docs (pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd)[https://pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd]. A simple function could look like this:
 ```python
 from irmsd import read_structures, sorter_irmsd_molecule
 

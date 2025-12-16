@@ -148,7 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "Sort, prune or cluster structures based on inter-structure measures."
             " By default, the more expensive iRMSD version is used. The use of the"
-            " molecules' energies is optional (--ethr) is optional but recommended."
+            " molecules' energies is optional (--ethr) but recommended."
             " To fall back to the quicker, but more empirical CREGEN workflow for"
             " ensemble sorting (using energies, quaternion RMSDs and rotational"
             " constants), use --classic"
