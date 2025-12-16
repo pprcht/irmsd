@@ -3,13 +3,7 @@ name: Build and Deploy Documentation
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
   workflow_dispatch:
-
-env:
-  DFT_DATA: ${{ github.workspace }}/data
-  DFT_MODELS: ${{ github.workspace }}/models
 
 permissions:
   contents: read
