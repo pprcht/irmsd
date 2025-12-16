@@ -402,12 +402,12 @@ options:
                         Optional output file for sorted / clustered results.
 ```
 
-For more information refer to the docs (pprcht.github.io/irmsd/)[https://pprcht.github.io/irmsd/].
+For more information refer to the docs (https://pprcht.github.io/irmsd/).
 
 <br>
 
 ### Python Script Usage
-A list of the provided functions and types can be found in the docs (pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd)[https://pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd]. A simple function could look like this:
+A list of the provided functions and types can be found in the docs (https://pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd). A simple function could look like this:
 ```python
 from irmsd import read_structures, sorter_irmsd_molecule
 
