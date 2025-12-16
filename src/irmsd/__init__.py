@@ -12,6 +12,14 @@ from .api.sorter_exposed import delta_irmsd_list, sorter_irmsd
 from .core.molecule import Molecule
 
 # ---- Core API ----------------------------------------
+from .interfaces.mol_interface import (
+    delta_irmsd_list_molecule,
+    get_energies_from_molecule_list,
+    get_irmsd_molecule,
+    get_rmsd_molecule,
+    sorter_irmsd_molecule,
+)
+
 # Try to expose ase_to_fortran if ASE is present; otherwise export a stub that errors nicely.
 try:
     from .interfaces.ase_io import (
@@ -21,6 +29,7 @@ try:
         get_cn_ase,
         get_irmsd_ase,
         get_rmsd_ase,
+        molecule_to_ase,
         sorter_irmsd_ase,
     )
 except Exception:
@@ -33,6 +42,9 @@ try:
         get_cn_rdkit,
         get_irmsd_rdkit,
         get_rmsd_rdkit,
+        molecule_to_rdkit,
+        rdkit_to_molecule,
+        sorter_irmsd_rdkit,
     )
 except Exception:
     pass
@@ -64,6 +76,11 @@ from .utils.io import read_structures, write_structures
 __all__ = [
     "__version__",
     "Molecule",
+    "delta_irmsd_list_molecule",
+    "get_energies_from_molecule_list",
+    "get_irmsd_molecule",
+    "get_rmsd_molecule",
+    "sorter_irmsd_molecule",
     # core API
     "get_cn_fortran",
     "get_axis",
@@ -81,6 +98,7 @@ __all__ = [
     "prune",
     # ase utils
     "ase_to_molecule",
+    "molecule_to_ase",
     "get_cn_ase",
     "get_axis_ase",
     "get_canonical_ase",
@@ -89,11 +107,14 @@ __all__ = [
     "sorter_irmsd_ase",
     "prune_ase",
     # rdkit utils
+    "rdkit_to_molecule",
+    "molecule_to_rdkit",
     "get_cn_rdkit",
     "get_axis_rdkit",
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
     "get_irmsd_rdkit",
+    "sorter_irmsd_rdkit",
     "prune_rdkit",
     # sorting
     "sorting",

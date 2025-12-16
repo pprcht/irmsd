@@ -16,6 +16,7 @@ dependencies = ["numpy>=2.0"]
 ase = ["ase>=3.22.1"]
 rdkit = ["rdkit>=2025.9.2"]
 dev = ["pytest", "pytest-cov"]
+docs = ["sphinx>=8.2.3", "shibuya", "myst-parser"]
 
 [project.urls]
 Homepage = "https://github.com/pprcht/irmsd"

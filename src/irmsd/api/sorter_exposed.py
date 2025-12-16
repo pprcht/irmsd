@@ -40,7 +40,7 @@ def sorter_irmsd(
         Verbosity level.
     ethr: float | None
         Inter-conformer energy threshold (optional). In Hartree.
-     energies_list: sequence of (Nall,) floats | None
+    energies_list: sequence of (Nall,) floats | None
         List of energies for the passed structures (optional). In Hartree.
 
     Returns

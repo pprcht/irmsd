@@ -40,48 +40,6 @@ _INV_PERIODIC = {Z: sym for sym, Z in _PERIODIC.items()}
 class Molecule:
     """Lightweight replacement for ase.Atoms.
 
-    Attributes
-    ----------
-    symbols : list of str
-        List of chemical symbols.
-    positions : (N, 3) ndarray of float64
-        Atomic positions in Å.
-    energy : float or None
-        Potential energy in eV.
-    info : dict
-        Additional information dictionary.
-    cell : (3, 3) ndarray of float64 or None
-        Unit cell vectors in Å.
-    pbc : tuple of 3 bool or None
-        Periodic boundary conditions along each axis.
-
-    Methods
-    -------
-    get_chemical_symbols()
-        Return list of chemical symbols.
-    get_atomic_numbers()
-        Return atomic numbers as int32 array.
-    get_positions(copy=True)
-        Return atomic positions.
-    get_potential_energy()
-        Return potential energy.
-    get_chemical_formula(mode='hill')
-        Return chemical formula string.
-    copy()
-        Return a deep copy of the Molecule.
-    set_positions(positions)
-        Set new atomic positions.
-    set_potential_energy(energy)
-        Set potential energy.
-    set_atomic_numbers(numbers)
-        Set new atomic numbers.
-    get_cn()
-        Return coordination numbers per atom.
-    get_axis()
-        Return rotation constants, average momentum, and rotation matrix.
-    get_canonical(wbo=None, invtype='apsp+', heavy=False)
-        Return canonical ranking of atoms.
-
     Raises
     ------
     ValueError

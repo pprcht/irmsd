@@ -6,7 +6,7 @@
 
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
-[![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0) 
+[![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0) <br>
 [![Wheels Build](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml)
 [![Tests & Coverage](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/tests-and-coverage.yml)
 [![codecov](https://codecov.io/gh/pprcht/irmsd/graph/badge.svg?token=Q1O7IRNITG)](https://codecov.io/gh/pprcht/irmsd)
@@ -78,9 +78,9 @@ Together, these yield a robust, fast, and scalable measure of structural similar
 
 Herein, the RMSD with optimal alignment and permutation is defined as:
 
-```math
+$$
 \mathrm{iRMSD}(\mathbf{X}, \mathbf{Y}) = \min_{\mathbf{P},\mathbf{U}} \sqrt{ \frac{1}{N} \sum_{i=1}^{N} \left\lVert \mathbf{X}_i - (\mathbf{P}\mathbf{U}\mathbf{Y})_i \right\rVert^2 }
-```
+$$
 
 where
 * **X**/**Y** : Cartesian coordinates of the two molecules to be compared
@@ -445,6 +445,8 @@ damages, or other liability arising from the use of this software.
 © 2025 Philipp Pracht, Tobias Kaczun.<br> 
 If you use this software in academic work, please acknowledge it and cite the [*associated publication*](https://doi.org/10.1021/acs.jcim.4c02143).
 
+
+<!-- 
 ---
 
 # OTHER TODOs
@@ -456,3 +458,5 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
 - [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
 - [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
+
+-->

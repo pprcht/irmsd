@@ -98,7 +98,7 @@ def compute_canonical_and_print(
     ----------
     molecule_list : list[irmsd.Molecule]
         Structures to analyze.
-     heavy: bool
+    heavy: bool
         Consider only heavy atoms
 
     Returns
