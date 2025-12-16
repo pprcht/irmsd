@@ -445,6 +445,8 @@ damages, or other liability arising from the use of this software.
 © 2025 Philipp Pracht, Tobias Kaczun.<br> 
 If you use this software in academic work, please acknowledge it and cite the [*associated publication*](https://doi.org/10.1021/acs.jcim.4c02143).
 
+
+<!-- 
 ---
 
 # OTHER TODOs
@@ -456,3 +458,5 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
 - [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
 - [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
+
+-->
