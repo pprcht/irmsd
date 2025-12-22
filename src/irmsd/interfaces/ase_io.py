@@ -503,7 +503,7 @@ def get_irmsd_ase(
 
 def sorter_irmsd_ase(
     atoms_list: Sequence["ase.Atoms"],
-    rthr: float,
+    rthr: float = 0.125,  # aligned with '--rthr' in src/irmsd/cli.py
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,

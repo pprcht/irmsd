@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, List
 
 import numpy as np
 
@@ -230,10 +230,10 @@ def get_irmsd_molecule(
 
 def sorter_irmsd_molecule(
     molecule_list: Sequence[Molecule],
+    rthr: float = 0.125,  # aligned with '--rthr' in src/irmsd/cli.py
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
-    rthr: float = 0.125,  # aligned with '--rthr' in src/irmsd/cli.py
     ethr: float | None = None,
     ewin: float | None = None,
 ) -> Tuple[np.ndarray, List[Molecule]]:

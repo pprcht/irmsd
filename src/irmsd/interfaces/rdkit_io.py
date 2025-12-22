@@ -463,7 +463,7 @@ def get_irmsd_rdkit(
 
 def sorter_irmsd_rdkit(
     molecules: "Mol" | Sequence["Mol"],
-    rthr: float,
+    rthr: float = 0.125,  # aligned with '--rthr' in src/irmsd/cli.py
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
