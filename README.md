@@ -317,7 +317,7 @@ positional arguments:
     compare             Compare structures via iRMSD (default) or quaternion RMSD.
     sort (prune)        Sort, prune or cluster structures based on inter-structure measures. By
                         default, the more expensive iRMSD version is used. The use of the molecules'
-                        energies is optional (--ethr) is optional but recommended. To fall back to
+                        energies (--ethr) is optional but recommended. To fall back to
                         the quicker, but more empirical CREGEN workflow for ensemble sorting (using
                         energies, quaternion RMSDs and rotational constants), use --classic
 
@@ -409,14 +409,18 @@ For more information refer to the docs (https://pprcht.github.io/irmsd/).
 ### Python Script Usage
 A list of the provided functions and types can be found in the docs (https://pprcht.github.io/irmsd/generated/irmsd.html#module-irmsd). A simple function could look like this:
 ```python
-from irmsd import read_structures, sorter_irmsd_molecule
+from irmsd import read_structures, sorter_irmsd_molecule, prune
 
 # read an xyz file with multiple frames and return a list of irmsd.Molecule objects
 molecules = read_structures('/PATH/TO/YOUR/input.xyz')
 
 # Analyze the structure list and assign each molecule to a group (simple list of integers)
 # as well as the aligned molecules
-groups,aligned_molecules = sorter_irmsd_molecule(molecules)
+groups,aligned_molecules = sorter_irmsd_molecule(molecules, rthr=0.125)
+
+# Alternatively, one can generate a pruned conformer list in-place
+pruned_molecules = prune(molecules, rthr=0.125)
+
 ```
 
 <br>
