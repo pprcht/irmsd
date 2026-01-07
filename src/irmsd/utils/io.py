@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Sequence, overload
+from typing import Union, List, Sequence, overload
 
 import sys
 import numpy as np
@@ -40,7 +40,7 @@ def check_frames(obj, src: str):
     return obj
 
 
-def read_structures(paths: Sequence[str]) -> List[Molecule]:
+def read_structures(paths: Union[str,Sequence[str]]) -> List[Molecule]:
     """
     Read an arbitrary number of structures and return them as Molecule objects.
 
@@ -69,6 +69,9 @@ def read_structures(paths: Sequence[str]) -> List[Molecule]:
         One Molecule per frame found across all input paths.
     """
     molecules: List[Molecule] = []
+
+    if isinstance(paths, str):
+        paths = [paths]
 
     for p in paths:
         path = str(p)
