@@ -33,6 +33,7 @@ def _get_sorter_exposed_xyz_fortran() -> ct._CFuncPtr:
             ct.c_int,
             ct.c_double,
             ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+            ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
         ]
         f.restype = None
         _get_sorter_exposed_xyz_fortran = f
@@ -51,8 +52,14 @@ def sorter_exposed_xyz_fortran_raw(
     printlvl,
     ethr,
     energies,
+    ids,
 ) -> None:
-    """Low-level wrapper for C symbol 'sorter_exposed_xyz_fortran'."""
+    """Low-level wrapper for C symbol 'sorter_exposed_xyz_fortran'.
+
+    ``ids`` is a flat (nall*N) int32 buffer of per-atom canonical ids in
+    structure-major order; a structure whose block is all-zero is treated as
+    "no ids provided".
+    """
     f = _get_sorter_exposed_xyz_fortran()
     f(
         nat,
@@ -66,6 +73,7 @@ def sorter_exposed_xyz_fortran_raw(
         printlvl,
         ethr,
         energies,
+        ids,
     )
 
 
@@ -84,6 +92,7 @@ def _get_delta_irmsd_list_fortran() -> ct._CFuncPtr:
             ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
             ct.c_bool,
             ct.c_int,
+            ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
         ]
         f.restype = None
         _get_delta_irmsd_list_fortran = f
@@ -91,11 +100,15 @@ def _get_delta_irmsd_list_fortran() -> ct._CFuncPtr:
 
 
 def delta_irmsd_list_fortran_raw(
-    nat, nall, xyzall, atall, iinversion, delta, allcanon, printlvl
+    nat, nall, xyzall, atall, iinversion, delta, allcanon, printlvl, ids
 ) -> None:
-    """Low-level wrapper for C symbol 'delta_irmsd_list_fortran'."""
+    """Low-level wrapper for C symbol 'delta_irmsd_list_fortran'.
+
+    ``ids`` is a flat (nall*N) int32 buffer of per-atom canonical ids in
+    structure-major order; an all-zero block means "no ids" for that structure.
+    """
     f = _get_delta_irmsd_list_fortran()
-    f(nat, nall, xyzall, atall, iinversion, delta, allcanon, printlvl)
+    f(nat, nall, xyzall, atall, iinversion, delta, allcanon, printlvl, ids)
 
 
 #    subroutine cregen_exposed_fortran( &

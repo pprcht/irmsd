@@ -245,6 +245,7 @@ def sorter_irmsd_molecule(
     printlvl: int = 0,
     ethr: float | None = None,
     ewin: float | None = None,
+    use_ids: bool = True,
 ) -> Tuple[np.ndarray, List[Molecule]]:
     """
     High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
@@ -324,9 +325,10 @@ def sorter_irmsd_molecule(
     if printlvl > 0 and ewin is not None:
         print(f" --> removed {n_diff} of {n_orig} structures.\n")
 
-    # --- Build atom_numbers_list and positions_list ---
+    # --- Build atom_numbers_list and positions_list (and per-structure ids) ---
     atom_numbers_list: List[np.ndarray] = []
     positions_list: List[np.ndarray] = []
+    ids_list: List[np.ndarray | None] = []
 
     for mol in molecule_list:
         Z = np.asarray(mol.get_atomic_numbers(), dtype=np.int32)  # (nat,)
@@ -340,8 +342,12 @@ def sorter_irmsd_molecule(
 
         atom_numbers_list.append(Z)
         positions_list.append(P)
+        ids_list.append(mol.get_ids() if use_ids else None)
 
     energies_list = get_energies_from_molecule_list(molecule_list)
+
+    # Only forward ids if at least one structure actually carries them.
+    ids_arg = ids_list if any(i is not None for i in ids_list) else None
 
     # --- Call the Fortran-backed sorter_irmsd ---
     groups, xyz_structs, Z_structs = sorter_irmsd(
@@ -354,6 +360,7 @@ def sorter_irmsd_molecule(
         printlvl=printlvl,
         ethr=ethr,
         energies_list=energies_list,
+        ids_list=ids_arg,
     )
 
     # --- Reconstruct new Molecule objects ---
@@ -374,6 +381,7 @@ def delta_irmsd_list_molecule(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    use_ids: bool = True,
 ) -> Tuple[np.ndarray, List[Molecule]]:
     """
     High-level wrapper around the Fortran-backed ``delta_irmsd_list`` that
@@ -436,9 +444,10 @@ def delta_irmsd_list_molecule(
                 f"item 0 has {nat} atoms, item {i} has {len(mol)} atoms"
             )
 
-    # --- Build atom_numbers_list and positions_list ---
+    # --- Build atom_numbers_list and positions_list (and per-structure ids) ---
     atom_numbers_list: List[np.ndarray] = []
     positions_list: List[np.ndarray] = []
+    ids_list: List[np.ndarray | None] = []
 
     for mol in molecule_list:
         Z = np.asarray(mol.get_atomic_numbers(), dtype=np.int32)
@@ -452,6 +461,9 @@ def delta_irmsd_list_molecule(
 
         atom_numbers_list.append(Z)
         positions_list.append(P)
+        ids_list.append(mol.get_ids() if use_ids else None)
+
+    ids_arg = ids_list if any(i is not None for i in ids_list) else None
 
     # --- Call the Fortran-backed delta_irmsd_list ---
     delta, xyz_structs, Z_structs = delta_irmsd_list(
@@ -461,6 +473,7 @@ def delta_irmsd_list_molecule(
         iinversion=iinversion,
         allcanon=allcanon,
         printlvl=printlvl,
+        ids_list=ids_arg,
     )
 
     # --- Reconstruct new Molecule objects ---
@@ -623,6 +636,7 @@ def prune(
     printlvl: int = 0,
     ethr: float | None = None,
     ewin: float | None = None,
+    use_ids: bool = True,
 ) -> List[Molecule]:
     """
     High-level wrapper around the Fortran-backed ``sorter_irmsd`` that
@@ -699,7 +713,7 @@ def prune(
         print(f" --> removed {n_diff} of {n_orig} structures.\n")
 
     groups, new_molecule_list = sorter_irmsd_molecule(
-        molecule_list, rthr, iinversion, allcanon, printlvl, ethr
+        molecule_list, rthr, iinversion, allcanon, printlvl, ethr, use_ids=use_ids
     )
 
     new_molecule_list = first_by_assignment(new_molecule_list, groups)

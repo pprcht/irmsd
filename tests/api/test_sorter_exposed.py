@@ -28,6 +28,7 @@ class FakeFBackend:
         printlvl,
         ethr,
         energies_list,
+        ids,
     ):
         self.sorter_called = True
         self.sorter_args = (
@@ -42,12 +43,13 @@ class FakeFBackend:
             printlvl,
             ethr,
             energies_list.copy(),
+            ids.copy(),
         )
         # Mutate output arrays to verify propagation
         groups[:] = np.arange(groups.size, dtype=np.int32)
 
     def delta_irmsd_list_fortran_raw(
-        self, nat, nall, xyzall, atall, iinv, delta, allcanon, printlvl
+        self, nat, nall, xyzall, atall, iinv, delta, allcanon, printlvl, ids
     ):
         self.delta_called = True
         self.delta_args = (
@@ -59,6 +61,7 @@ class FakeFBackend:
             delta.copy(),
             allcanon,
             printlvl,
+            ids.copy(),
         )
         delta[:] = np.linspace(0, 1, len(delta))
 

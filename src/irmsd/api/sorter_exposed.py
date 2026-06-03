@@ -7,6 +7,32 @@ import numpy as np
 from ..bindings import sorter_exposed as _F
 
 
+def _pack_ids(
+    ids_list: Sequence[np.ndarray | None] | None,
+    nall: int,
+    N: int,
+) -> np.ndarray:
+    """Pack per-structure canonical ids into a contiguous (nall, N) int32 array.
+
+    A structure with no ids (``None``) becomes an all-zero block, which the
+    Fortran side reads as "not provided" (so its ids won't be allocated). When
+    ``ids_list`` is None entirely, a full zero array is returned.
+    """
+    idsall = np.zeros((nall, N), dtype=np.int32)
+    if ids_list is None:
+        return idsall
+    if len(ids_list) != nall:
+        raise ValueError("ids_list must have one entry per structure")
+    for i, ids in enumerate(ids_list):
+        if ids is None:
+            continue
+        arr = np.ascontiguousarray(ids, dtype=np.int32)
+        if arr.shape != (N,):
+            raise ValueError(f"ids_list[{i}] must have shape ({N},)")
+        idsall[i, :] = arr
+    return idsall
+
+
 def sorter_irmsd(
     atom_numbers_list: Sequence[np.ndarray],
     positions_list: Sequence[np.ndarray],
@@ -17,6 +43,7 @@ def sorter_irmsd(
     printlvl: int = 0,
     ethr: float | None = None,
     energies_list: Sequence[np.ndarray] | None = None,
+    ids_list: Sequence[np.ndarray | None] | None = None,
 ) -> Tuple[np.ndarray, List[np.ndarray], List[np.ndarray]]:
     """
     High-level API: call the sorter_exposed_xyz_fortran Fortran routine.
@@ -115,6 +142,9 @@ def sorter_irmsd(
     # Allocate groups
     groups = np.empty(nall, dtype=np.int32)
 
+    # Pack per-structure canonical ids (all-zero block == "not provided")
+    idsall = _pack_ids(ids_list, nall, N)
+
     # ---- Raw Fortran call ----
     _F.sorter_exposed_xyz_fortran_raw(
         int(nat),
@@ -128,6 +158,7 @@ def sorter_irmsd(
         int(printlvl),
         float(ethr),
         energies,
+        idsall,  # flattened buffer (nall*N)
     )
 
     # ---- Extract back into per-structure arrays ----
@@ -144,6 +175,7 @@ def delta_irmsd_list(
     iinversion: int = 0,
     allcanon: bool = True,
     printlvl: int = 0,
+    ids_list: Sequence[np.ndarray | None] | None = None,
 ) -> Tuple[np.ndarray, List[np.ndarray], List[np.ndarray]]:
     """
     High-level API: call the delta_irmsd_list_fortran Fortran routine.
@@ -223,6 +255,9 @@ def delta_irmsd_list(
     # Allocate delta iRMSD storage
     delta = np.empty(nall, dtype=np.float64)
 
+    # Pack per-structure canonical ids (all-zero block == "not provided")
+    idsall = _pack_ids(ids_list, nall, N)
+
     # ---- Raw Fortran call ----
     _F.delta_irmsd_list_fortran_raw(
         int(nat),
@@ -233,6 +268,7 @@ def delta_irmsd_list(
         delta,  # length nall
         bool(allcanon),
         int(printlvl),
+        idsall,  # flattened buffer (nall*N)
     )
 
     # ---- Extract back into per-structure arrays ----

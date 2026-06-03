@@ -19,10 +19,37 @@ module sorter_exposed
 contains  !> MODULE PROCEDURES START HERE
 !================================================================================!
 
+  subroutine assign_block_ids(structures,nall,nat,ids_ptr)
+    !*****************************************************************
+    !* Fill structures(i)%id from a flat (nall*nat) id buffer, one
+    !* block of nat entries per structure (structure-major order). A
+    !* block is only stored if the pointer is associated and ALL its
+    !* entries are non-zero (zero = "not provided" sentinel), so a
+    !* mix of provided/missing structures is handled per structure.
+    !*****************************************************************
+    use,intrinsic :: iso_c_binding
+    implicit none
+    integer,intent(in) :: nall,nat
+    type(coord),intent(inout) :: structures(nall)
+    type(c_ptr),value :: ids_ptr
+    integer(c_int),pointer :: ids(:)
+    integer :: i,k
+    if (.not.c_associated(ids_ptr)) return
+    call c_f_pointer(ids_ptr,ids, [nat*nall])
+    k = 0
+    do i = 1,nall
+      if (all(ids(k+1:k+nat) /= 0_c_int)) then
+        allocate (structures(i)%id(nat))
+        structures(i)%id(:) = int(ids(k+1:k+nat))
+      end if
+      k = k+nat
+    end do
+  end subroutine assign_block_ids
+
   subroutine sorter_exposed_xyz_fortran( &
     &                     nat,nall,xyzall_ptr,atall_ptr, &
     &                     groups_ptr,rthresh,iinversion,allcanon_c,printlvl, &
-    &                     ethr,energies_ptr &
+    &                     ethr,energies_ptr,ids_ptr &
     &                   ) bind(C,name="sorter_exposed_xyz_fortran")
     use,intrinsic :: iso_c_binding
     implicit none
@@ -39,6 +66,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer(c_int),value :: printlvl
     real(c_double),value :: ethr
     type(c_ptr),value :: energies_ptr
+    type(c_ptr),value :: ids_ptr
 
     ! Fortran pointer views of C buffers
     real(c_double),pointer :: xyzall(:)
@@ -76,6 +104,9 @@ contains  !> MODULE PROCEDURES START HERE
         end do
       end do
     end do
+
+    !> attach any externally provided per-atom canonical ids
+    call assign_block_ids(structures,nall,nat,ids_ptr)
 
     !> init groups to zero (no assignment)
     groups(1:nall) = 0
@@ -148,7 +179,9 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
-    type(canonical_sorter),allocatable :: sorters(:)
+    type(canonical_sorter) :: scratch
+    integer,allocatable :: ranks_all(:,:)
+    logical,allocatable :: has_id(:)
     type(coord),pointer :: ref,mol
     real(wp) :: rmsdval,RTHR,ediff,eii
     integer,allocatable :: prune_table(:)
@@ -213,13 +246,15 @@ contains  !> MODULE PROCEDURES START HERE
         write (stdout,'(a)') trim(tmpstr)
       end if
     end if
-!>--- Set up atom identities (either for all, or just the first structure)
-    if (individual_IDs) then
-      allocate (sorters(nall))
-    else
-      allocate (sorters(1))
-    end if
+!>--- Set up atom identities (per structure, or just the first structure).
+!>    ranks_all(:,ii) holds the canonical ranks used for structure ii: taken
+!>    from an externally provided id (structures(ii)%id) when present, else
+!>    computed via the canonical_sorter. has_id flags the provided ones so the
+!>    comparison loop can validate them.
     ref => structures(1)
+    nat = ref%nat
+    allocate (ranks_all(nat,nall),source=0)
+    allocate (has_id(nall),source=.false.)
     if (prlvl > 0) then
       write (stdout,'(a,9x,a)',advance='no') 'Setting up atom IDs','... '
       flush (stdout)
@@ -230,28 +265,38 @@ contains  !> MODULE PROCEDURES START HERE
         call progress_update(ps,0,nall)
       end if
     end if
-    ! !$omp parallel &
-    ! !$omp shared(sorters, structures, stereocheck) &
-    ! !$omp private(mol,ii)
-    ! !$omp do schedule(dynamic)
     do ii = 1,nall
       mol => structures(ii)
       call axis(mol%nat,mol%at,mol%xyz)
       if (individual_IDs.or.ii == 1) then
-        call sorters(ii)%init(mol,invtype='apsp+',heavy=.false.)
-      end if
-      if (ii == 1) then
-        stereocheck = .not. (sorters(ii)%hasstereo(ref))
-      end if
-      if (individual_IDs.or.ii == 1) then
-        call sorters(ii)%shrink()
+        if (allocated(mol%id)) then
+          !> use the externally provided ranks directly
+          has_id(ii) = .true.
+          ranks_all(1:nat,ii) = mol%id(1:nat)
+          if (ii == 1) then
+            scratch%rank = mol%id          !> seed; hasstereo self-fills the graph
+            stereocheck = .not. (scratch%hasstereo(ref))
+            call scratch%deallocate()
+          end if
+        else
+          !> recompute the canonical ranks for this structure
+          call scratch%init(mol,invtype='apsp+',heavy=.false.)
+          ranks_all(1:nat,ii) = scratch%rank(1:nat)
+          if (ii == 1) stereocheck = .not. (scratch%hasstereo(ref))
+          call scratch%deallocate()
+        end if
       end if
       if (prlvl > 1) then
         call progress_update(ps,ii,nall)
       end if
     end do
-    ! !$omp end do
-    ! !$omp end parallel
+    !> in the shared-id mode, broadcast structure 1's ranks to all others
+    if (.not.individual_IDs) then
+      do ii = 2,nall
+        ranks_all(1:nat,ii) = ranks_all(1:nat,1)
+        has_id(ii) = has_id(1)
+      end do
+    end if
     if (prlvl > 0) then
       if (prlvl > 1) then
         call progress_finish(ps)
@@ -356,12 +401,14 @@ contains  !> MODULE PROCEDURES START HERE
         if (groups(jj) .ne. 0) cycle
         if (ii < prune_table(jj)) cycle
         if (topo_group(ii) .ne. topo_group(jj)) cycle
-        if (individual_IDs) then
-          rcaches(cc)%rank(1:nat,1) = sorters(ii)%rank(1:nat)
-          rcaches(cc)%rank(1:nat,2) = sorters(jj)%rank(1:nat)
-        else
-          rcaches(cc)%rank(1:nat,1) = sorters(1)%rank(1:nat)
-          rcaches(cc)%rank(1:nat,2) = sorters(1)%rank(1:nat)
+        rcaches(cc)%rank(1:nat,1) = ranks_all(1:nat,ii)
+        rcaches(cc)%rank(1:nat,2) = ranks_all(1:nat,jj)
+        !> if a provided id is involved, make sure the two rank sets are
+        !> mutually consistent; otherwise fall back to atom types
+        if (has_id(ii).or.has_id(jj)) then
+          if (.not.checkranks(nat,rcaches(cc)%rank(1:nat,1),rcaches(cc)%rank(1:nat,2))) then
+            call fallbackranks(structures(ii),structures(jj),nat,rcaches(cc)%rank)
+          end if
         end if
         workmols(cc)%nat = structures(jj)%nat
         workmols(cc)%at(:) = structures(jj)%at(:)
@@ -413,7 +460,9 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: prlvl
     type(rmsd_cache),allocatable :: rcaches(:)
     type(coord),allocatable,target :: workmols(:)
-    type(canonical_sorter),allocatable :: sorters(:)
+    type(canonical_sorter) :: scratch
+    integer,allocatable :: ranks_all(:,:)
+    logical,allocatable :: has_id(:)
     type(coord),pointer :: ref,mol
     real(wp) :: rmsdval
     logical :: stereocheck,individual_IDs
@@ -454,32 +503,39 @@ contains  !> MODULE PROCEDURES START HERE
       write (stdout,*)
     end if
 
-!>--- Set up atom identities (either for all, or just the first structure)
-    if (individual_IDs) then
-      allocate (sorters(nall))
-    else
-      allocate (sorters(1))
-    end if
+!>--- Set up atom identities (per structure, or just the first structure).
+!>    ranks_all(:,ii) holds the canonical ranks for structure ii: from a
+!>    provided id (structures(ii)%id) if present, else computed.
     ref => structures(1)
-    ! !$omp parallel &
-    ! !$omp shared(sorters, structures, stereocheck) &
-    ! !$omp private(mol,ii)
-    ! !$omp do schedule(dynamic)
+    nat = ref%nat
+    allocate (ranks_all(nat,nall),source=0)
+    allocate (has_id(nall),source=.false.)
     do ii = 1,nall
       mol => structures(ii)
       call axis(mol%nat,mol%at,mol%xyz)
       if (individual_IDs.or.ii == 1) then
-        call sorters(ii)%init(mol,invtype='apsp+',heavy=.false.)
-      end if
-      if (ii == 1) then
-        stereocheck = .not. (sorters(ii)%hasstereo(ref))
-      end if
-      if (individual_IDs.or.ii == 1) then
-        call sorters(ii)%shrink()
+        if (allocated(mol%id)) then
+          has_id(ii) = .true.
+          ranks_all(1:nat,ii) = mol%id(1:nat)
+          if (ii == 1) then
+            scratch%rank = mol%id          !> seed; hasstereo self-fills the graph
+            stereocheck = .not. (scratch%hasstereo(ref))
+            call scratch%deallocate()
+          end if
+        else
+          call scratch%init(mol,invtype='apsp+',heavy=.false.)
+          ranks_all(1:nat,ii) = scratch%rank(1:nat)
+          if (ii == 1) stereocheck = .not. (scratch%hasstereo(ref))
+          call scratch%deallocate()
+        end if
       end if
     end do
-    ! !$omp end do
-    ! !$omp end parallel
+    if (.not.individual_IDs) then
+      do ii = 2,nall
+        ranks_all(1:nat,ii) = ranks_all(1:nat,1)
+        has_id(ii) = has_id(1)
+      end do
+    end if
 
     !>--- allow user to set inversion check (false rotamers)
     select case (iinversion)
@@ -525,12 +581,13 @@ contains  !> MODULE PROCEDURES START HERE
       ! !$omp private(jj,rmsdval,cc)
       ! !$omp do schedule(dynamic)
       !cc = omp_get_thread_num()+1
-      if (individual_IDs) then
-        rcaches(cc)%rank(1:nat,1) = sorters(jj)%rank(1:nat)
-        rcaches(cc)%rank(1:nat,2) = sorters(ii)%rank(1:nat)
-      else
-        rcaches(cc)%rank(1:nat,1) = sorters(1)%rank(1:nat)
-        rcaches(cc)%rank(1:nat,2) = sorters(1)%rank(1:nat)
+      rcaches(cc)%rank(1:nat,1) = ranks_all(1:nat,jj)
+      rcaches(cc)%rank(1:nat,2) = ranks_all(1:nat,ii)
+      !> validate provided ids against each other; fall back if inconsistent
+      if (has_id(ii).or.has_id(jj)) then
+        if (.not.checkranks(nat,rcaches(cc)%rank(1:nat,1),rcaches(cc)%rank(1:nat,2))) then
+          call fallbackranks(structures(jj),structures(ii),nat,rcaches(cc)%rank)
+        end if
       end if
       workmols(cc)%nat = structures(ii)%nat
       workmols(cc)%at(:) = structures(ii)%at(:)
@@ -545,7 +602,7 @@ contains  !> MODULE PROCEDURES START HERE
 
   subroutine delta_irmsd_list_fortran( &
     &                     nat,nall,xyzall_ptr,atall_ptr, &
-    &                     iinversion,delta_ptr,allcanon_c,printlvl &
+    &                     iinversion,delta_ptr,allcanon_c,printlvl,ids_ptr &
     &                   ) bind(C,name="delta_irmsd_list_fortran")
     use,intrinsic :: iso_c_binding
     implicit none
@@ -559,6 +616,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer(c_int),value :: iinversion
     logical(c_bool),value :: allcanon_c
     integer(c_int),value :: printlvl
+    type(c_ptr),value :: ids_ptr
 
     ! Fortran pointer views of C buffers
     real(c_double),pointer :: xyzall(:)
@@ -593,6 +651,9 @@ contains  !> MODULE PROCEDURES START HERE
         end do
       end do
     end do
+
+    !> attach any externally provided per-atom canonical ids
+    call assign_block_ids(structures,nall,nat,ids_ptr)
 
     !> init delta to zero (no assignment)
     delta(1:nall) = 0.0_wp
