@@ -51,6 +51,7 @@ module canonical_mod
     procedure :: deallocate => deallocate_canonical_sorter
     procedure :: shrink => shrink_canonical_sorter
     procedure :: init => init_canonical_sorter
+    procedure :: init_graph => init_canonical_graph
     procedure :: init_connect => init_canonical_sorter_connect
     procedure :: update_ranks
     procedure :: update_invariants
@@ -125,9 +126,8 @@ contains  !> MODULE PROCEDURES START HERE
     integer,allocatable :: Amat(:,:) !> adjacency matrix for FULL molecule
     integer :: counth,countb,countbo
     real(wp) :: countbo2
-    real(wp),allocatable :: cn(:),Bmat(:,:)
-    integer :: i,j,k,l,ii,ati,maxnei
-    integer,allocatable :: ichrgs(:),frag(:)
+    integer :: i,j,k,ii,ati
+    integer,allocatable :: ichrgs(:)
     character(len=:),allocatable :: myinvtype
     logical :: use_icharges,include_H,anyH
 
@@ -144,75 +144,15 @@ contains  !> MODULE PROCEDURES START HERE
     end if
     anyH = any(mol%at(:) .eq. 1)
 
-!>--- all atoms of the full mol. graph are nodes
-    nodes = mol%nat
-
-!>--- map to heavy atom-only representation
-    k = 0
-    do i = 1,mol%nat
-      if (mol%at(i) .ne. 1.or.include_h) k = k+1
-    end do
-    self%nat = nodes
-    self%hatms = k
-    if (.not.allocated(self%nmap)) allocate (self%nmap(nodes))
-    if (.not.allocated(self%hmap)) allocate (self%hmap(k))
-    if (.not.allocated(self%invariants)) allocate (self%invariants(k),source=0_int64)
-    if (.not.allocated(self%invariants0)) allocate (self%invariants0(k),source=0)
-    if (.not.allocated(self%prime)) allocate (self%prime(k),source=2)
-    if (.not.allocated(self%rank)) allocate (self%rank(k),source=1)
-    if (.not.allocated(self%hadjac)) allocate (self%hadjac(k,k),source=0)
-
+!>--- build the molecular graph (heavy-atom map, neighbour list, adjacency).
+!>    Returns the full-molecule adjacency matrix Amat for the invariant setup.
     if (present(wbo)) then
-!>--- get connectivity. Easiest is just via WBO (allocates Amat)
-      call wbo2adjacency(nodes,wbo,Amat,0.02_wp)
+      call self%init_graph(mol,include_H,Amat,wbo=wbo)
     else
-!>--- determine number of subgraphs via CN
-      call mol%cn_to_bond(cn,Bmat,'cov')
-      call wbo2adjacency(nodes,Bmat,Amat,0.02_wp)
-      deallocate (Bmat,cn)
+      call self%init_graph(mol,include_H,Amat)
     end if
-    allocate (frag(nodes),source=0)
-    call setup_fragments(nodes,Amat,frag)
-    self%nfrag = maxval(frag(:),1)
-    deallocate (frag)
-
-!>--- documment neighbour list
-    maxnei = 0
-    do i = 1,mol%nat
-      k = count(Amat(:,i) > 0)
-      if (k > maxnei) maxnei = k
-    end do
-    if (debug) write (stdout,*) 'maximum number of neighbours',maxnei
-    self%maxnei = maxnei
-    if (.not.allocated(self%neigh)) allocate (self%neigh(maxnei,mol%nat),source=0)
-
-!>--- fill rest of self
-    k = 0
-    do i = 1,nodes
-      l = 0
-      if (mol%at(i) .ne. 1.or.include_h) then
-        k = k+1
-        self%nmap(i) = k
-        self%hmap(k) = i
-      else
-        self%nmap(i) = 0
-      end if
-      do j = 1,nodes
-        if (Amat(j,i) > 0) then
-          l = l+1
-          self%neigh(l,i) = j
-        end if
-      end do
-    end do
-    !> H's excluded from hadjac, always
-    do i = 1,k
-      if (mol%at(self%hmap(i)) .eq. 1) cycle
-      do j = 1,i-1
-        if (mol%at(self%hmap(j)) .eq. 1) cycle
-        self%hadjac(j,i) = Amat(self%hmap(j),self%hmap(i))
-        self%hadjac(i,j) = self%hadjac(j,i)
-      end do
-    end do
+    nodes = self%nat
+    k = self%hatms
 
 !>--- get the first invatiants
     if (allocated(mol%qat)) then
@@ -302,6 +242,110 @@ contains  !> MODULE PROCEDURES START HERE
     end if
 
   end subroutine init_canonical_sorter
+
+!========================================================================================!
+
+  subroutine init_canonical_graph(self,mol,include_H,Amat,wbo)
+!*****************************************************************
+!* Builds only the molecular graph part of the canonical_sorter:
+!* the heavy-atom maps (nmap/hmap), the neighbour list (neigh),
+!* the heavy-atom adjacency (hadjac) and the fragment count. The
+!* CANGEN/APSP rank refinement is NOT run here.
+!*
+!* This is the common graph-setup shared by init_canonical_sorter
+!* and has_stereo (which self-fills the graph when only externally
+!* supplied ranks are available). The full-molecule adjacency matrix
+!* is returned in Amat for any subsequent invariant construction.
+!*
+!* self      : canonical_sorter whose graph fields get populated
+!* mol       : input structure
+!* include_H : whether hydrogens are treated as graph nodes/ranks
+!* Amat      : (out) full-molecule adjacency matrix
+!* wbo       : (optional) bond-order matrix; if absent, connectivity
+!*             is derived from coordination numbers
+!*****************************************************************
+    implicit none
+    class(canonical_sorter),intent(inout) :: self
+    type(coord),intent(in) :: mol
+    logical,intent(in) :: include_H
+    integer,allocatable,intent(out) :: Amat(:,:)
+    real(wp),intent(in),optional :: wbo(mol%nat,mol%nat)
+    integer :: nodes,i,j,k,l,maxnei
+    real(wp),allocatable :: cn(:),Bmat(:,:)
+    integer,allocatable :: frag(:)
+
+!>--- all atoms of the full mol. graph are nodes
+    nodes = mol%nat
+
+!>--- map to heavy atom-only representation
+    k = 0
+    do i = 1,mol%nat
+      if (mol%at(i) .ne. 1.or.include_h) k = k+1
+    end do
+    self%nat = nodes
+    self%hatms = k
+    if (.not.allocated(self%nmap)) allocate (self%nmap(nodes))
+    if (.not.allocated(self%hmap)) allocate (self%hmap(k))
+    if (.not.allocated(self%invariants)) allocate (self%invariants(k),source=0_int64)
+    if (.not.allocated(self%invariants0)) allocate (self%invariants0(k),source=0)
+    if (.not.allocated(self%prime)) allocate (self%prime(k),source=2)
+    if (.not.allocated(self%rank)) allocate (self%rank(k),source=1)
+    if (.not.allocated(self%hadjac)) allocate (self%hadjac(k,k),source=0)
+
+    if (present(wbo)) then
+!>--- get connectivity. Easiest is just via WBO (allocates Amat)
+      call wbo2adjacency(nodes,wbo,Amat,0.02_wp)
+    else
+!>--- determine number of subgraphs via CN
+      call mol%cn_to_bond(cn,Bmat,'cov')
+      call wbo2adjacency(nodes,Bmat,Amat,0.02_wp)
+      deallocate (Bmat,cn)
+    end if
+    allocate (frag(nodes),source=0)
+    call setup_fragments(nodes,Amat,frag)
+    self%nfrag = maxval(frag(:),1)
+    deallocate (frag)
+
+!>--- documment neighbour list
+    maxnei = 0
+    do i = 1,mol%nat
+      k = count(Amat(:,i) > 0)
+      if (k > maxnei) maxnei = k
+    end do
+    if (debug) write (stdout,*) 'maximum number of neighbours',maxnei
+    self%maxnei = maxnei
+    if (.not.allocated(self%neigh)) allocate (self%neigh(maxnei,mol%nat),source=0)
+
+!>--- fill rest of self
+    k = 0
+    do i = 1,nodes
+      l = 0
+      if (mol%at(i) .ne. 1.or.include_h) then
+        k = k+1
+        self%nmap(i) = k
+        self%hmap(k) = i
+      else
+        self%nmap(i) = 0
+      end if
+      do j = 1,nodes
+        if (Amat(j,i) > 0) then
+          l = l+1
+          self%neigh(l,i) = j
+        end if
+      end do
+    end do
+    !> H's excluded from hadjac, always
+    do i = 1,k
+      if (mol%at(self%hmap(i)) .eq. 1) cycle
+      do j = 1,i-1
+        if (mol%at(self%hmap(j)) .eq. 1) cycle
+        self%hadjac(j,i) = Amat(self%hmap(j),self%hmap(i))
+        self%hadjac(i,j) = self%hadjac(j,i)
+      end do
+    end do
+  end subroutine init_canonical_graph
+
+!========================================================================================!
 
  subroutine init_canonical_sorter_connect(self,at,wbo,invtype,heavy)
 !*****************************************************************
@@ -566,13 +610,32 @@ end subroutine init_canonical_sorter_connect
 !===========================================================================================!
 
   function has_stereo(self,mol) result(yesno)
+!*****************************************************************
+!* Reports whether the molecule has a (CANGEN-rank) stereocenter.
+!*
+!* Only the molecular graph (neighbour list, heavy-atom map) and a
+!* rank array are required. When the graph has not been initialized
+!* yet - e.g. because the ranks were supplied externally rather than
+!* computed via init - it is self-filled here from the connectivity,
+!* so callers can run the stereo check on provided ranks without a
+!* full canonical_sorter%init.
+!*****************************************************************
     implicit none
     logical :: yesno
-    class(canonical_sorter),intent(in) :: self
+    class(canonical_sorter),intent(inout) :: self
     type(coord),intent(in) :: mol
     integer :: i,ii,zero,nei,j,jj,maxrank
     integer,allocatable :: neiranks(:,:)
     logical,allocatable :: isstereo(:)
+    integer,allocatable :: Amat(:,:)
+
+    !> self-fill the molecular graph if only ranks (but no graph) are present.
+    !> include_H=.true. keeps hmap/hatms consistent with full-molecule ranks.
+    if (.not.allocated(self%neigh)) then
+      call self%init_graph(mol,.true.,Amat)
+      if (allocated(Amat)) deallocate (Amat)
+    end if
+
     allocate (isstereo(mol%nat),source=.false.)
     allocate (neiranks(4,mol%nat),source=0)
     maxrank = maxval(self%rank(:))

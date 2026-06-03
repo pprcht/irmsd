@@ -13,6 +13,8 @@ def get_irmsd(
     atom_numbers2: np.ndarray,
     positions2: np.ndarray,
     iinversion: int = 0,
+    ranks1: np.ndarray | None = None,
+    ranks2: np.ndarray | None = None,
 ) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Core API: call the Fortran routine to calculate the iRMSD between two structures
@@ -30,6 +32,15 @@ def get_irmsd(
     iinversion : int, optional
         Whether to consider inversion symmetry. Default is 0 (auto). Set to 1 to use inversion, set
         to 2 to disable inversion.
+    ranks1 : (N1,) int-like, optional
+        Externally supplied per-atom canonical ranks for structure 1 (e.g. read
+        from a file). Used directly only if both ``ranks1`` and ``ranks2`` are
+        given, contain no zeros, and pass the internal consistency check;
+        otherwise the canonical ranks are recomputed. A zero entry is the
+        "not provided" sentinel.
+    ranks2 : (N2,) int-like, optional
+        Externally supplied per-atom canonical ranks for structure 2. See
+        ``ranks1``.
 
     Returns
     -------
@@ -67,6 +78,21 @@ def get_irmsd(
     n1 = int(P1.shape[0])
     n2 = int(P2.shape[0])
 
+    # Externally supplied ranks: an all-zero array is the "not provided"
+    # sentinel the Fortran side falls back on.
+    if ranks1 is None:
+        R1 = np.zeros(n1, dtype=np.int32)
+    else:
+        R1 = np.ascontiguousarray(ranks1, dtype=np.int32)
+        if R1.shape != (n1,):
+            raise ValueError("ranks1 must have shape (N1,)")
+    if ranks2 is None:
+        R2 = np.zeros(n2, dtype=np.int32)
+    else:
+        R2 = np.ascontiguousarray(ranks2, dtype=np.int32)
+        if R2.shape != (n2,):
+            raise ValueError("ranks2 must have shape (N2,)")
+
     c1 = P1.reshape(-1).copy(order="C")
     c2 = P2.reshape(-1).copy(order="C")
     Z3 = np.zeros_like(Z2)
@@ -87,6 +113,8 @@ def get_irmsd(
         c3,
         Z4,
         c4,
+        ranks1=R1,
+        ranks2=R2,
     )
 
     P3 = c3.reshape(n1, 3)

@@ -171,6 +171,7 @@ def get_irmsd_molecule(
     molecule1: Molecule,
     molecule2: Molecule,
     iinversion: int = 0,
+    use_ids: bool = True,
 ) -> Tuple[float, Molecule, Molecule]:
     """
     Compute the iRMSD between two Molecule objects using the iRMSD backend.
@@ -188,6 +189,11 @@ def get_irmsd_molecule(
     iinversion : int, optional
         Inversion flag passed directly to the Fortran backend. See the
         backend documentation for allowed values and meanings.
+    use_ids : bool, optional
+        If True (default) and both molecules carry per-atom canonical IDs
+        (``Molecule.ids``), those IDs are passed to the backend as externally
+        supplied ranks. The backend uses them only if they are mutually
+        consistent, otherwise it recomputes the canonical ranks.
 
     Returns
     -------
@@ -213,8 +219,11 @@ def get_irmsd_molecule(
     Z2 = molecule2.get_atomic_numbers()  # (N2,)
     P2 = molecule2.get_positions()  # (N2, 3)
 
+    ranks1 = molecule1.get_ids() if use_ids else None
+    ranks2 = molecule2.get_ids() if use_ids else None
+
     irmsdval, new_Z1, new_P1, new_Z2, new_P2 = get_irmsd(
-        Z1, P1, Z2, P2, iinversion=iinversion
+        Z1, P1, Z2, P2, iinversion=iinversion, ranks1=ranks1, ranks2=ranks2
     )
 
     new_molecule1 = molecule1.copy()

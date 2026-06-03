@@ -16,6 +16,7 @@ module irmsd_module
 
   public :: rmsd_align
   public :: checkranks,fallbackranks
+  public :: setup_irmsd_ranks
   public :: molatomsort
 
   real(wp),parameter :: bigval = huge(bigval)
@@ -766,8 +767,11 @@ contains  !> MODULE PROCEDURES START HERE
 !* Standalone implementation to compare two structures
 !* with the iRMSD method analog to the rmsd function
 !* the optional rcache will get allocated if it not already is.
+!*
+!* Externally supplied per-atom ranks (ref%id / mol%id, allocated only
+!* when a full valid set was provided) are used directly via
+!* setup_irmsd_ranks; otherwise the canonical ranking is recomputed.
 !***************************************************************
-    use canonical_mod
     implicit none
 
     type(coord),intent(inout) :: mol,ref
@@ -787,8 +791,6 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: io_l = 0
     real(wp) ::tmpd(3),tmpdist
     integer :: i,ich
-    type(canonical_sorter) :: canmol
-    type(canonical_sorter) :: canref
     logical :: mirror
     logical,parameter :: debug = .false.
 
@@ -808,14 +810,9 @@ contains  !> MODULE PROCEDURES START HERE
     call cptr%initialize(ref%nat)
     !call rcache%allocate(ref%nat)
 
-    !> canonical atom ranks
-    if (.not.allcanon_l) then
-      call canref%init(ref,invtype='apsp+',heavy=.false.)
-      cptr%stereocheck = .not. (canref%hasstereo(ref))
-      call canref%shrink()
-    else
-      cptr%stereocheck = .false.
-    end if
+    !> determine the per-atom ranks (provided ids or recomputed) and the
+    !> false-enantiomer flag, then apply the inversion override
+    call setup_irmsd_ranks(ref,mol,cptr%rank,cptr%stereocheck,allcanon=allcanon_l)
     if (present(iinversion)) then
       select case (iinversion)
       case (0)
@@ -829,24 +826,6 @@ contains  !> MODULE PROCEDURES START HERE
       end select
     end if
 
-    if (.not.allcanon_l) then
-      call canmol%init(mol,invtype='apsp+',heavy=.false.)
-      call canmol%shrink()
-    end if
-
-    if (.not.allcanon_l) then
-      !> check if we can work with the determined ranks
-      if (checkranks(ref%nat,canref%rank,canmol%rank)) then
-        cptr%rank(:,1) = canref%rank(:)
-        cptr%rank(:,2) = canmol%rank(:)
-      else
-        !> if not, fall back to atom types
-        call fallbackranks(ref,mol,ref%nat,cptr%rank)
-      end if
-    else
-      call fallbackranks(ref,mol,ref%nat,cptr%rank)
-    end if
-
     call min_rmsd(ref,mol,rcache=cptr,rmsdout=rmsdval, &
     &    align=align_l,topocheck=topocheck_l,io=io_l)
 
@@ -854,6 +833,102 @@ contains  !> MODULE PROCEDURES START HERE
 
     return
   end function irmsd
+
+!========================================================================================!
+
+  subroutine setup_irmsd_ranks(ref,mol,ranks,stereocheck,allcanon)
+!**************************************************************
+!* Determine the per-atom ranks used for iRMSD matching of the
+!* ref/mol pair, plus the false-enantiomer (stereocheck) flag.
+!*
+!* Externally supplied ranks (coord%id, allocated only when a full
+!* valid set was provided) are used directly; any side lacking them
+!* is canonicalized on the fly. If the resulting pair fails the
+!* consistency check, any side that came from provided ids is
+!* recomputed and the check repeated; if it still fails, the ranks
+!* fall back to atom types.
+!*
+!* ref,mol     : the two structures (may carry %id)
+!* ranks       : (out) (nat,2) ranks for ref (col 1) and mol (col 2)
+!* stereocheck : (out) .true. if false enantiomers should be considered
+!* allcanon    : (optional) if .true., skip canonical ranks entirely and
+!*               use atom types (legacy 'allcanon' behavior)
+!**************************************************************
+    use canonical_mod
+    implicit none
+    type(coord),intent(in) :: ref,mol
+    integer,intent(out) :: ranks(:,:)
+    logical,intent(out) :: stereocheck
+    logical,intent(in),optional :: allcanon
+    !> LOCAL
+    type(canonical_sorter) :: canref,canmol
+    integer,allocatable :: r1(:),r2(:)
+    logical :: allcanon_l,ref_provided,mol_provided,refstereo
+
+    allcanon_l = .false.
+    if (present(allcanon)) allcanon_l = allcanon
+
+    if (allcanon_l) then
+      call fallbackranks(ref,mol,ref%nat,ranks)
+      stereocheck = .false.
+      return
+    end if
+
+    ref_provided = allocated(ref%id)
+    mol_provided = allocated(mol%id)
+
+    !> reference ranks (and the stereo flag derived from them)
+    allocate (r1(ref%nat))
+    if (ref_provided) then
+      r1(:) = ref%id(:)
+      canref%rank = ref%id              !> seed ranks; hasstereo self-fills the graph
+      refstereo = canref%hasstereo(ref)
+      call canref%deallocate()
+    else
+      call canref%init(ref,invtype='apsp+',heavy=.false.)
+      r1(:) = canref%rank(:)
+      refstereo = canref%hasstereo(ref)
+      call canref%shrink()
+    end if
+
+    !> mobile ranks
+    allocate (r2(mol%nat))
+    if (mol_provided) then
+      r2(:) = mol%id(:)
+    else
+      call canmol%init(mol,invtype='apsp+',heavy=.false.)
+      r2(:) = canmol%rank(:)
+      call canmol%shrink()
+    end if
+
+    !> if provided ranks do not reconcile, recompute the provided side(s)
+    if (.not.checkranks(ref%nat,r1,r2).and. (ref_provided.or.mol_provided)) then
+      if (ref_provided) then
+        call canref%deallocate()
+        call canref%init(ref,invtype='apsp+',heavy=.false.)
+        r1(:) = canref%rank(:)
+        refstereo = canref%hasstereo(ref)
+        call canref%shrink()
+      end if
+      if (mol_provided) then
+        call canmol%deallocate()
+        call canmol%init(mol,invtype='apsp+',heavy=.false.)
+        r2(:) = canmol%rank(:)
+        call canmol%shrink()
+      end if
+    end if
+
+    !> use the (reconciled) ranks, else fall back to atom types
+    if (checkranks(ref%nat,r1,r2)) then
+      ranks(:,1) = r1(:)
+      ranks(:,2) = r2(:)
+    else
+      call fallbackranks(ref,mol,ref%nat,ranks)
+    end if
+    stereocheck = .not.refstereo
+
+    deallocate (r1,r2)
+  end subroutine setup_irmsd_ranks
 
 !========================================================================================!
 

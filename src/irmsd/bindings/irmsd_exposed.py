@@ -7,16 +7,18 @@ from numpy.ctypeslib import ndpointer
 
 from .._lib import LIB
 
-# void get_irmsd_fortran(int n1, int* types1, double* coords1,
-#                          int n2, int* types2, double* coords2,
+# void get_irmsd_fortran(int n1, int* types1, double* coords1, int* ranks1,
+#                          int n2, int* types2, double* coords2, int* ranks2,
 #                          int iinversion, double rmsd, int* types_out, double* coords3)
 LIB.get_irmsd_fortran.argtypes = [
     ct.c_int,
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ct.c_int,
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
+    ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
     ct.c_int,
     ndpointer(dtype=np.float64, flags="C_CONTIGUOUS"),
     ndpointer(dtype=np.int32, flags="C_CONTIGUOUS"),
@@ -39,6 +41,8 @@ def get_irmsd_fortran_raw(
     coords_out1_flat: np.ndarray,  # (3*n2,) float64 C
     types_out2: np.ndarray,  # (n2,) int32 C
     coords_out2_flat: np.ndarray,  # (3*n2,) float64 C
+    ranks1: np.ndarray | None = None,  # (n1,) int32 C; all-zero/None = not provided
+    ranks2: np.ndarray | None = None,  # (n2,) int32 C; all-zero/None = not provided
 ) -> float:
     """Low-level call that matches the Fortran signature exactly. Operates IN-
     PLACE on coords_out1_flat and coords_out2_flat.
@@ -80,6 +84,13 @@ def get_irmsd_fortran_raw(
     ValueError
         If array sizes do not match n1 or n2 as appropriate.
     """
+    # An all-zero ranks array is the "not provided" sentinel the Fortran side
+    # falls back on; default to that when the caller omits the ranks.
+    if ranks1 is None:
+        ranks1 = np.zeros(n1, dtype=np.int32)
+    if ranks2 is None:
+        ranks2 = np.zeros(n2, dtype=np.int32)
+
     # Validate buffers to catch ABI mismatches early
     if types1.dtype != np.int32 or not types1.flags.c_contiguous:
         raise TypeError("types1 must be int32 and C-contiguous")
@@ -101,6 +112,14 @@ def get_irmsd_fortran_raw(
         raise ValueError("coords1_flat length must be 3*n1")
     if types2.size != n2:
         raise ValueError("types2 length must be n2")
+    if ranks1.dtype != np.int32 or not ranks1.flags.c_contiguous:
+        raise TypeError("ranks1 must be int32 and C-contiguous")
+    if ranks2.dtype != np.int32 or not ranks2.flags.c_contiguous:
+        raise TypeError("ranks2 must be int32 and C-contiguous")
+    if ranks1.size != n1:
+        raise ValueError("ranks1 length must be n1")
+    if ranks2.size != n2:
+        raise ValueError("ranks2 length must be n2")
     if types_out1.size != types2.size:
         raise ValueError("types_out length must be equal to types2 length")
     if coords2_flat.size != 3 * n2:
@@ -113,9 +132,11 @@ def get_irmsd_fortran_raw(
         int(n1),
         types1,
         coords1_flat,
+        ranks1,
         int(n2),
         types2,
         coords2_flat,
+        ranks2,
         int(iinversion),
         rmsd,
         types_out1,

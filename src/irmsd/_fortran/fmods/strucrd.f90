@@ -55,6 +55,12 @@ module strucrd
     !>-- atomic charges
     real(wp),allocatable :: qat(:)
 
+    !>-- (optional) externally provided per-atom canonical IDs (ranks).
+    !>   Only allocated when a full, valid (all non-zero) set was supplied;
+    !>   downstream routines test allocated(self%id) to decide whether to use
+    !>   them or recompute the canonical ranking.
+    integer,allocatable :: id(:)
+
   contains
     procedure :: deallocate => deallocate_coord !> clear memory space
     procedure :: get_CN => coord_get_CN         !> calculate coordination number
@@ -87,13 +93,19 @@ contains   !> MODULE PROCEDURES START HERE
     if (allocated(self%bond)) deallocate (self%bond)
     if (allocated(self%lat)) deallocate (self%lat)
     if (allocated(self%qat)) deallocate (self%qat)
+    if (allocated(self%id)) deallocate (self%id)
     return
   end subroutine deallocate_coord
 
-  subroutine C_to_mol(self,natoms_c,at_ptr,xyz_ptr,convert_to_Bohr)
+  subroutine C_to_mol(self,natoms_c,at_ptr,xyz_ptr,convert_to_Bohr,id_ptr)
     !***************************************************
     !* Pass number of atoms and coordinats as ptrs from C
-    !* and allocate coord object in fortran types
+    !* and allocate coord object in fortran types.
+    !*
+    !* The optional id_ptr carries externally supplied per-atom canonical IDs
+    !* (ranks). They are stored in self%id ONLY if the pointer is associated
+    !* and all entries are non-zero (a zero entry is the "not provided"
+    !* sentinel); otherwise self%id is left unallocated.
     !***************************************************
     implicit none
     class(coord) :: self
@@ -102,9 +114,11 @@ contains   !> MODULE PROCEDURES START HERE
     type(c_ptr),value :: at_ptr
     type(c_ptr),value :: xyz_ptr
     logical,intent(in) :: convert_to_Bohr
+    type(c_ptr),value,optional :: id_ptr
 
     integer(c_int),pointer :: at_c(:)
     real(c_double),pointer :: xyz_c(:)
+    integer(c_int),pointer :: id_c(:)
     integer :: i,j,k
     real(wp) :: convert
 
@@ -128,6 +142,19 @@ contains   !> MODULE PROCEDURES START HERE
         self%xyz(j,i) = real(xyz_c(k),wp)*convert
       end do
     end do
+
+    !> externally supplied canonical IDs (ranks); keep only a complete set
+    if (present(id_ptr)) then
+      if (c_associated(id_ptr)) then
+        call c_f_pointer(id_ptr,id_c, [natoms_c])
+        if (all(id_c(:) /= 0_c_int)) then
+          allocate (self%id(self%nat))
+          do i = 1,self%nat
+            self%id(i) = int(id_c(i))
+          end do
+        end if
+      end if
+    end if
   end subroutine C_to_mol
 
   subroutine C_to_ensemble(structures,nstructures_c,many_natoms_ptr, &

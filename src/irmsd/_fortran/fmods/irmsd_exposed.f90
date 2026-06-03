@@ -9,17 +9,33 @@ module irmsd_exposed
   implicit none
 contains
 
-  subroutine get_irmsd_fortran(natoms1,types1_ptr,coords1_ptr, &
-                               natoms2,types2_ptr,coords2_ptr, &
+  subroutine get_irmsd_fortran(natoms1,types1_ptr,coords1_ptr,ranks1_ptr, &
+                               natoms2,types2_ptr,coords2_ptr,ranks2_ptr, &
                                iinversion_c,rmsd_c,types_out1_ptr,coords_out1_ptr, &
                                types_out2_ptr,coords_out2_ptr) &
     bind(C,name="get_irmsd_fortran")
+    !*********************************************************************
+    !* Compute the iRMSD between two structures of equal atom count.     *
+    !*                                                                   *
+    !* If the caller supplies per-atom canonical ranks (ranks1/ranks2,   *
+    !* all entries non-zero) and they pass checkranks(), those ranks are *
+    !* used directly and the (expensive) canonical_sorter run is skipped *
+    !* where possible. A zero in either array (the "not provided"        *
+    !* sentinel) or a checkranks() rejection falls back to the regular   *
+    !* canonical initialization.                                         *
+    !*                                                                   *
+    !* natoms1/types1/coords1/ranks1 : reference structure (ranks input) *
+    !* natoms2/types2/coords2/ranks2 : mobile structure    (ranks input) *
+    !* iinversion_c : 0=auto, 1=force inversion on, 2=force off          *
+    !* rmsd_c       : (out) iRMSD value in Angstrom                      *
+    !* *_out*       : (out) aligned types/coordinates of both structures *
+    !*********************************************************************
     use,intrinsic :: iso_c_binding
     implicit none
     !> IN-/OUTPUTS
     integer(c_int),value :: natoms1,natoms2,iinversion_c
-    type(c_ptr),value :: types1_ptr,coords1_ptr
-    type(c_ptr),value :: types2_ptr,coords2_ptr
+    type(c_ptr),value :: types1_ptr,coords1_ptr,ranks1_ptr
+    type(c_ptr),value :: types2_ptr,coords2_ptr,ranks2_ptr
     type(c_ptr),value :: types_out1_ptr
     type(c_ptr),value :: coords_out1_ptr
     type(c_ptr),value :: types_out2_ptr
@@ -35,14 +51,15 @@ contains
     real(wp) :: rmsdval,tmpd(3),tmpdist
     integer :: i
     type(rmsd_cache) :: rcache
-    type(canonical_sorter) :: canmol
-    type(canonical_sorter) :: canref
     logical :: mirror
 
     logical,parameter :: debug = .false.
 
-    call ref%C_to_mol(natoms1,types1_ptr,coords1_ptr,.true.)
-    call mol%C_to_mol(natoms2,types2_ptr,coords2_ptr,.true.)
+    !> Externally supplied canonical ranks ride along via the ranks pointers;
+    !> C_to_mol stores them in ref%id / mol%id only if a complete (all
+    !> non-zero) set is given, so setup_irmsd_ranks can decide per structure.
+    call ref%C_to_mol(natoms1,types1_ptr,coords1_ptr,.true.,ranks1_ptr)
+    call mol%C_to_mol(natoms2,types2_ptr,coords2_ptr,.true.,ranks2_ptr)
 
     if (natoms1 /= natoms2) then
       error stop 'both molecules need to have the same number of atoms'
@@ -56,45 +73,21 @@ contains
     !> allocate memory
     call rcache%allocate(ref%nat)
 
-    !> canonical atom ranks
-    call canref%init(ref,invtype='apsp+',heavy=.false.)
-    rcache%stereocheck = .not. (canref%hasstereo(ref))
-    call canref%shrink()
-    if (debug) write (stdout,*) 'false enantiomers possible?: ',rcache%stereocheck
+    !> determine the per-atom ranks (provided ids where available, otherwise
+    !> recomputed) and the false-enantiomer flag, then apply inversion override
+    call setup_irmsd_ranks(ref,mol,rcache%rank,rcache%stereocheck)
     select case (iinversion)
-    case (0)  !> whatever rcache%stereocheck says
+    case (0)  !> whatever the stereo check says
       mirror = .true.
     case (1)  !> force on
       mirror = .true.
       rcache%stereocheck = .true.
-    case (2) !> force off
+    case (2)  !> force off
       mirror = .false.
       rcache%stereocheck = .false.
     end select
 
     if (debug) write (stdout,*) 'allow inversion?:            ',mirror
-
-    call canmol%init(mol,invtype='apsp+',heavy=.false.)
-    call canmol%shrink()
-
-    !> check if we can work with the determined ranks
-    if (checkranks(ref%nat,canref%rank,canmol%rank)) then
-      if (debug) write (stdout,*) 'using canonical atom identities as rank backend'
-      rcache%rank(:,1) = canref%rank(:)
-      rcache%rank(:,2) = canmol%rank(:)
-      if (debug) then
-        write (stdout,*) 'iRMSD ranks:'
-        write (stdout,*) 'atom',' rank(ref)',' rank(mol)'
-        do i = 1,ref%nat
-          write (stdout,*) i,rcache%rank(i,1),rcache%rank(i,2)
-        end do
-        write (stdout,*)
-      end if
-    else
-      !> if not, fall back to atom types
-      if (debug) write (stdout,*) 'using atom types as rank backend'
-      call fallbackranks(ref,mol,ref%nat,rcache%rank)
-    end if
 
     call min_rmsd(ref,mol,rcache=rcache,rmsdout=rmsdval,align=.true.)
 
