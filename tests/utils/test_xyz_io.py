@@ -4,7 +4,12 @@ import numpy as np
 import pytest
 
 from irmsd.core.molecule import Molecule
-from irmsd.utils.xyz import EV_PER_HARTREE, read_extxyz, write_extxyz
+from irmsd.utils.xyz import (
+    CANONICAL_ID_COLUMN,
+    EV_PER_HARTREE,
+    read_extxyz,
+    write_extxyz,
+)
 
 
 def test_read_single_extxyz(tmp_path):
@@ -205,3 +210,97 @@ def test_write_read_marker_roundtrip_idempotent(tmp_path):
     write_extxyz(p2, back)
     # exactly one energy_units marker, no duplication
     assert p2.read_text().count("energy_units=") == 1
+
+
+# ---------------------------------------------------------------------------
+# per-atom canonical_id column (Properties schema)
+# ---------------------------------------------------------------------------
+
+
+def test_read_canonical_id_column(tmp_path):
+    """A Properties schema with canonical_id:I:1 populates Molecule.ids."""
+    content = (
+        "3\n"
+        "Properties=species:S:1:pos:R:3:canonical_id:I:1\n"
+        "C 0.0 0.0 0.0 1\n"
+        "H 0.0 0.0 1.0 2\n"
+        "H 0.0 1.0 0.0 2\n"
+    )
+    path = tmp_path / "ids.extxyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.ids is not None
+    assert mol.ids.dtype == np.int32
+    np.testing.assert_array_equal(mol.ids, [1, 2, 2])
+    # positions still parsed from the correct columns
+    np.testing.assert_allclose(mol.get_positions()[1], [0.0, 0.0, 1.0])
+
+
+def test_read_no_properties_no_ids(tmp_path):
+    """Without a Properties token, ids stays None and extra columns are ignored."""
+    content = "2\nenergy=-1.0\nH 0.0 0.0 0.0 7\nH 0.0 0.0 0.8 9\n"
+    path = tmp_path / "noprop.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.ids is None
+    assert mol.get_chemical_symbols() == ["H", "H"]
+
+
+def test_write_canonical_id_column(tmp_path):
+    """The writer emits the Properties token and the per-atom id column."""
+    mol = Molecule(
+        symbols=["C", "H", "H"],
+        positions=np.zeros((3, 3)),
+        ids=[1, 2, 2],
+    )
+    path = tmp_path / "out.extxyz"
+    write_extxyz(path, mol)
+
+    text = path.read_text()
+    assert f"Properties=species:S:1:pos:R:3:{CANONICAL_ID_COLUMN}:I:1" in text
+    # last token of each atom line is the integer id
+    atom_lines = text.splitlines()[2:]
+    assert [ln.split()[-1] for ln in atom_lines] == ["1", "2", "2"]
+
+
+def test_write_without_ids_stays_legacy(tmp_path):
+    """No ids => no Properties token (byte-compatible legacy output)."""
+    mol = Molecule(symbols=["H"], positions=[[0.0, 0.0, 0.0]])
+    path = tmp_path / "legacy.xyz"
+    write_extxyz(path, mol)
+
+    text = path.read_text()
+    assert "Properties=" not in text
+    assert len(text.splitlines()[2].split()) == 4  # sym x y z only
+
+
+def test_canonical_id_roundtrip(tmp_path):
+    """write -> read preserves the per-atom ids."""
+    mol = Molecule(
+        symbols=["O", "H", "H"],
+        positions=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
+        ids=[5, 3, 3],
+    )
+    path = tmp_path / "rt.extxyz"
+    write_extxyz(path, mol)
+
+    back = read_extxyz(path)
+    np.testing.assert_array_equal(back.ids, [5, 3, 3])
+    assert "Properties" not in back.info  # consumed, not leaked
+
+
+def test_read_canonical_id_as_float(tmp_path):
+    """Integer ids written as floats (e.g. '2.0') are tolerated on read."""
+    content = (
+        "2\n"
+        "Properties=species:S:1:pos:R:3:canonical_id:I:1\n"
+        "H 0.0 0.0 0.0 1.0\n"
+        "H 0.0 0.0 0.8 2.0\n"
+    )
+    path = tmp_path / "floatid.extxyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    np.testing.assert_array_equal(mol.ids, [1, 2])

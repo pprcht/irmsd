@@ -12,6 +12,7 @@ dist/
 CMakeFiles/
 CMakeCache.txt
 cmake-build-*/
+.c*/
 compile_commands.json
 *.dir/
 *.obj

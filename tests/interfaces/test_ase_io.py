@@ -492,3 +492,53 @@ def test_prune_ase(caffeine_sorter_irmsd_test_data):
 
     new_atoms_list = prune_ase(atoms_list, rthr)
     assert len(new_atoms_list) == np.max(expected_groups)
+
+
+# ---------------------------------------------------------------------------
+# per-atom canonical_id round-trip through ASE
+# ---------------------------------------------------------------------------
+
+
+def test_molecule_to_ase_sets_canonical_id_array():
+    """mol.ids becomes an ASE per-atom array named 'canonical_id'."""
+    mol = Molecule(
+        symbols=["C", "H", "H"],
+        positions=np.zeros((3, 3)),
+        ids=[1, 2, 2],
+    )
+    atoms = molecule_to_ase(mol)
+    assert atoms.has("canonical_id")
+    np.testing.assert_array_equal(atoms.get_array("canonical_id"), [1, 2, 2])
+
+
+def test_ase_to_molecule_reads_canonical_id_array():
+    """A 'canonical_id' per-atom array is picked up into Molecule.ids."""
+    atoms = Atoms("CHH", positions=np.zeros((3, 3)))
+    atoms.set_array("canonical_id", np.array([4, 7, 7], dtype=int))
+    mol = ase_to_molecule(atoms)
+    assert mol.ids is not None
+    np.testing.assert_array_equal(mol.ids, [4, 7, 7])
+
+
+def test_ase_no_canonical_id_is_none():
+    """Without the array, Molecule.ids stays None."""
+    atoms = Atoms("HH", positions=np.zeros((2, 3)))
+    mol = ase_to_molecule(atoms)
+    assert mol.ids is None
+
+
+def test_canonical_id_roundtrip_through_ase_extxyz(tmp_path):
+    """Molecule -> ASE -> extxyz (via ase.io) -> ASE -> Molecule keeps ids."""
+    from ase.io import write as ase_write
+
+    mol = Molecule(
+        symbols=["O", "H", "H"],
+        positions=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]),
+        ids=[5, 3, 3],
+    )
+    atoms = molecule_to_ase(mol)
+    path = tmp_path / "viaase.extxyz"
+    ase_write(str(path), atoms, format="extxyz")
+
+    back = ase_to_molecule(ase_read(str(path)))
+    np.testing.assert_array_equal(back.ids, [5, 3, 3])

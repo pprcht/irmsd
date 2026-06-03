@@ -57,6 +57,7 @@ class Molecule:
     info: dict[str, Any] = field(default_factory=dict)
     cell: np.ndarray | None = None
     pbc: tuple[bool, bool, bool] | None = None
+    ids: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         # Normalize symbols
@@ -91,6 +92,14 @@ class Molecule:
                 raise ValueError("pbc must be length-3")
             self.pbc = tuple(bool(x) for x in self.pbc)
 
+        # Normalize per-atom IDs (canonical atom identifiers). One int per atom.
+        if self.ids is not None:
+            self.ids = np.ascontiguousarray(self.ids, dtype=np.int32)
+            if self.ids.shape != (n,):
+                raise ValueError(
+                    f"ids must have shape ({n},), got {self.ids.shape}"
+                )
+
         self.info = dict(self.info)
 
     # --- Basic info ------------------------------------------------------------
@@ -122,6 +131,40 @@ class Molecule:
         positions : (N, 3) ndarray of float64
         """
         return self.positions.copy() if copy else self.positions
+
+    def get_ids(self, copy: bool = True) -> np.ndarray | None:
+        """Return the per-atom IDs (canonical atom identifiers), or None.
+
+        Parameters
+        ----------
+        copy : bool
+            If True (default), return a copy; otherwise the internal array.
+
+        Returns
+        -------
+        ids : (N,) ndarray of int32, or None
+        """
+        if self.ids is None:
+            return None
+        return self.ids.copy() if copy else self.ids
+
+    def set_ids(self, ids: Sequence[int] | np.ndarray | None) -> None:
+        """Set (or clear) the per-atom IDs (canonical atom identifiers).
+
+        Parameters
+        ----------
+        ids : sequence of int, (N,) array, or None
+            One integer per atom, or None to clear. Length must match natoms.
+        """
+        if ids is None:
+            self.ids = None
+            return
+        arr = np.ascontiguousarray(ids, dtype=np.int32)
+        if arr.shape != (self.natoms,):
+            raise ValueError(
+                f"ids must have shape ({self.natoms},), got {arr.shape}"
+            )
+        self.ids = arr
 
     def get_potential_energy(self) -> float:
         if self.energy is None:
@@ -187,6 +230,7 @@ class Molecule:
             info=dict(self.info),
             cell=None if self.cell is None else self.cell.copy(),
             pbc=None if self.pbc is None else tuple(self.pbc),
+            ids=None if self.ids is None else self.ids.copy(),
         )
 
     # --- Optional setters ------------------------------------------------------

@@ -78,7 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         type=Path,
         default=None,
-        help="Output file name (optional). For properties only pickle (pkl) files are allowed.",
+        help=(
+            "Output file name (optional). Pickle (.pkl) holds all computed "
+            "properties; an .xyz/.extxyz output dumps the structures, including "
+            "a per-atom canonical_id column when --canonical was requested."
+        ),
     )
 
 
@@ -297,9 +301,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             ran_any = True
 
         if args.canonical or args.all:
-            results["Canonical ID"] = irmsd.compute_canonical_and_print(
+            canonical_ids = irmsd.compute_canonical_and_print(
                 molecule_list, heavy=heavy, run_multiple=run_multiple
             )
+            results["Canonical ID"] = canonical_ids
+            # Attach the computed ranks to the molecules so an extxyz dump can
+            # carry them through as a per-atom canonical_id column.
+            for mol, rank in zip(molecule_list, canonical_ids):
+                mol.set_ids(rank)
             ran_any = True
 
         if not ran_any:
@@ -311,10 +320,19 @@ def main(argv: Optional[list[str]] = None) -> int:
             print_molecule_summary(molecule_list, **results)
 
         if args.output is not None:
-            from .utils.io import dump_results_to_pickle
+            ext = args.output.suffix.lower()
+            if ext in {".xyz", ".extxyz", ".trj"}:
+                from .utils.io import write_structures
 
-            outfile = dump_results_to_pickle(molecule_list, args.output, results=results)
-            print(f"--> WROTE OUTPUT FILE {outfile}\n") 
+                write_structures(args.output, molecule_list)
+                print(f"--> WROTE OUTPUT FILE {args.output}\n")
+            else:
+                from .utils.io import dump_results_to_pickle
+
+                outfile = dump_results_to_pickle(
+                    molecule_list, args.output, results=results
+                )
+                print(f"--> WROTE OUTPUT FILE {outfile}\n")
 
 
         return 0

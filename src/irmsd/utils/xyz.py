@@ -67,6 +67,84 @@ def _energy_to_hartree(value: float | None, units: str | None) -> float | None:
 
 
 # ---------------------------------------------------------------------------
+# Per-atom column schema (extended-XYZ ``Properties=`` token)
+# ---------------------------------------------------------------------------
+#
+# The atom block layout is described by a ``Properties=`` token in the comment
+# line, e.g. ``Properties=species:S:1:pos:R:3``. We support the standard
+# species/pos columns plus an optional integer ``canonical_id`` column carrying
+# the per-atom canonical identifiers (``Molecule.ids``). When no ``Properties``
+# token is present the default ``species:S:1:pos:R:3`` layout is assumed, which
+# reproduces the historical behavior (extra columns ignored).
+
+#: Name of the per-atom column holding canonical atom identifiers.
+CANONICAL_ID_COLUMN = "canonical_id"
+
+#: Default per-atom column schema when no ``Properties=`` token is given.
+_DEFAULT_PROPERTIES = "species:S:1:pos:R:3"
+
+#: Schema string emitted when a Molecule carries per-atom IDs.
+_PROPERTIES_WITH_IDS = f"species:S:1:pos:R:3:{CANONICAL_ID_COLUMN}:I:1"
+
+
+def _parse_properties_schema(spec: str | None) -> list[tuple[str, str, int]] | None:
+    """Parse a ``Properties`` spec into a list of ``(name, type, count)`` triples.
+
+    Returns None if the spec is empty or malformed (caller falls back to the
+    default layout).
+    """
+    if not spec:
+        return None
+    toks = [t for t in str(spec).split(":") if t != ""]
+    if not toks or len(toks) % 3 != 0:
+        return None
+    fields: list[tuple[str, str, int]] = []
+    for i in range(0, len(toks), 3):
+        name = toks[i]
+        typ = toks[i + 1].upper()
+        try:
+            count = int(toks[i + 2])
+        except ValueError:
+            return None
+        if count <= 0:
+            return None
+        fields.append((name, typ, count))
+    return fields
+
+
+def _column_layout(
+    fields: list[tuple[str, str, int]] | None,
+) -> tuple[int, int | None, int | None, int]:
+    """Resolve a schema to column offsets.
+
+    Returns ``(sym_idx, pos_idx, id_idx, ncols)`` where the indices are 0-based
+    offsets into the whitespace-split atom line. ``pos_idx``/``id_idx`` are None
+    when the corresponding column is absent. The species column is mandatory and
+    defaults to 0.
+    """
+    if fields is None:
+        fields = _parse_properties_schema(_DEFAULT_PROPERTIES)
+
+    sym_idx: int | None = None
+    pos_idx: int | None = None
+    id_idx: int | None = None
+    offset = 0
+    for name, typ, count in fields:  # type: ignore[union-attr]
+        lname = name.lower()
+        if sym_idx is None and (lname == "species" or typ == "S"):
+            sym_idx = offset
+        if pos_idx is None and (lname == "pos" or (typ == "R" and count == 3)):
+            pos_idx = offset
+        if id_idx is None and lname == CANONICAL_ID_COLUMN:
+            id_idx = offset
+        offset += count
+
+    if sym_idx is None:
+        sym_idx = 0
+    return sym_idx, pos_idx, id_idx, offset
+
+
+# ---------------------------------------------------------------------------
 # Helpers for parsing/formatting comment-line key=value pairs
 # ---------------------------------------------------------------------------
 
@@ -154,7 +232,11 @@ def _parse_pbc_value(val: str) -> tuple[bool, bool, bool] | None:
 def _parse_comment_line(
     line: str,
 ) -> tuple[
-    dict[str, Any], float | None, np.ndarray | None, tuple[bool, bool, bool] | None
+    dict[str, Any],
+    float | None,
+    np.ndarray | None,
+    tuple[bool, bool, bool] | None,
+    str | None,
 ]:
     """
     Parse an extended-XYZ comment line into:
@@ -163,19 +245,22 @@ def _parse_comment_line(
     - energy (if 'energy=' present), returned in Hartree
     - cell (if 'cell=' present)
     - pbc  (if 'pbc='  present)
+    - properties (the raw ``Properties=`` schema string, if present)
 
     Remaining key=value pairs go into the info dict.
 
     The energy is interpreted according to an optional ``energy_units=`` token:
     absent (or a Hartree alias) means the value is already Hartree, ``eV`` is
     converted to Hartree. The ``energy_units`` token is consumed and not placed
-    in the info dict.
+    in the info dict. The ``Properties`` token is likewise consumed (it describes
+    the atom-block column layout, not per-frame metadata).
     """
     info: dict[str, Any] = {}
     energy: float | None = None
     energy_units: str | None = None
     cell: np.ndarray | None = None
     pbc: tuple[bool, bool, bool] | None = None
+    properties: str | None = None
 
     # Use shlex to respect quotes in values: key="value with spaces"
     tokens = shlex.split(line, comments=False, posix=True)
@@ -214,6 +299,11 @@ def _parse_comment_line(
             # conversion on a later round-trip.
             energy_units = val
 
+        elif kl == "properties":
+            # Consume the atom-block column schema; it drives the per-atom
+            # parsing below and is not per-frame metadata.
+            properties = val
+
         elif kl == "cell":
             parsed = _parse_cell_value(val)
             if parsed is not None:
@@ -236,7 +326,7 @@ def _parse_comment_line(
     # Normalize the energy to the internal Hartree convention.
     energy = _energy_to_hartree(energy, energy_units)
 
-    return info, energy, cell, pbc
+    return info, energy, cell, pbc, properties
 
 
 
@@ -271,6 +361,8 @@ def read_extxyz(path_or_file: str | Path | TextIO) -> Molecule | list[Molecule]:
     - 'energy=' → stored in Molecule.energy
     - 'cell='   → stored in Molecule.cell
     - 'pbc='    → stored in Molecule.pbc
+    - 'Properties=' → describes the atom-block column layout; a
+      ``canonical_id:I:1`` column (if present) is read into Molecule.ids
     All other key=value pairs go into Molecule.info.
     """
     f, should_close = _open_maybe(path_or_file, "r")
@@ -301,26 +393,39 @@ def read_extxyz(path_or_file: str | Path | TextIO) -> Molecule | list[Molecule]:
                     "Unexpected EOF while reading extended-XYZ comment line"
                 )
 
-            info, energy, cell, pbc = _parse_comment_line(comment_line.strip())
+            info, energy, cell, pbc, properties = _parse_comment_line(
+                comment_line.strip()
+            )
+
+            # Resolve the per-atom column layout from the Properties schema
+            # (falls back to the default species:S:1:pos:R:3 layout).
+            fields = _parse_properties_schema(properties)
+            sym_idx, pos_idx, id_idx, ncols = _column_layout(fields)
+            if pos_idx is None:
+                pos_idx = 1  # default: coordinates follow the species column
 
             # Read natoms atomic lines
             symbols: list[str] = []
             positions = np.zeros((natoms, 3), dtype=float)
+            ids = (
+                np.zeros(natoms, dtype=np.int32) if id_idx is not None else None
+            )
 
+            min_cols = max(sym_idx + 1, pos_idx + 3, (id_idx + 1) if id_idx is not None else 0)
             for i in range(natoms):
                 atom_line = f.readline()
                 if not atom_line:
                     raise ValueError("Unexpected EOF while reading atom coordinates")
 
                 parts = atom_line.split()
-                if len(parts) < 4:
+                if len(parts) < min_cols:
                     raise ValueError(
-                        f"Atom line {i+1} has fewer than 4 fields: {atom_line!r}"
+                        f"Atom line {i+1} has fewer than {min_cols} fields: {atom_line!r}"
                     )
 
-                sym = parts[0]
+                sym = parts[sym_idx]
                 try:
-                    x, y, z = map(float, parts[1:4])
+                    x, y, z = map(float, parts[pos_idx : pos_idx + 3])
                 except ValueError as e:
                     raise ValueError(
                         f"Failed to parse coordinates on line: {atom_line!r}"
@@ -331,7 +436,16 @@ def read_extxyz(path_or_file: str | Path | TextIO) -> Molecule | list[Molecule]:
                 positions[i, 1] = y
                 positions[i, 2] = z
 
-                # We ignore any per-atom extra fields for now.
+                if ids is not None:
+                    try:
+                        # Tolerate integers written as floats (e.g. "2.0").
+                        ids[i] = int(round(float(parts[id_idx])))
+                    except ValueError as e:
+                        raise ValueError(
+                            f"Failed to parse canonical_id on line: {atom_line!r}"
+                        ) from e
+
+                # Any further per-atom columns are ignored.
 
             mol = Molecule(
                 symbols=symbols,
@@ -340,6 +454,7 @@ def read_extxyz(path_or_file: str | Path | TextIO) -> Molecule | list[Molecule]:
                 info=info,
                 cell=cell,
                 pbc=pbc,
+                ids=ids,
             )
             molecules.append(mol)
 
@@ -388,6 +503,8 @@ def write_extxyz(
       in the comment line (Molecule energies are stored in Hartree).
     - If Molecule.cell is not None, writes 'cell="<a11 ... a33>"'.
     - If Molecule.pbc is not None, writes 'pbc="T T T"' etc.
+    - If Molecule.ids is not None, writes a per-atom ``canonical_id`` column and
+      advertises it via 'Properties=species:S:1:pos:R:3:canonical_id:I:1'.
     - All entries in Molecule.info are written as additional key=value pairs.
 
     Parameters
@@ -426,10 +543,17 @@ def write_extxyz(
             if mol.pbc is not None:
                 parts.append(f"pbc={_format_pbc_value(mol.pbc)}")
 
-            # info dict (do not overwrite energy/cell/pbc even if present)
+            # per-atom column schema: only advertise the canonical_id column when
+            # the Molecule actually carries IDs (otherwise stay byte-compatible
+            # with the historical species/pos-only output).
+            write_ids = mol.ids is not None
+            if write_ids:
+                parts.append(f"Properties={_PROPERTIES_WITH_IDS}")
+
+            # info dict (do not overwrite energy/cell/pbc/properties even if present)
             for key, value in mol.info.items():
                 kl = key.lower()
-                if kl in {"energy", "energy_units", "cell", "pbc"}:
+                if kl in {"energy", "energy_units", "cell", "pbc", "properties"}:
                     continue
 
                 if isinstance(value, bool):
@@ -450,8 +574,15 @@ def write_extxyz(
             # 3) atom lines
             positions = mol.get_positions(copy=False)
             symbols = mol.get_chemical_symbols()
-            for sym, (x, y, z) in zip(symbols, positions):
-                f.write(f"{sym:2s} {x: .15f} {y: .15f} {z: .15f}\n")
+            if write_ids:
+                ids = mol.get_ids(copy=False)
+                for sym, (x, y, z), aid in zip(symbols, positions, ids):
+                    f.write(
+                        f"{sym:2s} {x: .15f} {y: .15f} {z: .15f} {int(aid):d}\n"
+                    )
+            else:
+                for sym, (x, y, z) in zip(symbols, positions):
+                    f.write(f"{sym:2s} {x: .15f} {y: .15f} {z: .15f}\n")
 
     finally:
         if should_close:

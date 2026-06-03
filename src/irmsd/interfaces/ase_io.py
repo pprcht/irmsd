@@ -223,6 +223,15 @@ def ase_to_molecule(atoms):
         energy = _ase_energy_to_hartree(a)
         info = _strip_energy_units(dict(getattr(a, "info", {})))
 
+        # Per-atom canonical IDs, if the Atoms object carries them as a
+        # per-atom array (e.g. read from an extxyz canonical_id:I:1 column).
+        ids = None
+        try:
+            if a.has("canonical_id"):
+                ids = np.asarray(a.get_array("canonical_id"), dtype=np.int32)
+        except Exception:
+            ids = None
+
         return Molecule(
             symbols=symbols,
             positions=positions,
@@ -230,6 +239,7 @@ def ase_to_molecule(atoms):
             info=info,
             cell=cell_array,
             pbc=pbc,
+            ids=ids,
         )
 
     # sequence vs single
@@ -324,6 +334,12 @@ def molecule_to_ase(
             pbc=pbc,
             info=info,
         )
+
+        # Per-atom canonical IDs → ASE per-atom array, so a subsequent
+        # ase.io.write emits a canonical_id column in the extxyz Properties.
+        if mol.ids is not None:
+            atoms.set_array("canonical_id", np.asarray(mol.ids, dtype=int))
+
         return atoms
 
     if isinstance(molecules, Molecule):
