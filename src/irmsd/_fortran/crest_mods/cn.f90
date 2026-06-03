@@ -82,7 +82,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: cn_type,ati,atj
     real(wp) :: rcovi,rcovj,rij(3),r2,r,rco
     real(wp) :: damp,ddamp(3),den
-    integer :: i,j
+    integer :: i,j,k,l,iat,jat
     logical :: deriv,getbond
 
 !>--- check options and defaults
@@ -335,7 +335,9 @@ contains  !> MODULE PROCEDURES START HERE
     real(wp),intent(out) :: cn(nat)
     real(wp),intent(out) :: bond(nat,nat)
     !> LOCAL
-    real(wp) :: cn_thr
+    real(wp) :: cn_thr,dx,dy,dz,r,damp
+    real(wp) :: xn,rr,rco,r2,rcovi,rcovj
+    integer  :: iat,i
     !> take a fixed cn_thr
     !> and the global
     cn_thr = 400.0d0

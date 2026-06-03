@@ -11,13 +11,16 @@ module irmsd_module
   implicit none
   private
 
-  public :: rmsd
+  public :: rmsd,irmsd
   public :: min_rmsd
 
+  public :: rmsd_align
   public :: checkranks,fallbackranks
+  public :: molatomsort
 
   real(wp),parameter :: bigval = huge(bigval)
 
+  public :: rmsd_core_cache
   type :: rmsd_core_cache
 !*************************************
 !* Memory cache for rmsd_core routine
@@ -26,6 +29,7 @@ module irmsd_module
     real(wp),allocatable :: y(:,:)
     real(wp),allocatable :: xi(:)
     real(wp),allocatable :: yi(:)
+    real(wp),allocatable :: xyzscratch(:,:,:)
   contains
     procedure :: allocate => allocate_rmsd_core_cache
   end type rmsd_core_cache
@@ -36,6 +40,7 @@ module irmsd_module
 !* cache implementation to avoid repeated allocation
 !* and enable shared-memory parallelism
 !****************************************************
+    logical :: initialized = .false.
     real(wp),allocatable :: xyzscratch(:,:,:)
     integer,allocatable :: rank(:,:)
     integer,allocatable :: best_order(:,:)
@@ -59,6 +64,7 @@ module irmsd_module
   contains
     procedure :: allocate => allocate_rmsd_cache
     procedure :: check_proxy_topo
+    procedure :: initialize => initialize_rmsd_cache
   end type rmsd_cache
 
   real(wp),parameter :: inf = huge(1.0_wp)
@@ -109,10 +115,11 @@ contains  !> MODULE PROCEDURES START HERE
 !========================================================================================!
 !========================================================================================!
 
-  subroutine allocate_rmsd_core_cache(self,nat)
+  subroutine allocate_rmsd_core_cache(self,nat,scratch)
     implicit none
     class(rmsd_core_cache),intent(inout) :: self
     integer,intent(in) :: nat
+    logical,intent(in),optional :: scratch
     if (allocated(self%x)) deallocate (self%x)
     if (allocated(self%y)) deallocate (self%y)
     if (allocated(self%xi)) deallocate (self%xi)
@@ -121,6 +128,12 @@ contains  !> MODULE PROCEDURES START HERE
     allocate (self%yi(nat),source=0.0_wp)
     allocate (self%x(3,nat),source=0.0_wp)
     allocate (self%y(3,nat),source=0.0_wp)
+    if(present(scratch))then
+      if(scratch)then
+        if(allocated(self%xyzscratch)) deallocate(self%xyzscratch)
+        allocate(self%xyzscratch(3,nat,2),source=0.0_wp)
+      endif
+    endif
   end subroutine allocate_rmsd_core_cache
 
   subroutine allocate_rmsd_cache(self,nat)
@@ -162,6 +175,20 @@ contains  !> MODULE PROCEDURES START HERE
     call self%ccache%allocate(nat)
     call self%acache%allocate(nat,nat,.true.) !> assume we are only using the LSAP implementation
   end subroutine allocate_rmsd_cache
+
+  subroutine initialize_rmsd_cache(self,nat)
+    implicit none
+    class(rmsd_cache) :: self
+    integer,intent(in) :: nat
+
+    if (.not.self%initialized) then
+      call self%allocate(nat)
+      self%initialized = .true.
+    else if (size(self%xyzscratch,2) .ne. nat) then
+      call self%allocate(nat)
+      self%initialized = .true.
+    end if
+  end subroutine initialize_rmsd_cache
 
 !========================================================================================!
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<!
@@ -239,6 +266,8 @@ contains  !> MODULE PROCEDURES START HERE
       !> scratch workspace to use?
       if (present(scratch)) then
         scratchptr => scratch
+      else if(allocated(ccptr%xyzscratch))then
+        scratchptr => ccptr%xyzscratch
       else
         allocate (tmpscratch(3,nat,2))
         scratchptr => tmpscratch
@@ -256,7 +285,7 @@ contains  !> MODULE PROCEDURES START HERE
 
       !> calculate
       call rmsd_core(nat,scratchptr(1:3,1:nat,1),scratchptr(1:3,1:nat,2), &
-      &          calc_u,Udum,rmsdval,getgrad,grdptr,ccptr)
+      &          calc_u,Udum,rmsdval,getgrad,grdptr(1:3,:),ccptr)
 
       !> go backwards through gradient (if necessary) to restore atom order
       if (getgrad) then
@@ -276,7 +305,7 @@ contains  !> MODULE PROCEDURES START HERE
     else
 !>--- standard calculation (quaternion algorithm, no mask)
       call rmsd_core(ref%nat,mol%xyz,ref%xyz, &
-      &          calc_u,Udum,rmsdval,getgrad,grdptr,ccptr)
+      &          calc_u,Udum,rmsdval,getgrad,grdptr(1:3,:),ccptr)
     end if
 
     !> pass on rotation matrix if asked for
@@ -376,7 +405,7 @@ contains  !> MODULE PROCEDURES START HERE
         return
       end if
 
-      if (calc_u) then
+      if (calc_u.or.calc_g) then
         !> reset
         U(:,:) = Imat(:,:)
         !> convert quaternion q to rotation matrix U
@@ -398,6 +427,58 @@ contains  !> MODULE PROCEDURES START HERE
 
     end associate
   end subroutine rmsd_core
+
+!========================================================================================!
+  subroutine rmsd_align(ref,mol,mask)
+    !********************************************************
+    !* Routine to align the structure "mol"
+    !* to a reference structure "ref"
+    !* via the quternion RMSD
+    !*  Input:
+    !*     ref - reference structure
+    !*    mask - (optional) only consider specific atoms
+    !*  In/Output:
+    !*     mol - structure to have it's coordinates aligned
+    !********************************************************
+
+    implicit none
+    type(coord),intent(in) :: ref
+    type(coord),intent(inout) :: mol
+    logical,intent(in),optional :: mask(:)
+
+    real(wp) :: Umat(3,3),tmp
+    real(wp) :: cref(3),cmol(3),shift(3)
+    integer :: ii,jj,nn
+
+    !> barycenter shift
+    cref(:) = 0.0_wp
+    cmol(:) = 0.0_wp
+    shift(:) = 0.0_wp
+    do ii = 1,ref%nat
+      if (present(mask)) then
+        if (mask(ii)) then
+          cref(:) = cref(:)+ref%xyz(:,ii)
+          cmol(:) = cmol(:)+mol%xyz(:,ii)
+        end if
+      else
+        cref(:) = cref(:)+ref%xyz(:,ii)
+        cmol(:) = cmol(:)+mol%xyz(:,ii)
+      end if
+    end do
+    nn = ref%nat
+    if (present(mask)) nn = count(mask)
+    shift = cref-cmol
+    shift = shift/nn
+    do ii = 1,mol%nat
+      mol%xyz(:,ii) = mol%xyz(:,ii)+shift(:)
+    end do
+
+    Umat(:,:) = 0.0_wp
+    tmp = rmsd(ref,mol,mask=mask,rotmat=Umat)
+
+    mol%xyz = matmul(Umat,mol%xyz)
+
+  end subroutine rmsd_align
 
 !========================================================================================!
 
@@ -550,9 +631,9 @@ contains  !> MODULE PROCEDURES START HERE
     !> The logic here is: if we have enough unique atoms
     !> we can align the molecule with them and identify
     !> symmetry equivalent atoms via LSAP in those thereafter
-    IF (nunique >= 3)then
+    IF (nunique >= 3) then
       !> mol still needs a first alignment and CMA shift
-       call CMAtrf(mol%nat,mol%nat,mol%at,mol%xyz)
+      call CMAtrf(mol%nat,mol%nat,mol%at,mol%xyz)
 
       tmprmsd_sym(:) = inf
       tmprmsd_sym(1) = rmsd(ref,mol,cptr%lwork, &
@@ -677,6 +758,102 @@ contains  !> MODULE PROCEDURES START HERE
     if (present(rmsdout)) rmsdout = calc_rmsd
     if (present(io)) io = ioloc
   end subroutine min_rmsd
+
+  function irmsd(ref,mol,rcache, &
+  & iinversion,align,topocheck,allcanon,io) result(rmsdval)
+!***************************************************************
+!* irmsd function
+!* Standalone implementation to compare two structures
+!* with the iRMSD method analog to the rmsd function
+!* the optional rcache will get allocated if it not already is.
+!***************************************************************
+    use canonical_mod
+    implicit none
+
+    type(coord),intent(inout) :: mol,ref
+    integer,intent(in),optional :: iinversion
+    type(rmsd_cache),intent(inout),optional,target :: rcache
+    logical,intent(in),optional :: align
+    logical,intent(in),optional :: topocheck
+    logical,intent(in),optional :: allcanon
+    integer,intent(out),optional :: io
+    real(wp) :: rmsdval
+    !> LOCAL
+    type(rmsd_cache),pointer :: cptr
+    type(rmsd_cache),allocatable,target :: local_rcache
+    logical :: align_l = .true.
+    logical :: topocheck_l = .true.
+    logical :: allcanon_l = .false.
+    integer :: io_l = 0
+    real(wp) ::tmpd(3),tmpdist
+    integer :: i,ich
+    type(canonical_sorter) :: canmol
+    type(canonical_sorter) :: canref
+    logical :: mirror
+    logical,parameter :: debug = .false.
+
+    !> move ref to CMA and align rotational axes
+    call axis(ref%nat,ref%at,ref%xyz)
+
+    !> optional args
+    if (present(align)) align_l = align
+    if (present(topocheck)) topocheck_l = topocheck
+    if (present(allcanon)) allcanon_l = allcanon
+    if (present(rcache)) then
+      cptr => rcache
+    else
+      allocate (local_rcache)
+      cptr => local_rcache
+    end if
+    call cptr%initialize(ref%nat)
+    !call rcache%allocate(ref%nat)
+
+    !> canonical atom ranks
+    if (.not.allcanon_l) then
+      call canref%init(ref,invtype='apsp+',heavy=.false.)
+      cptr%stereocheck = .not. (canref%hasstereo(ref))
+      call canref%shrink()
+    else
+      cptr%stereocheck = .false.
+    end if
+    if (present(iinversion)) then
+      select case (iinversion)
+      case (0)
+        mirror = .true.
+      case (1)
+        mirror = .true.
+        cptr%stereocheck = .true.
+      case (2)
+        mirror = .false.
+        cptr%stereocheck = .false.
+      end select
+    end if
+
+    if (.not.allcanon_l) then
+      call canmol%init(mol,invtype='apsp+',heavy=.false.)
+      call canmol%shrink()
+    end if
+
+    if (.not.allcanon_l) then
+      !> check if we can work with the determined ranks
+      if (checkranks(ref%nat,canref%rank,canmol%rank)) then
+        cptr%rank(:,1) = canref%rank(:)
+        cptr%rank(:,2) = canmol%rank(:)
+      else
+        !> if not, fall back to atom types
+        call fallbackranks(ref,mol,ref%nat,cptr%rank)
+      end if
+    else
+      call fallbackranks(ref,mol,ref%nat,cptr%rank)
+    end if
+
+    call min_rmsd(ref,mol,rcache=cptr,rmsdout=rmsdval, &
+    &    align=align_l,topocheck=topocheck_l,io=io_l)
+
+    if (present(io)) io = io_l
+
+    return
+  end function irmsd
 
 !========================================================================================!
 
