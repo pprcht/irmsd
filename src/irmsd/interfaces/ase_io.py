@@ -82,6 +82,71 @@ def get_energy_ase(atoms):
     return None
 
 
+# -------------------------------------------------------------------
+# Energy unit handling (ASE works in eV, our Molecule type in Hartree)
+# -------------------------------------------------------------------
+
+#: Info keys that may carry an explicit energy-unit declaration.
+_ENERGY_UNITS_KEY = "energy_units"
+#: Values (case-insensitive) that flag an energy already given in Hartree.
+_HARTREE_UNIT_ALIASES = frozenset(
+    {"hartree", "hartrees", "ha", "au", "a.u.", "eh", "e_h", "atomic"}
+)
+
+
+def _declared_hartree(info) -> bool:
+    """Return True if an ASE ``info`` dict declares its energy to be in Hartree.
+
+    Some of our own extended-XYZ producers annotate the comment line with
+    ``energy_units=Hartree`` (any capitalization). ASE stores that token as a
+    plain string entry in ``atoms.info``. When present, the accompanying energy
+    value is already in Hartree rather than ASE's default eV convention.
+    """
+    if not isinstance(info, dict):
+        return False
+    for key, val in info.items():
+        if str(key).lower() == _ENERGY_UNITS_KEY and isinstance(val, str):
+            return val.strip().lower() in _HARTREE_UNIT_ALIASES
+    return False
+
+
+def _strip_energy_units(info: dict) -> dict:
+    """Return a copy of ``info`` without any ``energy_units`` marker.
+
+    Once an energy has been normalized to the internal Hartree convention the
+    marker has served its purpose; keeping it around would cause a spurious
+    double conversion on a later round-trip back through ASE.
+    """
+    return {k: v for k, v in info.items() if str(k).lower() != _ENERGY_UNITS_KEY}
+
+
+def _ase_energy_to_hartree(atoms) -> float | None:
+    """Extract the energy of an ASE Atoms object, returned in Hartree.
+
+    ASE reports energies in eV by convention, so the value obtained via
+    :func:`get_energy_ase` is divided by ``ase.units.Hartree``. If the Atoms
+    object carries an ``energy_units=Hartree`` marker in its ``info`` dict, the
+    value is already in Hartree and is passed through unchanged. (This is the
+    same result as first rescaling the in-object energy from Hartree to eV and
+    then applying the uniform eV→Hartree conversion.)
+    """
+    e = get_energy_ase(atoms)
+    if e is None:
+        return None
+    if _declared_hartree(getattr(atoms, "info", {})):
+        return float(e)
+    ase = require_ase()
+    return float(e) / ase.units.Hartree  # type: ignore[attr-defined]
+
+
+def _hartree_to_ev(energy: float | None) -> float | None:
+    """Convert an internal Hartree energy to eV for storage in an ASE object."""
+    if energy is None:
+        return None
+    ase = require_ase()
+    return float(energy) * ase.units.Hartree  # type: ignore[attr-defined]
+
+
 @overload
 def ase_to_molecule(atoms: "ase.Atoms") -> Molecule: ...
 @overload
@@ -110,6 +175,12 @@ def ase_to_molecule(atoms):
 
     Notes
     -----
+    - Energies are converted from ASE's eV convention to the internal Hartree
+      convention used by the Molecule type and all sorting routines. If the
+      Atoms object declares ``energy_units=Hartree`` in its ``info`` dict (as
+      written by some of our own extended-XYZ producers), the value is treated
+      as already being in Hartree; the marker is then dropped from the returned
+      Molecule's ``info``.
     - This routine requires ASE to be installed. If ASE is missing, a clear
       and controlled error message is raised via `require_ase()`.
     - This routine does not modify either the input Atoms object or its
@@ -146,8 +217,11 @@ def ase_to_molecule(atoms):
 
         pbc = tuple(bool(x) for x in getattr(a, "pbc", (False, False, False)))
 
-        info = dict(getattr(a, "info", {}))
-        energy = get_energy_ase(a)
+        # Energy: ASE works in eV, our Molecule type in Hartree. Convert at the
+        # boundary, honoring an explicit energy_units=Hartree marker if present,
+        # then drop the (now meaningless) marker from the carried-over info.
+        energy = _ase_energy_to_hartree(a)
+        info = _strip_energy_units(dict(getattr(a, "info", {})))
 
         return Molecule(
             symbols=symbols,
@@ -195,6 +269,10 @@ def molecule_to_ase(
 
     Notes
     -----
+    - The Molecule energy (stored in Hartree) is converted to eV before being
+      written into ``atoms.info["energy"]``, matching ASE's convention. Any
+      ``energy_units`` marker carried in the Molecule's ``info`` is dropped so
+      the emitted eV value is not later misinterpreted as Hartree.
     - This routine requires ASE to be installed. If ASE is missing, a clear
       RuntimeError is raised via `require_ase()`.
     - The returned Atoms objects are structurally independent copies; further
@@ -230,12 +308,14 @@ def molecule_to_ase(
         # PBC: pass through if set, otherwise False
         pbc = mol.pbc if mol.pbc is not None else False
 
-        # Info: shallow copy to avoid mutating the original
-        info = dict(mol.info)
+        # Info: shallow copy to avoid mutating the original. Drop any stale
+        # energy_units marker; the energy we emit below is in ASE's eV units.
+        info = _strip_energy_units(dict(mol.info))
 
-        # Energy: only set info["energy"] if it is not already present
+        # Energy: internal storage is Hartree, ASE expects eV. Convert on the
+        # way out. Only set info["energy"] if it is not already present.
         if mol.energy is not None and "energy" not in info:
-            info["energy"] = float(mol.energy)
+            info["energy"] = _hartree_to_ev(mol.energy)
 
         atoms = ASEAtoms(
             symbols=symbols,
@@ -259,9 +339,13 @@ def molecule_to_ase(
 
 
 def get_energies_from_atoms_list(atoms_list: Sequence["ase.Atoms"]) -> np.ndarray:
-    """Given a list of ASE Atoms objects, call `get_energy_ase(atoms)` for
-    each, collect the energies into a float NumPy array, and replace any `None`
-    returned by the energy function with 0.0.
+    """Collect the energies of a list of ASE Atoms objects, in Hartree.
+
+    For each Atoms object the energy is extracted via :func:`get_energy_ase`
+    and converted from ASE's eV convention to Hartree (honoring an explicit
+    ``energy_units=Hartree`` marker, see :func:`_ase_energy_to_hartree`), so the
+    result can be fed directly to the Hartree-based sorting routines. Any
+    structure without an available energy contributes 0.0.
 
     Parameters
     ----------
@@ -271,11 +355,11 @@ def get_energies_from_atoms_list(atoms_list: Sequence["ase.Atoms"]) -> np.ndarra
     Returns
     -------
     np.ndarray
-        Float array of energies with shape (N,).
+        Float array of energies in Hartree with shape (N,).
     """
     energies = []
     for atoms in atoms_list:
-        e = get_energy_ase(atoms)  # user-defined energy calculator
+        e = _ase_energy_to_hartree(atoms)
         energies.append(0.0 if e is None else float(e))
     return np.array(energies, dtype=float)
 

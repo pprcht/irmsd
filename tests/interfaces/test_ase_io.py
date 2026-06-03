@@ -8,6 +8,7 @@ import numpy as np
 from ase import Atoms
 from ase.calculators.calculator import Calculator, all_properties
 from ase.io import read as ase_read
+from ase.units import Hartree
 
 from irmsd import Molecule
 from irmsd.interfaces.ase_io import (
@@ -20,6 +21,7 @@ from irmsd.interfaces.ase_io import (
     get_energy_ase,
     get_irmsd_ase,
     get_rmsd_ase,
+    molecule_to_ase,
     sorter_irmsd_ase,
     cregen_ase,
     prune_ase,
@@ -208,8 +210,24 @@ def test_get_energies_mixed_cases():
     assert energies.dtype == float
     assert energies.shape == (5,)
 
-    expected = np.array([10.0, 5.5, 42.0, 0.0, 0.0])
+    # ASE energies (eV) are converted to Hartree; missing energies become 0.0.
+    expected = np.array([10.0, 5.5, 42.0, 0.0, 0.0]) / Hartree
+    expected[3] = 0.0
+    expected[4] = 0.0
     assert np.allclose(energies, expected)
+
+
+def test_get_energies_honors_hartree_marker():
+    """energy_units=Hartree means the value is already Hartree and passes through."""
+    a1 = Atoms("H")
+    a1.info["energy"] = -1.5  # plain ASE eV -> converted
+    a2 = Atoms("H")
+    a2.info["energy"] = -1.5
+    a2.info["energy_units"] = "Hartree"  # already Hartree -> unchanged
+
+    out = get_energies_from_atoms_list([a1, a2])
+    assert out[0] == pytest.approx(-1.5 / Hartree)
+    assert out[1] == pytest.approx(-1.5)
 
 
 def test_empty_list():
@@ -348,11 +366,38 @@ def test_ase_to_molecule_single_basic():
     np.testing.assert_allclose(mol.cell, cell)
     assert mol.pbc == (True, False, True)
 
-    # Energy
-    assert mol.energy == pytest.approx(-76.1234)
+    # Energy: ASE eV -> internal Hartree
+    assert mol.energy == pytest.approx(-76.1234 / Hartree)
 
     # Info (at least the extra key survives)
     assert mol.info.get("tag") == "test_water"
+
+
+def test_ase_to_molecule_energy_units_hartree():
+    """An energy_units=Hartree marker means the value is already in Hartree."""
+    a = Atoms("H2", positions=[[0, 0, 0], [0, 0, 0.74]])
+    a.info["energy"] = -1.10584
+    a.info["energy_units"] = "hartree"  # case-insensitive
+
+    mol = ase_to_molecule(a)
+
+    # Passed through unchanged (no eV->Hartree division)...
+    assert mol.energy == pytest.approx(-1.10584)
+    # ...and the marker is consumed, not carried into the Molecule.
+    assert "energy_units" not in mol.info
+
+
+def test_ase_molecule_energy_roundtrip():
+    """Molecule(Hartree) -> ASE(eV) -> Molecule(Hartree) preserves the value."""
+    mol = Molecule(symbols=["H", "H"], positions=[[0, 0, 0], [0, 0, 0.74]], energy=-1.10584)
+
+    atoms = molecule_to_ase(mol)
+    # Stored in eV in the ASE object.
+    assert atoms.info["energy"] == pytest.approx(-1.10584 * Hartree)
+    assert "energy_units" not in atoms.info
+
+    mol_back = ase_to_molecule(atoms)
+    assert mol_back.energy == pytest.approx(-1.10584)
 
 
 def test_ase_to_molecule_single_no_energy():
@@ -388,8 +433,8 @@ def test_ase_to_molecule_sequence():
     assert mols[0].natoms == 2
     assert mols[1].natoms == 2
 
-    assert mols[0].energy == pytest.approx(-1.0)
-    assert mols[1].energy == pytest.approx(-2.0)
+    assert mols[0].energy == pytest.approx(-1.0 / Hartree)
+    assert mols[1].energy == pytest.approx(-2.0 / Hartree)
 
     np.testing.assert_allclose(
         mols[0].get_positions(),

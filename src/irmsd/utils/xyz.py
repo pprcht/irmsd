@@ -29,6 +29,44 @@ def _open_maybe(path_or_file: str | Path | TextIO, mode: str) -> tuple[TextIO, b
 
 
 # ---------------------------------------------------------------------------
+# Energy units
+# ---------------------------------------------------------------------------
+#
+# Molecule.energy is stored in Hartree throughout the package. The extended-XYZ
+# comment line may carry an optional ``energy_units=`` token; when absent the
+# energy is assumed to already be in Hartree (the long-standing CREST/QC
+# convention). We deliberately avoid depending on ASE here, so the conversion
+# factor is hard-coded (CODATA 2018 value, identical to ``ase.units.Hartree``).
+
+#: eV per Hartree (CODATA 2018; matches ``ase.units.Hartree``).
+EV_PER_HARTREE = 27.211386245988
+
+#: Values (case-insensitive) flagging an energy already given in Hartree.
+_HARTREE_UNIT_ALIASES = frozenset(
+    {"hartree", "hartrees", "ha", "au", "a.u.", "eh", "e_h", "atomic"}
+)
+#: Values (case-insensitive) flagging an energy given in electronvolt.
+_EV_UNIT_ALIASES = frozenset({"ev", "electronvolt", "electronvolts"})
+
+
+def _energy_to_hartree(value: float | None, units: str | None) -> float | None:
+    """Convert a comment-line energy to Hartree given an optional unit token.
+
+    - ``units is None`` (no marker) → assumed Hartree, returned unchanged.
+    - ``units`` an eV alias → divided by :data:`EV_PER_HARTREE`.
+    - ``units`` a Hartree alias (or anything unrecognized) → returned unchanged.
+    """
+    if value is None:
+        return None
+    if units is None:
+        return value
+    u = str(units).strip().lower()
+    if u in _EV_UNIT_ALIASES:
+        return value / EV_PER_HARTREE
+    return value  # Hartree alias or unknown -> treat as already Hartree
+
+
+# ---------------------------------------------------------------------------
 # Helpers for parsing/formatting comment-line key=value pairs
 # ---------------------------------------------------------------------------
 
@@ -122,14 +160,20 @@ def _parse_comment_line(
     Parse an extended-XYZ comment line into:
 
     - info dict of generic key→value entries
-    - energy (if 'energy=' present)
+    - energy (if 'energy=' present), returned in Hartree
     - cell (if 'cell=' present)
     - pbc  (if 'pbc='  present)
 
     Remaining key=value pairs go into the info dict.
+
+    The energy is interpreted according to an optional ``energy_units=`` token:
+    absent (or a Hartree alias) means the value is already Hartree, ``eV`` is
+    converted to Hartree. The ``energy_units`` token is consumed and not placed
+    in the info dict.
     """
     info: dict[str, Any] = {}
     energy: float | None = None
+    energy_units: str | None = None
     cell: np.ndarray | None = None
     pbc: tuple[bool, bool, bool] | None = None
 
@@ -164,6 +208,12 @@ def _parse_comment_line(
             except ValueError:
                 info[key] = _parse_value(val)
 
+        elif kl == "energy_units":
+            # Consume the unit marker; it is applied below and intentionally
+            # kept out of Molecule.info so it cannot trigger a double
+            # conversion on a later round-trip.
+            energy_units = val
+
         elif kl == "cell":
             parsed = _parse_cell_value(val)
             if parsed is not None:
@@ -182,6 +232,9 @@ def _parse_comment_line(
             info[key] = _parse_value(val)
 
         i += 1
+
+    # Normalize the energy to the internal Hartree convention.
+    energy = _energy_to_hartree(energy, energy_units)
 
     return info, energy, cell, pbc
 
@@ -331,7 +384,8 @@ def write_extxyz(
     Write one or many Molecule objects to an extended-XYZ file.
 
     Special behavior:
-    - If Molecule.energy is not None, writes 'energy=<value>' in the comment line.
+    - If Molecule.energy is not None, writes 'energy=<value> energy_units=Hartree'
+      in the comment line (Molecule energies are stored in Hartree).
     - If Molecule.cell is not None, writes 'cell="<a11 ... a33>"'.
     - If Molecule.pbc is not None, writes 'pbc="T T T"' etc.
     - All entries in Molecule.info are written as additional key=value pairs.
@@ -357,9 +411,12 @@ def write_extxyz(
             # 2) construct comment line with key=value pairs
             parts: list[str] = []
 
-            # energy
+            # energy (stored in Hartree); stamp an explicit unit marker so the
+            # file is self-documenting and read back unambiguously by both the
+            # native reader and a manual ASE read.
             if mol.energy is not None:
                 parts.append(f"energy={mol.energy:.12g}")
+                parts.append("energy_units=Hartree")
 
             # cell
             if mol.cell is not None:
@@ -372,7 +429,7 @@ def write_extxyz(
             # info dict (do not overwrite energy/cell/pbc even if present)
             for key, value in mol.info.items():
                 kl = key.lower()
-                if kl in {"energy", "cell", "pbc"}:
+                if kl in {"energy", "energy_units", "cell", "pbc"}:
                     continue
 
                 if isinstance(value, bool):

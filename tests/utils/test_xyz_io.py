@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from irmsd.core.molecule import Molecule
-from irmsd.utils.xyz import read_extxyz, write_extxyz
+from irmsd.utils.xyz import EV_PER_HARTREE, read_extxyz, write_extxyz
 
 
 def test_read_single_extxyz(tmp_path):
@@ -130,3 +130,78 @@ def test_write_and_read_roundtrip_multi(tmp_path):
 
     np.testing.assert_allclose(mols_rt[0].get_positions(), positions1)
     np.testing.assert_allclose(mols_rt[1].get_positions(), positions2)
+
+
+# ---------------------------------------------------------------------------
+# energy_units handling (Molecule.energy is always Hartree)
+# ---------------------------------------------------------------------------
+
+
+def test_read_energy_no_marker_is_hartree(tmp_path):
+    """Without an energy_units marker the value is taken as Hartree (default)."""
+    content = "1\nenergy=-76.16\nH 0.0 0.0 0.0\n"
+    path = tmp_path / "bare.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy == pytest.approx(-76.16)
+
+
+def test_read_energy_units_hartree_passthrough(tmp_path):
+    """energy_units=Hartree (any case) passes through unchanged and is consumed."""
+    content = "1\nenergy=-76.16 energy_units=Hartree\nH 0.0 0.0 0.0\n"
+    path = tmp_path / "ha.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy == pytest.approx(-76.16)
+    # marker must not leak into info
+    assert "energy_units" not in mol.info
+
+
+def test_read_energy_units_ev_converted(tmp_path):
+    """energy_units=eV is converted to Hartree on read."""
+    ev_value = -76.16 * EV_PER_HARTREE
+    content = f"1\nenergy={ev_value:.12g} energy_units=eV\nH 0.0 0.0 0.0\n"
+    path = tmp_path / "ev.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy == pytest.approx(-76.16)
+    assert "energy_units" not in mol.info
+
+
+def test_write_stamps_hartree_marker(tmp_path):
+    """The writer emits energy_units=Hartree alongside the energy."""
+    mol = Molecule(symbols=["H"], positions=[[0.0, 0.0, 0.0]], energy=-1.234)
+    path = tmp_path / "out.xyz"
+    write_extxyz(path, mol)
+
+    text = path.read_text()
+    assert "energy=-1.234" in text
+    assert "energy_units=Hartree" in text
+
+
+def test_write_no_energy_no_marker(tmp_path):
+    """No energy means no energy_units marker is written."""
+    mol = Molecule(symbols=["H"], positions=[[0.0, 0.0, 0.0]])
+    path = tmp_path / "noe.xyz"
+    write_extxyz(path, mol)
+
+    assert "energy_units" not in path.read_text()
+
+
+def test_write_read_marker_roundtrip_idempotent(tmp_path):
+    """write -> read -> write keeps the energy in Hartree and stays clean."""
+    mol = Molecule(symbols=["H", "H"], positions=[[0, 0, 0], [0, 0, 0.74]], energy=-1.10584)
+    p1 = tmp_path / "rt1.xyz"
+    write_extxyz(p1, mol)
+
+    back = read_extxyz(p1)
+    assert back.energy == pytest.approx(-1.10584)
+    assert "energy_units" not in back.info  # consumed, not carried
+
+    p2 = tmp_path / "rt2.xyz"
+    write_extxyz(p2, back)
+    # exactly one energy_units marker, no duplication
+    assert p2.read_text().count("energy_units=") == 1
