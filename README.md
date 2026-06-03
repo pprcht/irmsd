@@ -217,7 +217,10 @@ C   0.1996  -2.3349  -0.3081
 
 ##  Examples  📊
 
-### Example 1 - Symmetric Rotamers (Pentane C<sub>5</sub>H<sub>12</sub>)
+<details>
+<summary><h3 style="display:inline">Example 1 - Symmetric Rotamers (Pentane C<sub>5</sub>H<sub>12</sub>)</h3></summary>
+
+<br>
 
 <p align="center">
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example1.jpg" width="100%">
@@ -232,9 +235,14 @@ As shown in Figure 3 of the paper (page 3) :
 
 This simple example illustrates a key problem with classical (quaternion) RMSD-based conformer comparison and the necessity of addressing *both* the alignment *and* permutation problems for chemical workflows.
 
+</details>
+
 <br>
 
-### Example 2 - Validation on Randomized Atom Order Structures
+<details>
+<summary><h3 style="display:inline">Example 2 - Validation on Randomized Atom Order Structures</h3></summary>
+
+<br>
 
 <p align="center">
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example2.jpg" width="100%"> 
@@ -248,11 +256,14 @@ A robust permutation-handling alignment algorithm must correctly classify struct
 
 Figures 7a–d (pages 6–7) show that iRMSD successfully returns ~0 Å for **every pair** in 100 randomized input coordinates of: pentane (12 atoms), TPPO (46 atoms), taxol (113 atoms), BPTI (892 atoms).
 
+</details>
 
 <br>
 
-### Example 3 - Noncovalent Clusters (LJ<sub>75</sub> and (H<sub>2</sub>O)<sub>21</sub>)
+<details>
+<summary><h3 style="display:inline">Example 3 - Noncovalent Clusters (LJ<sub>75</sub> and (H<sub>2</sub>O)<sub>21</sub>)</h3></summary>
 
+<br>
 
 <p align="center">
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example3.jpg" width="100%">
@@ -271,10 +282,14 @@ iRMSD handles these correctly because:
 
 For LJ<sub>75</sub>, the full 75×75 LSAP is solved successfully.
 
+</details>
 
 <br>
 
-### Example 4 - Conformer-Rotamer Ensemble (CRE) Pruning
+<details>
+<summary><h3 style="display:inline">Example 4 - Conformer-Rotamer Ensemble (CRE) Pruning</h3></summary>
+
+<br>
 
 <p align="center">
   <img src="https://github.com/pprcht/irmsd/raw/main/assets/images/example4.jpg" width="100%"> 
@@ -287,6 +302,8 @@ iRMSD excels in distinguishing on a single threshold parameter (`RTHR`):
 
 This is crucial for automated CRE pruning and is an extension to conventional (quaternion) RMSD pruning, e.g. as used in CREST.<br>
 The default `RTHR` threshold in `irmsd` to distinguish to structures as conformers is **0.125 Å**, which was adapted from CREST's CREGEN procedure. Additional thresholds, e.g. for the inter-conformer energy difference (`ETHR`) or rotational constants (`BTHR`) are *not* required, but can be used to achieve more efficient pre-sorting.
+
+</details>
 
 <br>
 <br>
