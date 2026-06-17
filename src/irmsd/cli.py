@@ -118,6 +118,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=("When comparing structures, consider only heavy atoms."),
     )
     p_compare.add_argument(
+        "--recompute-ids",
+        action="store_true",
+        help=(
+            "Discard any per-atom canonical IDs read in from the input file(s) and"
+            " let the code regenerate them from scratch."
+        ),
+    )
+    p_compare.add_argument(
         "-o",
         "--output",
         type=Path,
@@ -245,6 +253,14 @@ def build_parser() -> argparse.ArgumentParser:
         help=("TODO for sorting routines."),
     )
     p_sort.add_argument(
+        "--recompute-ids",
+        action="store_true",
+        help=(
+            "Discard any per-atom canonical IDs read in from the input file(s) and"
+            " let the code regenerate them from scratch."
+        ),
+    )
+    p_sort.add_argument(
         "--maxprint",
         type=int,
         default=15,
@@ -277,6 +293,17 @@ def main(argv: Optional[list[str]] = None) -> int:
     print(f"Reading structures from: {args.structures}")
     molecule_list = irmsd.read_structures(args.structures)
     print(f"Done! {len(molecule_list)} read in total.")
+
+    # ── optionally discard read-in canonical IDs and regenerate them ────────────
+    if getattr(args, "recompute_ids", False):
+        stripped = sum(mol.ids is not None for mol in molecule_list)
+        for mol in molecule_list:
+            mol.set_ids(None)
+        if stripped:
+            print(
+                f"--recompute-ids: discarded canonical IDs from {stripped} "
+                f"structure{'s' if stripped != 1 else ''}; they will be regenerated."
+            )
     sys.stdout.flush()
     sys.stderr.flush()
 
