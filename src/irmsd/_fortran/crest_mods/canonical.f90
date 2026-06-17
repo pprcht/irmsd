@@ -61,6 +61,7 @@ module canonical_mod
     procedure :: hasstereo => has_stereo
     procedure :: compare => compare_canonical_sorter
     procedure :: add_h_ranks
+    procedure :: split_pair_ranks
   end type canonical_sorter
 
   logical,parameter :: debug = .false.
@@ -129,7 +130,7 @@ contains  !> MODULE PROCEDURES START HERE
     integer :: i,j,k,ii,ati
     integer,allocatable :: ichrgs(:)
     character(len=:),allocatable :: myinvtype
-    logical :: use_icharges,include_H,anyH
+    logical :: use_icharges,include_H,anyH,nmr_split
 
 !>--- optional argument handling
     if (present(invtype)) then
@@ -137,6 +138,8 @@ contains  !> MODULE PROCEDURES START HERE
     else
       myinvtype = 'cangen'
     end if
+    !> 'apsp+nmr' is the apsp+ channel plus a magnetic-equivalency split (hack)
+    nmr_split = (myinvtype .eq. 'apsp+nmr')
     if (present(heavy)) then
       include_H = .not.heavy
     else
@@ -163,7 +166,7 @@ contains  !> MODULE PROCEDURES START HERE
       use_icharges = .false.
     end if
     select case (myinvtype)
-    case ('apsp+') !> custom all-pair-shortest-path algo
+    case ('apsp+','apsp+nmr') !> custom all-pair-shortest-path algo
 
       call get_invariant0_apsp(self%hatms,self%hadjac,self%invariants0)
       do i = 1,k
@@ -234,9 +237,14 @@ contains  !> MODULE PROCEDURES START HERE
     end if
     call self%iterate(mol) !> iterate recursively until ranking doesn't change
 
+!>--- NMR hack: split heavy-atom ranks shared by exactly two atoms 
+    if (nmr_split) then
+      call self%split_pair_ranks(mol)
+    end if
+
 !>--- finally, if required, add H atoms
     if (include_H.and.anyH) then
-      !> sinc H's will have been added with rank 1, shift all ranks
+      !> since H's will have been added with rank 1, shift all ranks
       self%rank(:) = self%rank(:)-1
       call self%add_h_ranks(mol)
     end if
@@ -770,6 +778,50 @@ end subroutine init_canonical_sorter_connect
     end do
     deallocate (rankmap)
   end subroutine add_h_ranks
+
+!========================================================================================!
+
+  subroutine split_pair_ranks(self,mol)
+!*********************************************************************
+!* NMR magnetic-equivalency hack (only for explicit rank requests):  *
+!* any canonical rank shared by EXACTLY two non-hydrogen atoms is    *
+!* split into two distinct ranks. The second atom (in atom-index     *
+!* order) receives a fresh rank above the current maximum, the first *
+!* keeps the original rank.                                          *
+!*                                                                   *
+!* Must run AFTER the heavy-atom rank refinement but BEFORE the      *
+!* hydrogen ranks are added, so the new distinction propagates to    *
+!* attached H atoms through add_h_ranks. Reachable only via the      *
+!* 'apsp+nmr' invtype, i.e. the get_canonical path; the iRMSD        *
+!* matching routines never request it.                               *
+!*                                                                   *
+!* self : canonical_sorter (rank already heavy-atom refined)         *
+!* mol  : the molecule (used only for atom types via hmap)           *
+!*********************************************************************
+    implicit none
+    class(canonical_sorter),intent(inout) :: self
+    type(coord),intent(in) :: mol
+    integer :: i,r,maxrank,nmembers,second,newrank
+
+    maxrank = maxval(self%rank(:),1)
+    newrank = maxrank
+    do r = 1,maxrank
+! ── count non-H atoms carrying rank r, remembering the second one ───────────
+      nmembers = 0
+      second = 0
+      do i = 1,self%hatms
+        if (mol%at(self%hmap(i)) .eq. 1) cycle  !> never split H ranks
+        if (self%rank(i) .ne. r) cycle
+        nmembers = nmembers+1
+        if (nmembers .eq. 2) second = i
+      end do
+! ── split only exact pairs into two unique ranks ────────────────────────────
+      if (nmembers .eq. 2) then
+        newrank = newrank+1
+        self%rank(second) = newrank
+      end if
+    end do
+  end subroutine split_pair_ranks
 
 !========================================================================================!
 !========================================================================================!

@@ -308,7 +308,12 @@ class Molecule:
             Wiberg bond order matrix, required if invtype is 'cangen'.
         invtype : str, optional
             Algorithm type for invariants calculation (default: 'apsp+'),
-            alternatively 'cangen'.
+            alternatively 'cangen'. The special value 'apsp+nmr' runs the
+            'apsp+' algorithm but additionally splits any rank shared by
+            exactly two (non-hydrogen) atoms into two distinct ranks, with
+            the distinction propagated to attached hydrogens, a hack for
+            NMR magnetic (in)equivalencies. Intended for rank requests only,
+            not for iRMSD matching.
         heavy : bool, optional
             Whether to consider only heavy atoms (default: False).
 

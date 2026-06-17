@@ -29,6 +29,9 @@ def get_canonical_fortran(
         Optional Wiberg bond order matrix, required if invtype is 'cangen', ignored in case of 'apsp+'.
     invtype : str, optional
         alogrithm type for invariants calculation (default: apsp+), alternativly 'cangen'.
+        The special value 'apsp+nmr' runs 'apsp+' and then splits any rank shared by
+        exactly two non-hydrogen atoms into two distinct ranks (NMR equivalency hack);
+        intended for rank requests only, not for iRMSD matching.
 
     Returns
     -------
