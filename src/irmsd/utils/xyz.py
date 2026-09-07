@@ -254,6 +254,11 @@ def _parse_comment_line(
     converted to Hartree. The ``energy_units`` token is consumed and not placed
     in the info dict. The ``Properties`` token is likewise consumed (it describes
     the atom-block column layout, not per-frame metadata).
+
+    When no ``energy=`` token is present, the first bare numeric token on the
+    line is used as the energy, assumed to be in Hartree. This matches the
+    CREST/tag-less ensemble convention where the comment line carries only the
+    energy as a plain number.
     """
     info: dict[str, Any] = {}
     energy: float | None = None
@@ -261,6 +266,8 @@ def _parse_comment_line(
     cell: np.ndarray | None = None
     pbc: tuple[bool, bool, bool] | None = None
     properties: str | None = None
+
+    first_bare_float: float | None = None
 
     # Use shlex to respect quotes in values: key="value with spaces"
     tokens = shlex.split(line, comments=False, posix=True)
@@ -271,6 +278,11 @@ def _parse_comment_line(
 
         # Must contain '=' or we skip
         if "=" not in token:
+            if first_bare_float is None:
+                try:
+                    first_bare_float = float(token)
+                except ValueError:
+                    pass
             i += 1
             continue
 
@@ -323,6 +335,9 @@ def _parse_comment_line(
 
         i += 1
 
+    if energy is None and first_bare_float is not None:
+        energy = first_bare_float
+
     # Normalize the energy to the internal Hartree convention.
     energy = _energy_to_hartree(energy, energy_units)
 
@@ -358,7 +373,9 @@ def read_extxyz(path_or_file: str | Path | TextIO) -> Molecule | list[Molecule]:
 
     The extended-XYZ comment line may contain key=value pairs.
     Special handling:
-    - 'energy=' → stored in Molecule.energy
+    - 'energy=' → stored in Molecule.energy; if absent, the first bare numeric
+      token on the comment line is used as the energy (Hartree), matching the
+      tag-less CREST ensemble convention
     - 'cell='   → stored in Molecule.cell
     - 'pbc='    → stored in Molecule.pbc
     - 'Properties=' → describes the atom-block column layout; a

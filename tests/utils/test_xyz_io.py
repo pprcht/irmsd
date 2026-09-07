@@ -213,6 +213,64 @@ def test_write_read_marker_roundtrip_idempotent(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# tag-less energy fallback (CREST-style bare comment line)
+# ---------------------------------------------------------------------------
+
+
+def test_read_bare_energy_no_tag(tmp_path):
+    """A comment line that is just a number (CREST convention) is read as energy (Hartree)."""
+    content = "2\n   -40.12345678\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    path = tmp_path / "crest.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy == pytest.approx(-40.12345678)
+
+
+def test_read_bare_energy_multi_frame(tmp_path):
+    """Each frame in a tag-less ensemble gets its own bare-number energy."""
+    content = (
+        "2\n -40.1\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+        "2\n -40.9  extra junk\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    )
+    path = tmp_path / "crest_multi.xyz"
+    path.write_text(content)
+
+    mols = read_extxyz(path)
+    assert [m.energy for m in mols] == pytest.approx([-40.1, -40.9])
+
+
+def test_explicit_energy_tag_beats_bare_number(tmp_path):
+    """An explicit energy= token takes precedence over any bare number on the line."""
+    content = "2\nenergy=-1.5 note 99.9\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    path = tmp_path / "tagged.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy == pytest.approx(-1.5)
+
+
+def test_no_number_no_energy(tmp_path):
+    """A comment line with no numeric token leaves energy unset."""
+    content = "2\ngenerated_by=irmsd\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    path = tmp_path / "nonum.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy is None
+
+
+def test_keyed_value_does_not_leak_as_energy(tmp_path):
+    """A value consumed by a 'key=' token is not mistaken for a bare energy."""
+    content = "2\ncharge= 0\nH 0.0 0.0 0.0\nH 0.0 0.0 0.74\n"
+    path = tmp_path / "charge.xyz"
+    path.write_text(content)
+
+    mol = read_extxyz(path)
+    assert mol.energy is None
+
+
+# ---------------------------------------------------------------------------
 # per-atom canonical_id column (Properties schema)
 # ---------------------------------------------------------------------------
 
