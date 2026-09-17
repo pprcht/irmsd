@@ -153,7 +153,8 @@ def print_conformer_structures(*mols, labels=None) -> None:
     ``labels``, if given, head the columns, one per molecule. Raises TypeError
     for non-Molecule input, ValueError on atom-count or label-count mismatch.
     """
-    assert len(mols) > 0, "At least one Molecule must be provided"
+    if not mols:
+        raise ValueError("At least one Molecule must be provided")
     for i, m in enumerate(mols):
         if not isinstance(m, Molecule):
             raise TypeError(f"Argument {i} is not a Molecule object")

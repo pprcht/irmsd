@@ -627,12 +627,12 @@ def cregen_ase(
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
 
     if not isinstance(atoms_list, (list, tuple)):
-        raise TypeError("prune_ase expects a sequence (list/tuple) of ASE Atoms")
+        raise TypeError("cregen_ase expects a sequence (list/tuple) of ASE Atoms")
 
     for i, at in enumerate(atoms_list):
         if not isinstance(at, ASEAtoms):
             raise TypeError(
-                "prune_ase expects a sequence of ASE Atoms; "
+                "cregen_ase expects a sequence of ASE Atoms; "
                 f"item {i} has type {type(at)}"
             )
 

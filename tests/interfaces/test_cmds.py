@@ -7,6 +7,7 @@ from irmsd.interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,
+    compute_irmsd_and_print,
     compute_symmetry_and_print,
     get_ref_and_align_molecules,
 )
@@ -113,8 +114,17 @@ def test_ref_and_align_molecules(caffeine_delta_irmsd_list_test_data):
         get_ref_and_align_molecules(atoms_list, -1, 1)
     with pytest.raises(IndexError):
         get_ref_and_align_molecules(atoms_list, 1, -1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Both are 0"):
         get_ref_and_align_molecules(atoms_list, 0, 0)
+
+
+def test_compute_irmsd_and_print_without_inversion(
+    caffeine_delta_irmsd_list_test_data,
+):
+    """inversion=None falls back to 'auto' instead of raising NameError."""
+    molecules, _ = caffeine_delta_irmsd_list_test_data
+    atoms_list = [read_extxyz(StringIO(xyz)) for xyz in molecules[:2]]
+    compute_irmsd_and_print(atoms_list, inversion=None)
 
 
 @pytest.mark.parametrize(

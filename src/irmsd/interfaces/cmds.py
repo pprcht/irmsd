@@ -26,6 +26,8 @@ from .mol_interface import (
     sorter_irmsd_molecule,
 )
 
+_INVERSION_CODES = {"auto": 0, "on": 1, "off": 2}
+
 # CMDs for "prop" runtypes
 
 
@@ -47,7 +49,7 @@ def compute_cn_and_print(
 def compute_axis_and_print(
     molecule_list: Sequence["Molecule"],
     run_multiple: bool = False,
-) -> List[Tuple[np.ndarray, np.ndarray]]:
+) -> List[dict]:
     """Compute and print rotational constants and principal axes.
 
     Returns
@@ -57,7 +59,7 @@ def compute_axis_and_print(
         "Rotation matrix" (3, 3).
     """
 
-    results: List[Tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+    results: List[dict] = []
     for i, mol in enumerate(molecule_list, start=1):
         axd = dict()
         rot, avmom, evec = mol.get_axis()
@@ -174,7 +176,7 @@ def get_ref_and_align_molecules(
         )
     if idx_ref == idx_align:
         raise ValueError(
-            "Reference and align indices must be different. Both are {idx_ref}."
+            f"Reference and align indices must be different. Both are {idx_ref}."
         )
     mol_ref = molecule_list[idx_ref]
     mol_align = molecule_list[idx_align]
@@ -249,8 +251,7 @@ def compute_irmsd_and_print(
     if inversion is not None:
         print(f"Inversion check: {inversion}\n")
 
-    if inversion is not None:
-        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+    iinversion = _INVERSION_CODES[inversion or "auto"]
 
     irmsd_value, new_atoms_ref, new_atoms_aligned = get_irmsd_molecule(
         mol_ref, mol_align, iinversion=iinversion
@@ -307,8 +308,7 @@ def sort_structures_and_print(
         ``<root>_<formula><ext>`` file each.
     """
 
-    if inversion is not None:
-        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+    iinversion = _INVERSION_CODES[inversion or "auto"]
 
     mol_dict = group_by(
         molecule_list, key=lambda a: a.get_chemical_formula(mode="hill")
@@ -387,7 +387,7 @@ def Presorted_sort_structures_and_print(
     ethr: float | None = None,
     ewin: float | None = None,
     outfile: str | None = None,
-) -> None:
+) -> List["Molecule"]:
     """Run the iRMSD sorter on one presorted group; return the first structure
     of each resulting group.
 
@@ -430,8 +430,7 @@ def sort_get_delta_irmsd_and_print(
         Unused; no structures are written.
     """
 
-    if inversion is not None:
-        iinversion = {"auto": 0, "on": 1, "off": 2}[inversion]
+    iinversion = _INVERSION_CODES[inversion or "auto"]
 
     mol_dict = group_by(
         molecule_list, key=lambda a: a.get_chemical_formula(mode="hill")
@@ -450,11 +449,6 @@ def sort_get_delta_irmsd_and_print(
 
     else:
         for key, molecule_list in mol_dict.items():
-            if outfile is not None:
-                root, ext = os.path.splitext(outfile)
-                outfile_key = f"{root}_{key}{ext}"
-            else:
-                outfile_key = None
             energies = get_energies_from_molecule_list(molecule_list)
             molecule_list, energies = sort_by_value(molecule_list, energies)
             print()
@@ -537,9 +531,8 @@ def run_cregen_and_print(
 
             if outfile_key is not None:
                 write_structures(outfile_key, mol_dict[key])
-
-            if printlvl > 0:
                 repr = len(mol_dict[key])
-                print(
-                    f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile_key}"
-                )
+                if printlvl > 0:
+                    print(
+                        f"--> wrote {repr} REPRESENTATIVE structure{'s' if repr != 1 else ''} to: {outfile_key}"
+                    )
