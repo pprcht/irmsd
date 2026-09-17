@@ -850,7 +850,7 @@ contains    !> MODULE PROCEDURES START HERE
     real(wp) :: d0(DIMENSION),d1(DIMENSION),d2(DIMENSION),p(DIMENSION)
     real(wp) :: r,s0,s1,s2
     real(wp),pointer :: d(:)
-    integer :: i,j,k
+    integer :: i,j,k,sweep
 
     success = .false.
     state%StatTotal = state%StatTotal+1
@@ -863,27 +863,31 @@ contains    !> MODULE PROCEDURES START HERE
     d0 = 0.0d0; d1 = 0.0d0; d2 = 0.0d0
     d0(1) = 1.0d0; d1(2) = 1.0d0; d2(3) = 1.0d0
 
-    do i = 2,state%AtomsCount
-      do j = 1,i-1
-        r = 0.0d0
-        do k = 1,DIMENSION
-          p(k) = state%Atoms(i)%x(k)-state%Atoms(j)%x(k)
-          r = r+p(k)*p(k)
-        end do
-        r = sqrt(r)
+!>-- a single projection sweep is not orthogonal for non-orthogonal pair
+!>   vectors; repeat it so the plane normal is exact up to round-off
+    do sweep = 1,5
+      do i = 2,state%AtomsCount
+        do j = 1,i-1
+          r = 0.0d0
+          do k = 1,DIMENSION
+            p(k) = state%Atoms(i)%x(k)-state%Atoms(j)%x(k)
+            r = r+p(k)*p(k)
+          end do
+          r = sqrt(r)
 
-        s0 = 0.0d0; s1 = 0.0d0; s2 = 0.0d0
-        do k = 1,DIMENSION
-          p(k) = p(k)/r
-          s0 = s0+p(k)*d0(k)
-          s1 = s1+p(k)*d1(k)
-          s2 = s2+p(k)*d2(k)
-        end do
+          s0 = 0.0d0; s1 = 0.0d0; s2 = 0.0d0
+          do k = 1,DIMENSION
+            p(k) = p(k)/r
+            s0 = s0+p(k)*d0(k)
+            s1 = s1+p(k)*d1(k)
+            s2 = s2+p(k)*d2(k)
+          end do
 
-        do k = 1,DIMENSION
-          d0(k) = d0(k)-s0*p(k)
-          d1(k) = d1(k)-s1*p(k)
-          d2(k) = d2(k)-s2*p(k)
+          do k = 1,DIMENSION
+            d0(k) = d0(k)-s0*p(k)
+            d1(k) = d1(k)-s1*p(k)
+            d2(k) = d2(k)-s2*p(k)
+          end do
         end do
       end do
     end do

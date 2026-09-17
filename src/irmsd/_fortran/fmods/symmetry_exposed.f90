@@ -5,6 +5,9 @@ module symmetry_exposed
   implicit none
   private
 
+  public :: get_symmetry_fortran
+  public :: get_symmetry_elements_fortran
+
   real(wp),parameter :: bohr = 0.52917726_wp
 
 contains
