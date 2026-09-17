@@ -5,7 +5,7 @@ from typing import Any, Sequence
 
 import numpy as np
 
-# Very small symbol → Z map so we don't have to rely on ASE at all.
+# Symbol -> Z map, kept local to avoid an ASE dependency.
 # fmt: off
 _PERIODIC = {
     "H": 1,   "He": 2,
@@ -31,24 +31,17 @@ _PERIODIC = {
     "Nh": 113, "Fl": 114, "Mc": 115, "Lv": 116, "Ts": 117, "Og": 118,
 }
 
-# Precomputed inverse table: Z → symbol
 _INV_PERIODIC = {Z: sym for sym, Z in _PERIODIC.items()}
 # fmt: on
 
 
 @dataclass
 class Molecule:
-    """Lightweight replacement for ase.Atoms.
+    """Dependency-free replacement for ase.Atoms.
 
-    Raises
-    ------
-    ValueError
-        If input data has incorrect shape or contains unknown symbols.
-
-    Notes
-    -----
-    This class is designed to be a lightweight alternative to ASE's Atoms
-    class to minimize dependencies.
+    ``energy`` is in Hartree. ``ids`` holds optional per-atom canonical atom
+    identifiers, one int32 per atom. Construction raises ValueError on bad
+    shapes or unknown symbols.
     """
 
     symbols: list[str]
@@ -60,11 +53,9 @@ class Molecule:
     ids: np.ndarray | None = None
 
     def __post_init__(self) -> None:
-        # Normalize symbols
         self.symbols = [str(s) for s in self.symbols]
         n = len(self.symbols)
 
-        # Convert symbols → atomic numbers
         try:
             self.numbers = np.ascontiguousarray(
                 [_PERIODIC[s] for s in self.symbols],
@@ -73,26 +64,22 @@ class Molecule:
         except KeyError as e:
             raise ValueError(f"Unknown chemical symbol: {e.args[0]!r}")
 
-        # Normalize positions
         self.positions = np.ascontiguousarray(self.positions, dtype=np.float64)
         if self.positions.shape != (n, 3):
             raise ValueError(
                 f"positions must have shape ({n}, 3), got {self.positions.shape}"
             )
 
-        # Normalize cell
         if self.cell is not None:
             self.cell = np.asarray(self.cell, dtype=np.float64)
             if self.cell.shape != (3, 3):
                 raise ValueError("cell must be (3,3)")
 
-        # Normalize pbc
         if self.pbc is not None:
             if len(self.pbc) != 3:
                 raise ValueError("pbc must be length-3")
             self.pbc = tuple(bool(x) for x in self.pbc)
 
-        # Normalize per-atom IDs (canonical atom identifiers). One int per atom.
         if self.ids is not None:
             self.ids = np.ascontiguousarray(self.ids, dtype=np.int32)
             if self.ids.shape != (n,):
@@ -102,7 +89,6 @@ class Molecule:
 
         self.info = dict(self.info)
 
-    # --- Basic info ------------------------------------------------------------
     @property
     def natoms(self) -> int:
         return len(self.symbols)
@@ -110,7 +96,6 @@ class Molecule:
     def __len__(self) -> int:
         return self.natoms
 
-    # --- Minimal ASE-like API -------------------------------------------------------
     def get_chemical_symbols(self) -> list[str]:
         return list(self.symbols)
 
@@ -119,43 +104,17 @@ class Molecule:
         return self.numbers.copy()
 
     def get_positions(self, copy: bool = True) -> np.ndarray:
-        """Return atomic positions.
-
-        Parameters
-        ----------
-        copy : bool
-            If True, return a copy of the positions array.
-            If False, return the internal array (may be modified).
-        Returns
-        -------
-        positions : (N, 3) ndarray of float64
-        """
+        """Return (N, 3) positions; ``copy=False`` returns the internal array."""
         return self.positions.copy() if copy else self.positions
 
     def get_ids(self, copy: bool = True) -> np.ndarray | None:
-        """Return the per-atom IDs (canonical atom identifiers), or None.
-
-        Parameters
-        ----------
-        copy : bool
-            If True (default), return a copy; otherwise the internal array.
-
-        Returns
-        -------
-        ids : (N,) ndarray of int32, or None
-        """
+        """Return (N,) canonical atom IDs or None; ``copy=False`` returns the internal array."""
         if self.ids is None:
             return None
         return self.ids.copy() if copy else self.ids
 
     def set_ids(self, ids: Sequence[int] | np.ndarray | None) -> None:
-        """Set (or clear) the per-atom IDs (canonical atom identifiers).
-
-        Parameters
-        ----------
-        ids : sequence of int, (N,) array, or None
-            One integer per atom, or None to clear. Length must match natoms.
-        """
+        """Set canonical atom IDs, one per atom (ValueError otherwise); None clears them."""
         if ids is None:
             self.ids = None
             return
@@ -172,40 +131,27 @@ class Molecule:
         return float(self.energy)
 
     def get_chemical_formula(self, mode: str = "hill") -> str:
-        """Return a chemical formula string.
+        """Return the chemical formula, omitting counts of 1 as ASE does.
 
-        Parameters
-        ----------
-        mode : str
-            "hill"  → C, H first, then alphabetical (standard Hill formula)
-            others → alphabetical order of all elements
-
-        Returns
-        -------
-        formula : str
+        ``mode="hill"`` puts C and H first, then the rest alphabetically; any
+        other mode sorts all elements alphabetically, matching ASE.
         """
-        # Count symbols
         from collections import Counter
 
         counts = Counter(self.symbols)
 
-        # Sorting rules
         if mode.lower() == "hill":
             order = []
-            # Hill system: C first, H second
             if "C" in counts:
                 order.append("C")
             if "H" in counts:
                 order.append("H")
 
-            # Then all others alphabetically
             others = sorted(sym for sym in counts if sym not in ("C", "H"))
             order.extend(others)
         else:
-            # Alphabetical mode (same as ASE if not "hill")
             order = sorted(counts.keys())
 
-        # Build formula: omit "1" as ASE does
         fragments = []
         for sym in order:
             n = counts[sym]
@@ -217,12 +163,7 @@ class Molecule:
         return "".join(fragments)
 
     def copy(self) -> "Molecule":
-        """Return a deep copy of the Molecule.
-
-        All arrays (positions, numbers, cell) are copied, and both `info` and
-        `symbols` are duplicated so that modifying the copy has no effect on
-        the original.
-        """
+        """Return a deep copy; no array, ``info`` or ``symbols`` is shared."""
         return Molecule(
             symbols=list(self.symbols),
             positions=self.positions.copy(),
@@ -233,7 +174,6 @@ class Molecule:
             ids=None if self.ids is None else self.ids.copy(),
         )
 
-    # --- Optional setters ------------------------------------------------------
     def set_positions(self, positions: Sequence[Sequence[float]]) -> None:
         new_pos = np.ascontiguousarray(positions, dtype=np.float64)
         if new_pos.shape != self.positions.shape:
@@ -255,15 +195,8 @@ class Molecule:
         except KeyError as e:
             raise KeyError(f"Unknown atomic number: {e.args[0]}") from e
 
-    # --- Larger Functions interfaced to Fortran ---------------------------------
     def get_cn(self) -> np.ndarray:
-        """Optional utility: calls core get_cn_fortran and returns
-        a numpy array with the coordination numbers per atom.
-
-        Returns
-        -------
-        cn : (N,) ndarray of float64
-        """
+        """Return (N,) coordination numbers from the Fortran core."""
         from ..api.cn_exposed import get_cn_fortran
 
         Z = self.get_atomic_numbers()  # (N,)
@@ -273,17 +206,15 @@ class Molecule:
         return new_cn
 
     def get_axis(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Optional utility: calls core get_axis and returns
-        rotation constants in MHz, average momentum in a.u.,
-        and the rotation matrix.
+        """Return rotation constants, average momentum and rotation matrix.
 
         Returns
         -------
-        rot : (3,) ndarray of float64
+        rot : (3,) ndarray
             Rotation constants in MHz.
-        avmom : (1,) ndarray of float64
+        avmom : (1,) ndarray
             Average momentum in a.u.
-        evec : (3, 3) ndarray of float64
+        evec : (3, 3) ndarray
         """
         from ..api.axis_exposed import get_axis
 
@@ -293,34 +224,55 @@ class Molecule:
         rot, avmom, evec = get_axis(Z, pos)
         return rot, avmom, evec
 
+    def get_point_group(self, **settings) -> str | None:
+        """Return the Schoenflies symbol (e.g. "C2v"), or None if skipped.
+
+        ``settings`` are forwarded; see :func:`irmsd.get_point_group`.
+        """
+        from ..api.symmetry_exposed import get_point_group
+
+        Z = self.get_atomic_numbers()  # (N,)
+        pos = self.get_positions()  # (N, 3) float64
+
+        return get_point_group(Z, pos, **settings)
+
+    def get_symmetry_operations(self, **settings) -> tuple[str | None, list]:
+        """Return the Schoenflies symbol and the symmetry operations.
+
+        ``settings`` are forwarded; see :func:`irmsd.get_point_group`.
+
+        Returns
+        -------
+        symbol : str or None
+            None if skipped.
+        operations : list[irmsd.SymmetryOperation]
+            Identity first; empty if skipped.
+        """
+        from ..api.symmetry_exposed import get_symmetry_operations
+
+        Z = self.get_atomic_numbers()  # (N,)
+        pos = self.get_positions()  # (N, 3) float64
+
+        return get_symmetry_operations(Z, pos, **settings)
+
     def get_canonical(
         self,
         wbo: np.ndarray | None = None,
         invtype: str = "apsp+",
         heavy: bool = False,
     ) -> np.ndarray:
-        """Optional utility: calls core get_canonical_fortran and
-        returns the rank (and/or invariants, depending on backend).
+        """Return (N,) int32 canonical ranks from the Fortran core.
 
         Parameters
         ----------
-        wbo : (N, N) ndarray of float64, optional
-            Wiberg bond order matrix, required if invtype is 'cangen'.
-        invtype : str, optional
-            Algorithm type for invariants calculation (default: 'apsp+'),
-            alternatively 'cangen'. The special value 'apsp+nmr' runs the
-            'apsp+' algorithm but additionally splits any rank shared by
-            exactly two (non-hydrogen) atoms into two distinct ranks, with
-            the distinction propagated to attached hydrogens, a hack for
-            NMR magnetic (in)equivalencies. Intended for rank requests only,
-            not for iRMSD matching.
-        heavy : bool, optional
-            Whether to consider only heavy atoms (default: False).
-
-        Returns
-        -------
-        rank : (N,) ndarray of int32
-            Rank array.
+        wbo : (N, N) ndarray, optional
+            Wiberg bond orders; required for ``invtype="cangen"``.
+        invtype : {"apsp+", "cangen", "apsp+nmr"}
+            ``"apsp+nmr"`` runs apsp+, then splits any rank shared by exactly
+            two non-hydrogen atoms (propagated to attached hydrogens), a hack
+            for NMR magnetic (in)equivalencies. Rank requests only, not iRMSD.
+        heavy : bool
+            Rank heavy atoms only.
         """
         from ..api.canonical_exposed import get_canonical_fortran
 

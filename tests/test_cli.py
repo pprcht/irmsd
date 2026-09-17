@@ -600,6 +600,39 @@ Atom Symbol             CN   Canonical ID
             [
                 "caffeine_xyz_file_fixture",
             ],
+            ["--sym"],
+            "Point group: Cs\nSymmetry operations: E, sigma\n",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
+            ["--sym", "--sym-maxat", "10"],
+            "Point group: skipped (too many atoms)\n",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
+            [
+                "--sym",
+                "--sym-maxat",
+                "0",
+                "--sym-thr",
+                "0.2",
+                "--sym-primary",
+                "0.4",
+                "--sym-maxorder",
+                "8",
+                "--sym-maxcycles",
+                "50",
+            ],
+            "Point group: Cs\nSymmetry operations: E, sigma\n",
+        ),
+        (
+            [
+                "caffeine_xyz_file_fixture",
+            ],
             ["--all", "--output"],
             """Rotational constants (MHz):
     1068.0731    710.7118    430.2612
@@ -607,6 +640,9 @@ Rotation matrix:
       0.6712     -0.7413      0.0012
       0.7413      0.6712     -0.0011
       0.0000      0.0017      1.0000
+
+Point group: Cs
+Symmetry operations: E, sigma
 
 Atom Symbol             CN   Canonical ID
 ---- ------ -------------- --------------

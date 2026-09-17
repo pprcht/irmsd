@@ -24,24 +24,7 @@ BANNER = r"""
 
 
 def print_pretty_array(title: str, arr: np.ndarray, fmt="{:8.4f}", sep="    ") -> None:
-    """Pretty-print a 1D or 2D numpy array with a header.
-
-    Parameters
-    ----------
-    title : str
-        Header title to print before the data.
-    arr : numpy.ndarray
-        1D or 2D array to print.
-    fmt : str, optional
-        Format string for each element (default: "{:8.4f}").
-    sep : str, optional
-        Separator between elements (default: four spaces).
-
-    Raises
-    ------
-    ValueError
-        If the array is not 1D or 2D.
-    """
+    """Print ``title``, then a 1D or 2D array one row per line (ValueError otherwise)."""
     print(title)
     if arr.ndim == 1:
         print(sep + sep.join(fmt.format(x) for x in arr))
@@ -69,12 +52,10 @@ def _print_atomwise_table(
             return "{:14.6f}"
         elif np.issubdtype(arr.dtype, np.bool_):
             return "{:>14}"  # prints True/False
-            # or "{:14d}" to print 1/0
         else:
             return "{:>14}"  # fallback for strings or objects
 
     nat = len(mol)
-    # basic checks
     for name, arr in properties.items():
         arr = np.asarray(arr)
         if arr.ndim != 1:
@@ -86,13 +67,11 @@ def _print_atomwise_table(
 
     prop_names = list(properties.keys())
 
-    # header
     header = f"{'Atom':>4} {'Symbol':>6}"
     for name in prop_names:
         header += f" {name:>14}"
     print(header)
 
-    # separator
     sep = "---- ------"
     for _ in prop_names:
         sep += " " + "-" * 14
@@ -115,20 +94,13 @@ def print_molecule_summary(
     molecule_list: Sequence[Any],
     **results_by_name: Sequence[Any],
 ) -> None:
-    """Print a summary for each molecule, plus a combined atom-wise table for
-    any results that are 1D per-atom arrays.
+    """Print per-molecule results; 1D per-atom arrays go into one atom-wise table.
 
-    Parameters
-    ----------
-    molecule_list : sequence of Molecule
-        List of molecules.
-    **results_by_name :
-        Each keyword argument is a sequence aligned with molecule_list,
-        e.g. energies=[...], charges=[...], spin=[...].
+    Each ``results_by_name`` entry is a sequence aligned with
+    ``molecule_list``, e.g. ``energies=[...]``.
     """
     n_mol = len(molecule_list)
 
-    # sanity: all result lists must match length of molecule_list
     for name, seq in results_by_name.items():
         if len(seq) != n_mol:
             raise ValueError(
@@ -141,14 +113,12 @@ def print_molecule_summary(
         print("=" * 60)
         print()
 
-        # Split per-molecule vs atom-wise for THIS molecule
         per_mol_values: dict[str, Any] = {}
         atomwise_values: dict[str, np.ndarray] = {}
 
         for name, seq in results_by_name.items():
             value = seq[idx]
 
-            # Detect atom-wise: 1D array, length == number of atoms
             if (
                 isinstance(value, np.ndarray)
                 and value.ndim == 1
@@ -158,20 +128,19 @@ def print_molecule_summary(
             else:
                 per_mol_values[name] = value
 
-        # 1) Print per-molecule values
         for name, value in per_mol_values.items():
-            # Case A: the value itself is a dict → iterate through it
             if isinstance(value, dict):
                 for subname, subval in value.items():
-                    print_pretty_array(f"{subname}:", subval)
+                    if isinstance(subval, np.ndarray):
+                        print_pretty_array(f"{subname}:", subval)
+                    elif isinstance(subval, str):
+                        print(f"{subname}: {subval}")
                 print()
 
-            # Case B: normal scalar or non-dict value
             else:
                 print(f"{name}: {value}")
                 print()
 
-        # 2) Combined atom-wise table (if any)
         if atomwise_values:
             _print_atomwise_table(mol, atomwise_values)
 
@@ -179,21 +148,10 @@ def print_molecule_summary(
 
 
 def print_conformer_structures(*mols, labels=None) -> None:
-    """Print multiple Molecule objects representing different conformers of the
-    same molecule in a combined XYZ-like format side-by-side.
+    """Print conformers of one molecule side by side in XYZ-like columns.
 
-    Parameters
-    ----------
-    *mol : Molecule
-        One or more Molecule instances to print.
-
-    Raises
-    ------
-    TypeError
-        If any input is not a Molecule.
-    ValueError
-        If the Molecule objects do not have the same number of atoms
-        or atom ordering.
+    ``labels``, if given, head the columns, one per molecule. Raises TypeError
+    for non-Molecule input, ValueError on atom-count or label-count mismatch.
     """
     assert len(mols) > 0, "At least one Molecule must be provided"
     for i, m in enumerate(mols):
@@ -227,34 +185,24 @@ def print_structure_summary(
     delta_irmsd: Sequence[float] | None = None,
     max_rows: int | None = None,
 ) -> None:
-    """Pretty-print a table summarising structures and associated quantities.
+    """Print a per-structure table of energies and delta-iRMSD values.
 
     Parameters
     ----------
     key : str
-        A label/title for this block (e.g. method name, run ID, etc.).
-    energies_hartree : 1D sequence of float, optional
-        Energies in Hartree. If given, an additional 'ΔE / kcal mol⁻¹'
-        column is printed relative to the first structure.
-    delta_irmsd : 1D sequence of float, optional
-        Delta iRMSD values.
+        Block title.
+    energies_hartree : sequence of float, optional
+        Energies in Hartree; adds a kcal/mol ΔE column relative to the first.
+    delta_irmsd : sequence of float, optional
+        Delta iRMSD values in Å.
     max_rows : int, optional
-        Maximum number of data rows to print. If the total number of
-        structures is larger, the table is truncated, an extra row
-        of "..." is printed, and a message indicates how many entries
-        were skipped. If None, all rows are printed.
+        Truncate after this many rows and report the skipped count.
 
-    Notes
-    -----
-    - If *all* arrays are None, nothing is printed.
-    - All provided arrays must have the same length.
-    - First column is always 'structure {i}', i starting at 1.
+    Prints nothing if both arrays are None; given arrays must match in length.
     """
-
     if max_rows is not None and max_rows < 1:
         raise ValueError("max_rows must be >= 1 or None.")
 
-    # --- collect numeric columns ---
     columns: list[tuple[str, list[str]]] = []  # (header, cells-as-strings)
     n: int | None = None
 
@@ -263,7 +211,6 @@ def print_structure_summary(
         values: Sequence[float] | None,
         fmt: str,
     ) -> None:
-        """Internal helper to add a numeric column."""
         nonlocal n
         if values is None:
             return
@@ -281,30 +228,24 @@ def print_structure_summary(
         cells = [fmt.format(v) for v in vals]
         columns.append((header, cells))
 
-    # Add the explicit columns requested
     add_column("E / Eh", energies_hartree, "{: .10f}")
-    # If we have energies, also add ΔE in kcal/mol relative to first entry
     if energies_hartree is not None:
         e0 = float(energies_hartree[0])
         delta_e_kcal = [(float(e) - e0) * HARTREE_TO_KCAL_MOL for e in energies_hartree]
         add_column("ΔE / kcal mol⁻¹", delta_e_kcal, "{: .3f}")
 
     add_column("ΔRMSD / Å", delta_irmsd, "{: .4f}")
-    # If no arrays were provided at all: do not print anything
     if n is None or n == 0:
         return
 
-    # --- structure labels column ---
     struct_labels = [f" {i+1}" for i in range(n)]
     all_columns = [("Structure", struct_labels)] + columns
 
-    # --- compute column widths ---
     widths: list[int] = []
     for header, cells in all_columns:
         max_cell_len = max(len(c) for c in cells) if cells else 0
         widths.append(max(len(header), max_cell_len))
 
-    # --- determine how many rows to print ---
     if max_rows is None or max_rows >= n:
         rows_to_print = n
         truncated = False
@@ -312,7 +253,6 @@ def print_structure_summary(
         rows_to_print = max_rows
         truncated = True
 
-    # --- print the table ---
     print(f"\n=== {key} ===")
 
     header_line = "  ".join(
@@ -322,13 +262,11 @@ def print_structure_summary(
     print(header_line)
     print(sep_line)
 
-    # data rows
     for i in range(rows_to_print):
         row_cells = [col[i] for _, col in all_columns]
         line = "  ".join(cell.ljust(w) for cell, w in zip(row_cells, widths))
         print(line)
 
-    # ellipsis row + summary, if truncated
     if truncated:
         ellipsis_cells = [" (...)" for _ in all_columns]
         ellipsis_line = "  ".join(

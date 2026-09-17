@@ -9,6 +9,12 @@ from .api.cn_exposed import get_cn_fortran
 from .api.irmsd_exposed import get_irmsd
 from .api.rmsd_exposed import get_quaternion_rmsd_fortran
 from .api.sorter_exposed import delta_irmsd_list, sorter_irmsd
+from .api.symmetry_exposed import (
+    SymmetryOperation,
+    get_point_group,
+    get_symmetry_elements,
+    get_symmetry_operations,
+)
 from .core.molecule import Molecule
 
 # ---- Core API ----------------------------------------
@@ -28,6 +34,7 @@ try:
         get_canonical_ase,
         get_cn_ase,
         get_irmsd_ase,
+        get_point_group_ase,
         get_rmsd_ase,
         molecule_to_ase,
         sorter_irmsd_ase,
@@ -41,6 +48,7 @@ try:
         get_canonical_rdkit,
         get_cn_rdkit,
         get_irmsd_rdkit,
+        get_point_group_rdkit,
         get_rmsd_rdkit,
         molecule_to_rdkit,
         rdkit_to_molecule,
@@ -54,6 +62,7 @@ from .interfaces.cmds import (
     compute_canonical_and_print,
     compute_cn_and_print,
     compute_irmsd_and_print,
+    compute_symmetry_and_print,
     compute_quaternion_rmsd_and_print,
     sort_get_delta_irmsd_and_print,
     sort_structures_and_print,
@@ -84,6 +93,10 @@ __all__ = [
     # core API
     "get_cn_fortran",
     "get_axis",
+    "get_point_group",
+    "get_symmetry_elements",
+    "get_symmetry_operations",
+    "SymmetryOperation",
     "get_canonical_fortran",
     "get_quaternion_rmsd_fortran",
     "get_irmsd",
@@ -101,6 +114,7 @@ __all__ = [
     "molecule_to_ase",
     "get_cn_ase",
     "get_axis_ase",
+    "get_point_group_ase",
     "get_canonical_ase",
     "get_irmsd_ase",
     "get_rmsd_ase",
@@ -111,6 +125,7 @@ __all__ = [
     "molecule_to_rdkit",
     "get_cn_rdkit",
     "get_axis_rdkit",
+    "get_point_group_rdkit",
     "get_canonical_rdkit",
     "get_rmsd_rdkit",
     "get_irmsd_rdkit",
@@ -123,6 +138,7 @@ __all__ = [
     "write_structures",
     "compute_cn_and_print",
     "compute_axis_and_print",
+    "compute_symmetry_and_print",
     "compute_canonical_and_print",
     "compute_quaternion_rmsd_and_print",
     "compute_irmsd_and_print",

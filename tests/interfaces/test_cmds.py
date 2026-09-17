@@ -1,11 +1,13 @@
 from io import StringIO
 
 import pytest
+from helpers.utils import symmetry_references as _reference_structures
 
 from irmsd.interfaces.cmds import (
     compute_axis_and_print,
     compute_canonical_and_print,
     compute_cn_and_print,
+    compute_symmetry_and_print,
     get_ref_and_align_molecules,
 )
 from irmsd.utils.xyz import read_extxyz
@@ -113,3 +115,28 @@ def test_ref_and_align_molecules(caffeine_delta_irmsd_list_test_data):
         get_ref_and_align_molecules(atoms_list, 1, -1)
     with pytest.raises(ValueError):
         get_ref_and_align_molecules(atoms_list, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "label,expected",
+    [
+        ("td", "E, 8 C3, 3 C2, 6 S4, 6 sigma"),
+        ("d5h", "E, 2 C5, 2 C5^2, 5 C2, 2 S5, 2 S5^3, 6 sigma"),
+        ("ih", "E, 12 C5, 12 C5^2, 20 C3, 15 C2, i, 12 S10, 12 S10^3, 20 S6, 15 sigma"),
+        ("dinfh", "E, Cinf (all rotations about the molecular axis), C2, i, 2 sigma"),
+    ],
+)
+def test_compute_symmetry_and_print(label, expected, capsys):
+    mol = dict(_reference_structures())[label]
+    (res,) = compute_symmetry_and_print([mol])
+    assert res["Point group"].lower() == label
+    assert res["Symmetry operations"] == expected
+    out = capsys.readouterr().out
+    assert f"Symmetry operations: {expected}\n" in out
+
+
+def test_compute_symmetry_and_print_skipped(capsys):
+    mol = dict(_reference_structures())["c2v"]
+    mol.get_symmetry_operations = lambda: (None, [])
+    (res,) = compute_symmetry_and_print([mol])
+    assert res == {"Point group": "skipped (too many atoms)"}

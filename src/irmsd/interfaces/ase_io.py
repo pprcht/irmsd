@@ -15,37 +15,27 @@ from .mol_interface import (
     prune,
 )
 
-# -------------------------------------------------------------------
-# Some I/O
-# -------------------------------------------------------------------
-
-
 def get_energy_ase(atoms):
-    """Retrieve the energy associated with an ASE Atoms object.
+    """Return the energy already stored on an ASE Atoms object, or None.
 
-    This function attempts to extract the energy of the given ASE Atoms object
-    through several common avenues, in the following order:
-    1. Check if the energy is stored in `atoms.info["energy"]`.
-    2. If a calculator is attached, check its `results` dictionary for keys
-         "energy", "free_energy", or "enthalpy".
-    3. Call `atoms.get_potential_energy()` only if no calculation is needed.
+    Looks in ``atoms.info["energy"]``, then the calculator's ``results``
+    ("energy", "free_energy", "enthalpy"), then ``get_potential_energy()``
+    only if that needs no new calculation. The value is in ASE units (eV).
 
     Parameters
     ----------
     atoms : ase.Atoms
-        An ASE Atoms object from which to retrieve the energy.
 
     Returns
     -------
     float or None
-        The energy value if found, otherwise `None`.
 
     Raises
     ------
     RuntimeError
         If ASE is not installed.
     TypeError
-        If the input is not an ASE Atoms object.
+        If `atoms` is not an ASE Atoms object.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -53,12 +43,10 @@ def get_energy_ase(atoms):
     if not isinstance(atoms, ASEAtoms):
         raise TypeError("get_energy_ase expects an ase.Atoms object")
 
-    # 1. info["energy"]
     E = atoms.info.get("energy")
     if isinstance(E, (int, float)):
         return float(E)
 
-    # 2. calculator results
     calc = getattr(atoms, "calc", None)
     if calc is None:
         return None
@@ -70,7 +58,6 @@ def get_energy_ase(atoms):
             if isinstance(val, (int, float)):
                 return float(val)
 
-    # 3. get_potential_energy only if it won't trigger a calculation
     try:
         if hasattr(calc, "calculation_required"):
             if calc.calculation_required(atoms):
@@ -82,26 +69,18 @@ def get_energy_ase(atoms):
     return None
 
 
-# -------------------------------------------------------------------
-# Energy unit handling (ASE works in eV, our Molecule type in Hartree)
-# -------------------------------------------------------------------
+# Energy units: ASE uses eV, Molecule uses Hartree.
 
-#: Info keys that may carry an explicit energy-unit declaration.
+#: Info key (case-insensitive) carrying an explicit energy-unit declaration.
 _ENERGY_UNITS_KEY = "energy_units"
-#: Values (case-insensitive) that flag an energy already given in Hartree.
+#: Values (case-insensitive) marking an energy as already in Hartree.
 _HARTREE_UNIT_ALIASES = frozenset(
     {"hartree", "hartrees", "ha", "au", "a.u.", "eh", "e_h", "atomic"}
 )
 
 
 def _declared_hartree(info) -> bool:
-    """Return True if an ASE ``info`` dict declares its energy to be in Hartree.
-
-    Some of our own extended-XYZ producers annotate the comment line with
-    ``energy_units=Hartree`` (any capitalization). ASE stores that token as a
-    plain string entry in ``atoms.info``. When present, the accompanying energy
-    value is already in Hartree rather than ASE's default eV convention.
-    """
+    """True if ``info`` carries ``energy_units=Hartree`` (as our extxyz writers emit)."""
     if not isinstance(info, dict):
         return False
     for key, val in info.items():
@@ -111,25 +90,12 @@ def _declared_hartree(info) -> bool:
 
 
 def _strip_energy_units(info: dict) -> dict:
-    """Return a copy of ``info`` without any ``energy_units`` marker.
-
-    Once an energy has been normalized to the internal Hartree convention the
-    marker has served its purpose; keeping it around would cause a spurious
-    double conversion on a later round-trip back through ASE.
-    """
+    """Copy of ``info`` without ``energy_units``; avoids double conversion on round-trip."""
     return {k: v for k, v in info.items() if str(k).lower() != _ENERGY_UNITS_KEY}
 
 
 def _ase_energy_to_hartree(atoms) -> float | None:
-    """Extract the energy of an ASE Atoms object, returned in Hartree.
-
-    ASE reports energies in eV by convention, so the value obtained via
-    :func:`get_energy_ase` is divided by ``ase.units.Hartree``. If the Atoms
-    object carries an ``energy_units=Hartree`` marker in its ``info`` dict, the
-    value is already in Hartree and is passed through unchanged. (This is the
-    same result as first rescaling the in-object energy from Hartree to eV and
-    then applying the uniform eV→Hartree conversion.)
-    """
+    """Energy of `atoms` in Hartree; eV unless an ``energy_units=Hartree`` marker says otherwise."""
     e = get_energy_ase(atoms)
     if e is None:
         return None
@@ -140,7 +106,7 @@ def _ase_energy_to_hartree(atoms) -> float | None:
 
 
 def _hartree_to_ev(energy: float | None) -> float | None:
-    """Convert an internal Hartree energy to eV for storage in an ASE object."""
+    """Hartree to eV, passing None through."""
     if energy is None:
         return None
     ase = require_ase()
@@ -154,39 +120,21 @@ def ase_to_molecule(atoms: Sequence["ase.Atoms"]) -> list[Molecule]: ...
 
 
 def ase_to_molecule(atoms):
-    """Convert an ASE `Atoms` object (or a sequence of them) into the internal
-    `irmsd.core.Molecule` type.
+    """Convert ASE Atoms (single or sequence) to `irmsd.core.Molecule`.
 
-    This function is intentionally non-invasive: it does not trigger any new
-    ASE calculator evaluations. It merely extracts whatever structural and
-    metadata information is already present in the ASE object.
+    Triggers no calculator evaluation and does not modify the input. Energies
+    are converted from eV to Hartree unless ``info`` declares
+    ``energy_units=Hartree``; the marker is dropped from the result's ``info``.
+    A per-atom ``canonical_id`` array is carried over as ``Molecule.ids``.
 
     Parameters
     ----------
     atoms : ase.Atoms or Sequence[ase.Atoms]
-        A single ASE Atoms instance or a sequence of them.
 
     Returns
     -------
     Molecule or list[Molecule]
-        - If `atoms` is a single Atoms object, a single Molecule is returned.
-        - If `atoms` is a sequence of Atoms objects, a list of Molecules is
-          returned in the same order.
-
-    Notes
-    -----
-    - Energies are converted from ASE's eV convention to the internal Hartree
-      convention used by the Molecule type and all sorting routines. If the
-      Atoms object declares ``energy_units=Hartree`` in its ``info`` dict (as
-      written by some of our own extended-XYZ producers), the value is treated
-      as already being in Hartree; the marker is then dropped from the returned
-      Molecule's ``info``.
-    - This routine requires ASE to be installed. If ASE is missing, a clear
-      and controlled error message is raised via `require_ase()`.
-    - This routine does not modify either the input Atoms object or its
-      attached calculator.
-    - The returned Molecule is guaranteed to be fully self-contained and
-      ASE-independent.
+        A list, in input order, if `atoms` is a sequence.
 
     Raises
     ------
@@ -199,7 +147,6 @@ def ase_to_molecule(atoms):
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
 
     def _one(a):
-        # check type
         if not isinstance(a, ASEAtoms):
             raise TypeError("ase_to_molecule expects ase.Atoms or a sequence thereof")
 
@@ -217,14 +164,10 @@ def ase_to_molecule(atoms):
 
         pbc = tuple(bool(x) for x in getattr(a, "pbc", (False, False, False)))
 
-        # Energy: ASE works in eV, our Molecule type in Hartree. Convert at the
-        # boundary, honoring an explicit energy_units=Hartree marker if present,
-        # then drop the (now meaningless) marker from the carried-over info.
         energy = _ase_energy_to_hartree(a)
         info = _strip_energy_units(dict(getattr(a, "info", {})))
 
-        # Per-atom canonical IDs, if the Atoms object carries them as a
-        # per-atom array (e.g. read from an extxyz canonical_id:I:1 column).
+        # e.g. from an extxyz canonical_id:I:1 column
         ids = None
         try:
             if a.has("canonical_id"):
@@ -242,7 +185,6 @@ def ase_to_molecule(atoms):
             ids=ids,
         )
 
-    # sequence vs single
     if isinstance(atoms, ASEAtoms):
         return _one(atoms)
     return [_one(a) for a in atoms]
@@ -257,44 +199,28 @@ def molecule_to_ase(molecules: Sequence[Molecule]) -> list["ase.Atoms"]: ...
 def molecule_to_ase(
     molecules: Molecule | Sequence[Molecule],
 ):
-    """Convert an internal `irmsd.core.Molecule` instance (or a sequence of
-    them) into ASE `Atoms` objects.
+    """Convert Molecule(s) to ASE Atoms without attaching a calculator.
 
-    This routine performs a purely structural and metadata-level conversion:
-    it does not create or attach any calculator, nor does it trigger any new
-    ASE calculations.
+    The Hartree energy is written to ``info["energy"]`` in eV unless
+    ``info`` already has an ``energy`` entry; any ``energy_units`` marker is
+    dropped. ``Molecule.ids`` becomes a per-atom ``canonical_id`` array.
+    The returned objects do not share state with the input.
 
     Parameters
     ----------
     molecules : Molecule or Sequence[Molecule]
-        A single Molecule or a sequence of Molecule objects.
 
     Returns
     -------
     ase.Atoms or list[ase.Atoms]
-        - If `molecules` is a single Molecule, a single ASE Atoms object is
-          returned.
-        - If `molecules` is a sequence of Molecule objects, a list of ASE
-          Atoms objects is returned in the same order.
-
-    Notes
-    -----
-    - The Molecule energy (stored in Hartree) is converted to eV before being
-      written into ``atoms.info["energy"]``, matching ASE's convention. Any
-      ``energy_units`` marker carried in the Molecule's ``info`` is dropped so
-      the emitted eV value is not later misinterpreted as Hartree.
-    - This routine requires ASE to be installed. If ASE is missing, a clear
-      RuntimeError is raised via `require_ase()`.
-    - The returned Atoms objects are structurally independent copies; further
-      modifications to the original Molecule will not affect them.
+        A list, in input order, if `molecules` is a sequence.
 
     Raises
     ------
     RuntimeError
         If ASE is not installed.
     TypeError
-        If the input is neither a Molecule instance nor a sequence of Molecule
-        instances.
+        If the input is neither a Molecule nor a sequence of Molecules.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -308,22 +234,17 @@ def molecule_to_ase(
         symbols = mol.get_chemical_symbols()
         positions = mol.get_positions(copy=True)
 
-        # Cell: either a proper (3,3) array or None
         cell = None
         if mol.cell is not None:
             cell_arr = np.asarray(mol.cell, dtype=float)
             if cell_arr.shape == (3, 3):
                 cell = cell_arr
 
-        # PBC: pass through if set, otherwise False
         pbc = mol.pbc if mol.pbc is not None else False
 
-        # Info: shallow copy to avoid mutating the original. Drop any stale
-        # energy_units marker; the energy we emit below is in ASE's eV units.
+        # stale marker would mislabel the eV energy written below
         info = _strip_energy_units(dict(mol.info))
 
-        # Energy: internal storage is Hartree, ASE expects eV. Convert on the
-        # way out. Only set info["energy"] if it is not already present.
         if mol.energy is not None and "energy" not in info:
             info["energy"] = _hartree_to_ev(mol.energy)
 
@@ -335,8 +256,7 @@ def molecule_to_ase(
             info=info,
         )
 
-        # Per-atom canonical IDs → ASE per-atom array, so a subsequent
-        # ase.io.write emits a canonical_id column in the extxyz Properties.
+        # ase.io.write then emits a canonical_id column in extxyz Properties
         if mol.ids is not None:
             atoms.set_array("canonical_id", np.asarray(mol.ids, dtype=int))
 
@@ -345,7 +265,6 @@ def molecule_to_ase(
     if isinstance(molecules, Molecule):
         return _one(molecules)
 
-    # Treat as sequence
     try:
         return [_one(m) for m in molecules]
     except TypeError as exc:
@@ -355,23 +274,9 @@ def molecule_to_ase(
 
 
 def get_energies_from_atoms_list(atoms_list: Sequence["ase.Atoms"]) -> np.ndarray:
-    """Collect the energies of a list of ASE Atoms objects, in Hartree.
+    """Energies of `atoms_list` in Hartree, shape (N,); 0.0 where none is available.
 
-    For each Atoms object the energy is extracted via :func:`get_energy_ase`
-    and converted from ASE's eV convention to Hartree (honoring an explicit
-    ``energy_units=Hartree`` marker, see :func:`_ase_energy_to_hartree`), so the
-    result can be fed directly to the Hartree-based sorting routines. Any
-    structure without an available energy contributes 0.0.
-
-    Parameters
-    ----------
-    atoms_list : Sequence[ase.Atoms]
-        Sequence of ASE Atoms objects.
-
-    Returns
-    -------
-    np.ndarray
-        Float array of energies in Hartree with shape (N,).
+    Units follow :func:`_ase_energy_to_hartree`.
     """
     energies = []
     for atoms in atoms_list:
@@ -380,28 +285,12 @@ def get_energies_from_atoms_list(atoms_list: Sequence["ase.Atoms"]) -> np.ndarra
     return np.array(energies, dtype=float)
 
 
-# -----------------------------------------------------------------------------
-# Callable functions
-# -----------------------------------------------------------------------------
-
-
 def get_cn_ase(atoms) -> np.ndarray:
-    """
-    High-level utility: accepts an ASE Atoms object, converts it into an
-    internal Molecule instance, and returns the coordination-number array
-    as computed by `Molecule.get_cn()`.
-
-    This routine does *not* trigger any new ASE calculator evaluation.
+    """Coordination numbers via `Molecule.get_cn()`, shape (N,).
 
     Parameters
     ----------
     atoms : ase.Atoms
-        A single ASE Atoms object.
-
-    Returns
-    -------
-    np.ndarray
-        Array of coordination numbers with shape (N,).
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -409,25 +298,16 @@ def get_cn_ase(atoms) -> np.ndarray:
     if not isinstance(atoms, ASEAtoms):
         raise TypeError("get_cn_ase expects a single ASE Atoms object")
 
-    # Convert ASE → Molecule using conversion routine
     mol: Molecule = ase_to_molecule(atoms)
-
-    # Delegate to Molecule API
     return mol.get_cn()
 
 
 def get_axis_ase(atoms) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    High-level utility: accepts an ASE Atoms object, converts it into an
-    internal Molecule instance, and returns rotation constants, average
-    angular momentum, and eigenvectors via `Molecule.get_axis()`.
-
-    This routine never triggers a new ASE calculator evaluation.
+    """Principal-axis data via `Molecule.get_axis()`.
 
     Parameters
     ----------
     atoms : ase.Atoms
-        A single ASE Atoms object.
 
     Returns
     -------
@@ -440,11 +320,33 @@ def get_axis_ase(atoms) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     if not isinstance(atoms, ASEAtoms):
         raise TypeError("get_axis_ase expects a single ASE Atoms object")
 
-    # Convert ASE → Molecule
     mol: Molecule = ase_to_molecule(atoms)
-
-    # Delegate to Molecule's high-level API
     return mol.get_axis()
+
+
+def get_point_group_ase(atoms, **settings) -> str | None:
+    """Schoenflies point group via `Molecule.get_point_group()`.
+
+    Parameters
+    ----------
+    atoms : ase.Atoms
+    **settings
+        Analyzer settings (threshold, primary_threshold, max_axis_order,
+        max_opt_cycles, max_atoms), see :func:`irmsd.get_point_group`.
+
+    Returns
+    -------
+    str or None
+        None if the analysis was skipped.
+    """
+    ase = require_ase()
+    ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
+
+    if not isinstance(atoms, ASEAtoms):
+        raise TypeError("get_point_group_ase expects a single ASE Atoms object")
+
+    mol: Molecule = ase_to_molecule(atoms)
+    return mol.get_point_group(**settings)
 
 
 def get_canonical_ase(
@@ -453,32 +355,21 @@ def get_canonical_ase(
     invtype: str = "apsp+",
     heavy: bool = False,
 ) -> np.ndarray:
-    """
-    High-level utility: accepts an ASE Atoms object, converts it into an
-    internal Molecule instance, and returns the canonicalization rank /
-    invariants as computed by `Molecule.get_canonical()`.
-
-    This routine does not trigger any new ASE calculator evaluation.
+    """Canonical ranks / invariants via `Molecule.get_canonical()`.
 
     Parameters
     ----------
     atoms : ase.Atoms
-        A single ASE Atoms object.
     wbo : np.ndarray or None, optional
-        Optional Wiberg bond order matrix or similar, passed through to
-        `Molecule.get_canonical()` and ultimately to the Fortran backend.
+        Wiberg bond order matrix or similar, forwarded to the Fortran backend.
     invtype : str, optional
-        Invariant type selector, e.g. "apsp+" (default). Forwarded directly
-        to the canonicalization backend.
+        Invariant type selector forwarded to the backend.
     heavy : bool, optional
-        If True, restricts invariants to heavy atoms only, as defined by the
-        underlying backend. Defaults to False.
+        Restrict invariants to heavy atoms.
 
     Returns
     -------
     np.ndarray
-        Canonicalization rank / invariants array as returned by
-        `Molecule.get_canonical()`.
 
     Raises
     ------
@@ -493,42 +384,30 @@ def get_canonical_ase(
     if not isinstance(atoms, ASEAtoms):
         raise TypeError("get_canonical_ase expects a single ASE Atoms object")
 
-    # Convert ASE → Molecule
     mol: Molecule = ase_to_molecule(atoms)
-
-    # Delegate to the Molecule API
     return mol.get_canonical(wbo=wbo, invtype=invtype, heavy=heavy)
 
 
-# -----------------------------------------------------------------------------
-# Comparison functions
-# -----------------------------------------------------------------------------
-#
 def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "ase.Atoms", np.ndarray]:
     """ASE wrapper for ``get_rmsd_molecule``.
-
-    Converts two ASE ``Atoms`` objects to internal Molecule objects, calls
-    ``get_rmsd_molecule``, and converts the aligned second structure back to
-    an ASE ``Atoms`` object.
 
     Parameters
     ----------
     atoms1 : ase.Atoms
         Reference structure.
     atoms2 : ase.Atoms
-        Structure to be rotated/translated onto ``atoms1``.
+        Structure aligned onto `atoms1`.
     mask : array-like of bool, optional
-        Optional mask selecting which atoms in the first structure participate
-        in the RMSD (forwarded to the backend via ``get_rmsd_molecule``).
+        Atoms of the first structure that enter the RMSD.
 
     Returns
     -------
     rmsd : float
-        RMSD value in Ångström.
+        In Angstrom.
     new_atoms2 : ase.Atoms
-        New ASE Atoms object with coordinates aligned to ``atoms1``.
+        New object with coordinates aligned to `atoms1`.
     rotation_matrix : np.ndarray
-        3×3 rotation matrix used for the alignment.
+        3x3 rotation used for the alignment.
 
     Raises
     ------
@@ -543,7 +422,7 @@ def get_rmsd_ase(atoms1, atoms2, mask=None) -> Tuple[float, "ase.Atoms", np.ndar
     if not isinstance(atoms1, ASEAtoms) or not isinstance(atoms2, ASEAtoms):
         raise TypeError("get_rmsd_ase expects two ASE Atoms objects")
 
-    mol1, mol2 = ase_to_molecule([atoms1, atoms2])  # sequence form
+    mol1, mol2 = ase_to_molecule([atoms1, atoms2])
 
     rmsd, new_mol2, umat = get_rmsd_molecule(mol1, mol2, mask=mask)
     new_atoms2 = molecule_to_ase(new_mol2)
@@ -558,32 +437,25 @@ def get_irmsd_ase(
 ) -> Tuple[float, "ase.Atoms", "ase.Atoms"]:
     """ASE wrapper for ``get_irmsd_molecule``.
 
-    Converts two ASE ``Atoms`` objects to Molecules, calls
-    ``get_irmsd_molecule``, and converts both resulting Molecules back to
-    ASE ``Atoms`` objects.
-
     Parameters
     ----------
-    atoms1 : ase.Atoms
-        First structure.
-    atoms2 : ase.Atoms
-        Second structure.
+    atoms1, atoms2 : ase.Atoms
     iinversion : int, optional
-        Inversion flag passed through to the backend. (0 = 'auto', 1 = 'on', 2 = 'off')
+        0 = 'auto', 1 = 'on', 2 = 'off'.
 
     Returns
     -------
     irmsd : float
-        iRMSD value in Ångström.
-    new_atoms1 : ase.Atoms
-        New ASE Atoms object corresponding to the transformed first Molecule.
-    new_atoms2 : ase.Atoms
-        New ASE Atoms object corresponding to the transformed second Molecule.
+        In Angstrom.
+    new_atoms1, new_atoms2 : ase.Atoms
+        New objects for the transformed structures.
 
     Raises
     ------
     RuntimeError
         If ASE is not installed.
+    TypeError
+        If inputs are not ASE Atoms.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -612,35 +484,29 @@ def sorter_irmsd_ase(
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
     """ASE wrapper for ``sorter_irmsd_molecule``.
 
-    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
-    ``sorter_irmsd_molecule``, and converts the resulting Molecules back
-    to ASE ``Atoms`` objects.
-
     Parameters
     ----------
     atoms_list : Sequence[ase.Atoms]
-        Sequence of ASE Atoms objects. All must have the same number of atoms.
+        List or tuple; all structures must have the same atom count.
     rthr : float
         Distance threshold for the sorter.
     iinversion : int, optional
-        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
+        0 = 'auto', 1 = 'on', 2 = 'off'.
     allcanon : bool, optional
         Canonicalization flag.
     printlvl : int, optional
         Verbosity level.
-    ethr : float | None
-        Optional energy threshold to accelerate by pre-sorting. In Hartree.
-    ewin : float | None
-        Optional energy window to limit ensembe size around lowest energy structure.
-        In Hartree.
+    ethr : float or None
+        Energy threshold for pre-sorting, in Hartree.
+    ewin : float or None
+        Energy window above the lowest structure, in Hartree.
 
     Returns
     -------
     groups : np.ndarray
-        Integer array of shape (nat,) with group indices as returned by
-        ``sorter_irmsd_molecule`` / backend.
+        Integer group index per structure.
     new_atoms_list : list[ase.Atoms]
-        New ASE Atoms objects reconstructed from the sorted Molecules.
+        Rebuilt from the sorted Molecules.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -655,7 +521,7 @@ def sorter_irmsd_ase(
                 f"item {i} has type {type(at)}"
             )
 
-    mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
+    mols = ase_to_molecule(atoms_list)
 
     groups, new_mols = sorter_irmsd_molecule(
         molecule_list=mols,
@@ -680,16 +546,12 @@ def delta_irmsd_list_ase(
 ) -> Tuple[np.ndarray, List["ase.Atoms"]]:
     """ASE wrapper for ``delta_irmsd_list_molecule``.
 
-    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
-    ``delta_irmsd_list_molecule``, and converts the resulting Molecules
-    back to ASE ``Atoms`` objects.
-
     Parameters
     ----------
     atoms_list : Sequence[ase.Atoms]
-        Sequence of ASE Atoms objects. All must have the same number of atoms.
+        List or tuple; all structures must have the same atom count.
     iinversion : int, optional
-        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
+        0 = 'auto', 1 = 'on', 2 = 'off'.
     allcanon : bool, optional
         Canonicalization flag.
     printlvl : int, optional
@@ -698,10 +560,9 @@ def delta_irmsd_list_ase(
     Returns
     -------
     delta : np.ndarray
-        Float array returned by the backend (see ``delta_irmsd_list`` for
-        detailed semantics).
+        Float array from the backend; see ``delta_irmsd_list``.
     new_atoms_list : list[ase.Atoms]
-        New ASE Atoms objects reconstructed from the transformed Molecules.
+        Rebuilt from the transformed Molecules.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -740,32 +601,27 @@ def cregen_ase(
     printlvl: int = 0,
     ewin: float | None = None,
 ) -> List["ase.Atoms"]:
-    """ASE wrapper for ``cregen()`` from mol_interface.
-
-    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
-    ``cregen()``, and converts the resulting Molecules back
-    to ASE ``Atoms`` objects.
+    """ASE wrapper for ``cregen()``.
 
     Parameters
     ----------
     atoms_list : Sequence[ase.Atoms]
-        Sequence of ASE Atoms objects. All must have the same number of atoms.
+        List or tuple; all structures must have the same atom count.
     rthr : float
-        Distance threshold for the sorter. In Angström.
-    ethr : float                                                   
-        Energy threshold to accelerate by pre-sorting. In Hartree. 
+        Distance threshold in Angstrom.
+    ethr : float
+        Energy threshold for pre-sorting, in Hartree.
     bthr : float
-        Rotational constant comparison threshold. Relative value (default: 0.01)
+        Relative threshold for comparing rotational constants.
     printlvl : int, optional
         Verbosity level.
-    ewin : float | None
-        Optional energy window to limit ensembe size around lowest energy structure.
-        In Hartree.
+    ewin : float or None
+        Energy window above the lowest structure, in Hartree.
 
     Returns
     -------
-    new_atoms_list : list[ase.Atoms]
-        New ASE Atoms objects reconstructed from the sorted Molecules.
+    list[ase.Atoms]
+        Rebuilt from the sorted Molecules.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -780,7 +636,7 @@ def cregen_ase(
                 f"item {i} has type {type(at)}"
             )
 
-    mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
+    mols = ase_to_molecule(atoms_list)
 
     new_mols = cregen(
         molecule_list=mols,
@@ -804,34 +660,29 @@ def prune_ase(
     ethr: float | None = None,
     ewin: float | None = None,
 ) -> List["ase.Atoms"]:
-    """ASE wrapper for ``prune()`` from mol_interface.
-
-    Converts a sequence of ASE ``Atoms`` objects to Molecules, calls
-    ``prune()``, and converts the resulting Molecules back
-    to ASE ``Atoms`` objects.
+    """ASE wrapper for ``prune()``.
 
     Parameters
     ----------
     atoms_list : Sequence[ase.Atoms]
-        Sequence of ASE Atoms objects. All must have the same number of atoms.
+        List or tuple; all structures must have the same atom count.
     rthr : float
         Distance threshold for the sorter.
     iinversion : int, optional
-        Inversion symmetry flag. (0 = 'auto', 1 = 'on', 2 = 'off')
+        0 = 'auto', 1 = 'on', 2 = 'off'.
     allcanon : bool, optional
         Canonicalization flag.
     printlvl : int, optional
         Verbosity level.
-    ethr : float | None
-        Optional energy threshold to accelerate by pre-sorting. In Hartree.
-    ewin : float | None
-        Optional energy window to limit ensembe size around lowest energy structure.
-        In Hartree.
+    ethr : float or None
+        Energy threshold for pre-sorting, in Hartree.
+    ewin : float or None
+        Energy window above the lowest structure, in Hartree.
 
     Returns
     -------
-    new_atoms_list : list[ase.Atoms]
-        New ASE Atoms objects reconstructed from the sorted Molecules.
+    list[ase.Atoms]
+        Rebuilt from the sorted Molecules.
     """
     ase = require_ase()
     ASEAtoms = ase.Atoms  # type: ignore[attr-defined]
@@ -846,7 +697,7 @@ def prune_ase(
                 f"item {i} has type {type(at)}"
             )
 
-    mols = ase_to_molecule(atoms_list)  # returns list[Molecule]
+    mols = ase_to_molecule(atoms_list)
 
     new_mols = prune(
         molecule_list=mols,

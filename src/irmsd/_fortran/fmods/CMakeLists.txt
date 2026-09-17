@@ -11,6 +11,8 @@ list(APPEND srcs
   "${dir}/rmsd_exposed.f90"
   "${dir}/irmsd_exposed.f90"
   "${dir}/sorter_exposed.f90"
+  "${dir}/symmetry_i.f90"
+  "${dir}/symmetry_exposed.f90"
 )
 
 set(srcs ${srcs} PARENT_SCOPE)

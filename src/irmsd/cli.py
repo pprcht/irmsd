@@ -35,11 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # -------------------------------------------------------------------------
-    # prop subparser: structural properties (CN, rotational constants, canonical IDs)
+    # prop subparser: structural properties (CN, rotational constants, point group, canonical IDs)
     # -------------------------------------------------------------------------
     p_prop = subparsers.add_parser(
         "prop",
-        help="Compute structural properties (CN, rotational constants, canonical IDs).",
+        help="Compute structural properties (CN, rotational constants, point group, canonical IDs).",
     )
     p_prop.add_argument(
         "structures",
@@ -62,6 +62,69 @@ def build_parser() -> argparse.ArgumentParser:
         "--canonical",
         action="store_true",
         help="Calculate the canonical identifiers.",
+    )
+    p_prop.add_argument(
+        "--sym",
+        action="store_true",
+        help=(
+            "Determine the Schoenflies point group and symmetry operations "
+            "(skipped above --sym-maxat atoms)."
+        ),
+    )
+    g_sym = p_prop.add_argument_group(
+        "symmetry detection",
+        "Settings for --sym. Tolerances are in Bohr. For large or noisy "
+        "structures, raise --sym-maxat and --sym-thr.",
+    )
+    g_sym.add_argument(
+        "--sym-thr",
+        type=float,
+        default=0.1,
+        metavar="BOHR",
+        help=(
+            "Final tolerance: largest atom displacement a symmetry element "
+            "may cause (default: %(default)s)."
+        ),
+    )
+    g_sym.add_argument(
+        "--sym-primary",
+        type=float,
+        default=0.5,
+        metavar="BOHR",
+        help=(
+            "Tolerance for pairing symmetry-related atoms and prescreening "
+            "candidates; larger values are slower (default: %(default)s)."
+        ),
+    )
+    g_sym.add_argument(
+        "--sym-maxat",
+        type=int,
+        default=200,
+        metavar="N",
+        help=(
+            "Skip structures with more atoms than this; 0 disables the "
+            "limit (default: %(default)s)."
+        ),
+    )
+    g_sym.add_argument(
+        "--sym-maxorder",
+        type=int,
+        default=10,
+        metavar="N",
+        help=(
+            "Highest rotation axis order searched, including S2n axes; values "
+            "below 10 can miss e.g. Ih (default: %(default)s)."
+        ),
+    )
+    g_sym.add_argument(
+        "--sym-maxcycles",
+        type=int,
+        default=100,
+        metavar="N",
+        help=(
+            "Maximum optimization cycles per symmetry element "
+            "(default: %(default)s)."
+        ),
     )
     p_prop.add_argument(
         "--all", action="store_true", help="Calculate all of the above."
@@ -315,7 +378,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         from .utils.printouts import print_molecule_summary
 
         ran_any = False
-        flags = [args.cn, args.rot, args.canonical]
+        flags = [args.cn, args.rot, args.canonical, args.sym]
         run_multiple = sum(flags) >= 2 or args.all
 
         results = dict()
@@ -325,6 +388,18 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         if args.rot or args.all:
             results["axis"] = irmsd.compute_axis_and_print(molecule_list, run_multiple)
+            ran_any = True
+
+        if args.sym or args.all:
+            results["symmetry"] = irmsd.compute_symmetry_and_print(
+                molecule_list,
+                run_multiple,
+                threshold=args.sym_thr,
+                primary_threshold=args.sym_primary,
+                max_axis_order=args.sym_maxorder,
+                max_opt_cycles=args.sym_maxcycles,
+                max_atoms=args.sym_maxat if args.sym_maxat > 0 else None,
+            )
             ran_any = True
 
         if args.canonical or args.all:

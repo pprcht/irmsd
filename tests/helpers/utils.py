@@ -1,4 +1,8 @@
+from pathlib import Path
+
 import numpy as np
+
+from irmsd import Molecule
 
 ATOM_SYMBOLS2NUMBERS = {
     "H": 1,
@@ -23,3 +27,23 @@ def get_atom_num_and_pos_from_xyz(xyzstring):
         positions[i] = [x, y, z]
 
     return atom_numbers, positions
+
+
+# Reference set with the expected point group (lowercase) as comment line.
+SYMMETRIES_XYZ = Path(__file__).parents[1] / "data" / "symmetries.xyz"
+
+
+def symmetry_references():
+    with open(SYMMETRIES_XYZ) as f:
+        lines = f.read().splitlines()
+    refs = []
+    i = 0
+    while i < len(lines):
+        nat = int(lines[i])
+        label = lines[i + 1].strip()
+        block = [ln.split() for ln in lines[i + 2 : i + 2 + nat]]
+        symbols = [b[0] for b in block]
+        positions = np.array([b[1:4] for b in block], dtype=float)
+        refs.append((label, Molecule(symbols=symbols, positions=positions)))
+        i += nat + 2
+    return refs
