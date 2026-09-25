@@ -450,6 +450,17 @@ pruned_molecules = prune(molecules, rthr=0.125)
 * Some quaternion RMSDs may be slightly lower when comparing entirely *different* conformers (e.g. see example 4, figure b): This can occur due to the imperfect alignment+LSAP since rotational axes in different conformers varying orientations. Automatically falling back to the lower quaternion RMSD is an implementation TODO.              
 
 <br>
+
+## Equal-Mass Axis Fallback for Mass-Biased Pre-Alignment
+
+*Added by Paula on 25-9-2026*
+Follow-up on the first "Known Edge-Case" above, for the specific case where a **small number of heavy atoms among many light ones** biases the mass-weighted pre-alignment.
+`min_rmsd` now also tries an equal-mass-weighted alignment as a second candidate and keeps whichever scores lower.
+This is a different failure mode from genuine axis degeneracy (e.g. C<sub>60</sub> or adamantane).
+
+See [`tests/Fe4Cage/`](tests/Fe4Cage/) for an example where this fix is relevant.
+
+<br>
 <br>
 
 ## License

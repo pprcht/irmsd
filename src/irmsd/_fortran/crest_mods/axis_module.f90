@@ -3,7 +3,8 @@
 !
 ! Copyright (C) 2017 Stefan Grimme
 ! Copyright (C) 2021 Philipp Pracht
-!
+! Copyright (C) 2026 Paula Teeuwen & Philipp Pracht
+
 ! crest is free software: you can redistribute it and/or modify it under
 ! the terms of the GNU Lesser General Public License as published by
 ! the Free Software Foundation, either version 3 of the License, or
@@ -35,6 +36,13 @@ module axis_module
 
   !> 2π/3
   real(wp), parameter :: twothirdpi = 8.0_wp * atan(1.0_wp) / 3.0_wp
+
+
+  !> ================================================================================
+  !> Addition by Paula for the equal-mass axis fallback for mass-biased pre-alignment
+  !> ================================================================================
+  public :: axis_0_equal_mass
+  public :: axis_4_equal_mass
 
   public :: axis
   interface axis
@@ -351,6 +359,134 @@ contains  !> MODULE PROCEDURES START HERE
 
     return
   end subroutine axis_4
+
+!========================================================================================!
+!> subroutine axis_0_equal_mass
+!> Identical to axis_0, except every atom is weighted equally in the inertia tensor instead of by its isotopic mass.
+!> (atmass = 1.0_wp instead of atmass = ams(at(i)))
+!>
+!> Motivation: axis_0's inertia tensor is mass-weighted, so a small
+!> number of heavy atoms among many light ones can dominate it and pull
+!> the resulting principal axes away from the shape's actual ones.
+!>
+!> See Fe4Cage/README.md for a symmetric example with heavy metal atoms.
+!> In this case, min_rmsd missed several genuine point-group operations.
+!>
+!> Note that equal weighting does not remove genuine degeneracy.
+!>
+!> Input:    nat - number of atoms
+!>            at - atom types
+!>         coord - atomic coordinates in ANGSTROEM
+!>
+!> Output:   rot - rotational constants in MHz
+!>         avmom - average momentum in a.u. (10⁻⁴⁷kg m²)
+!>          evec - rot. matrix
+!>
+!========================================================================================!
+
+  subroutine axis_0_equal_mass(nat,at,coord,rot,avmom,evec)
+    implicit none
+    integer,intent(in)   :: nat
+    integer,intent(in)   :: at(nat)
+    real(wp),intent(in)  :: coord(3,nat)
+    real(wp),intent(out) :: rot(3),avmom,evec(3,3)
+    real(wp) :: a(3,3)
+    real(wp) :: t(6),xyzmom(3),eig(3)
+    real(wp) :: atmass,shift(3)
+    integer :: i,j
+    real(wp),parameter :: const1 = 1.66053_wp
+
+    call CMAshift(nat,at,coord,shift)
+
+    t = 0.0_wp
+    do i = 1,6
+      t(i) = dble(i) * 1.0d-10
+    end do
+    do i = 1,nat
+      atmass = 1.0_wp  !> <-- the only change vs. axis_0 (was: ams(at(i)))
+      t(1) = t(1) + atmass * ((coord(2,i)-shift(2))**2 + (coord(3,i)-shift(3))**2)
+      t(2) = t(2) - atmass * (coord(1,i)-shift(1)) * (coord(2,i)-shift(2))
+      t(3) = t(3) + atmass * ((coord(3,i)-shift(3))**2 + (coord(1,i)-shift(1))**2)
+      t(4) = t(4) - atmass * (coord(3,i)-shift(3)) * (coord(1,i)-shift(1))
+      t(5) = t(5) - atmass * (coord(2,i)-shift(2)) * (coord(3,i)-shift(3))
+      t(6) = t(6) + atmass * ((coord(1,i)-shift(1))**2 + (coord(2,i)-shift(2))**2)
+      a(1,1) = t(1)
+      a(2,1) = t(2)
+      a(1,2) = t(2)
+      a(2,2) = t(3)
+      a(3,1) = t(4)
+      a(1,3) = t(4)
+      a(3,2) = t(5)
+      a(2,3) = t(5)
+      a(3,3) = t(6)
+    end do
+
+    evec = 0.0_wp
+    eig = 0.0_wp
+    call eigvec3x3(a, eig, evec)
+
+    do i = 1,3
+      do j = 1,3
+        if (abs(evec(i,j)) .lt. 1d-9) evec(i,j) = 0.0_wp
+      end do
+      if (eig(i) .lt. 3.d-4) then
+        eig(i) = 0.d0
+        rot(i) = 0.d0
+      else
+        rot(i) = icm2MHz * Aamu2icm / eig(i)
+      end if
+      xyzmom(i) = eig(i) * const1
+    end do
+    avmom = 1.d-47 * (xyzmom(1) + xyzmom(2) + xyzmom(3)) / 3.0_wp
+
+    return
+  end subroutine axis_0_equal_mass
+
+
+!========================================================================================!
+!> subroutine axis_4_equal_mass
+!> Identical to axis_4, except it calls axis_0_equal_mass instead of axis_0.
+!========================================================================================!
+
+  subroutine axis_4_equal_mass(nat,at,coord,rotconst)
+    implicit none
+    integer,intent(in) :: nat
+    integer,intent(in) :: at(nat)
+    real(wp),intent(inout) :: coord(3,nat)
+    real(wp),intent(out),optional :: rotconst(3)
+    real(wp) :: coordtmp(3),shift(3)
+    real(wp) :: rot(3),avmom,evec(3,3)
+    integer :: i,j,k
+    real(wp) :: xsum
+    call axis_0_equal_mass(nat,at,coord,rot,avmom,evec)
+    call CMAshift(nat,at,coord,shift)
+    do i=1,nat
+       coord(:,i) = coord(:,i) - shift(:)
+    enddo
+    !> do the trafo (chirality is preserved)
+    xsum = calcxsum(evec)
+    if (xsum .lt. 0.0_wp) then
+      do j = 1,3
+        evec(j,1) = -evec(j,1)
+      end do
+    end if
+
+    do i = 1,nat
+      coordtmp(:) = coord(:,i)
+      do j = 1,3
+        xsum = 0.0_wp
+        do k = 1,3
+          xsum = xsum + coordtmp(k) * evec(k,j)
+        end do
+        coord(j,i) = xsum
+      end do
+    end do
+    if(present(rotconst))then
+       rotconst(:) = rot(:)
+    endif
+
+    return
+  end subroutine axis_4_equal_mass
 
 !========================================================================================!
 !> subroutine axistrf
