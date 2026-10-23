@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -42,11 +42,30 @@ jobs:
           echo "Detected macOS major version: $MAJOR"
           echo "MACOSX_DEPLOYMENT_TARGET=${MAJOR}.0" >> $GITHUB_ENV
 
+      # Windows: MinGW gfortran/gcc, with the Fortran and OpenMP runtimes linked
+      # into the DLL (irmsd/_lib.py loads it as irmsd_fortran.dll or MinGW's
+      # libirmsd_fortran.dll)
+      - name: Set up Fortran compiler (Windows)
+        if: runner.os == 'Windows'
+        uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: gcc
+          version: 13
+
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v3.3.0
         with:
           output-dir: wheelhouse
         env:
+          CIBW_ARCHS_WINDOWS: AMD64
+          # the OpenMP runtime (libgomp) into the wheel, as auditwheel and
+          # delocate do on Linux and macOS; --analyze-existing since the DLL is
+          # loaded with ctypes, not imported
+          CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair --analyze-existing -w {dest_dir} {wheel}
+          CIBW_ENVIRONMENT_WINDOWS: >-
+            CMAKE_GENERATOR=Ninja CC=gcc FC=gfortran
+            SKBUILD_CMAKE_DEFINE="IRMSD_REQUIRE_OPENMP=ON;CMAKE_SHARED_LIBRARY_PREFIX=;CMAKE_SHARED_LINKER_FLAGS=-static -static-libgcc -static-libgfortran"
           CIBW_BEFORE_ALL_MACOS: |
             brew install gcc
             GFORTRANS=$(ls "$(brew --prefix)"/bin/gfortran-[0-9]* 2>/dev/null || true)
