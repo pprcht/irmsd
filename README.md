@@ -419,6 +419,8 @@ options:
                         Optional output file for sorted / clustered results.
 ```
 
+The comparisons in the iRMSD-based `sort` run in parallel with OpenMP when the package is built with it. All available cores are used by default; set `OMP_NUM_THREADS` to limit this, e.g. `OMP_NUM_THREADS=4 irmsd sort ensemble.xyz`. The result does not depend on the number of threads.
+
 For more information refer to the docs (https://pprcht.github.io/irmsd/).
 
 <br>
@@ -475,7 +477,7 @@ If you use this software in academic work, please acknowledge it and cite the [*
 - [ ] conda-forge package
 - [x] ci.yml/wheels.yml
 - [x] codecov
-- [ ] (implementation) Parallelization via OpenMP
+- [x] (implementation) Parallelization via OpenMP (iRMSD sort)
 - [x] (implementation) Optional pass of inter-conformer energy threshold (`ethr`)
 - [x] (implementation) Pre-alignment via quaternion RMSD of unique canonical atoms instead of aligning via rotational constants
 - [x] (implementation) "classical" CREGEN pruner based on energy + rot.const. + quaternion RMSD
