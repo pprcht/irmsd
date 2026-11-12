@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>iRMSD Matching Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+  /* Layout: one reading column of figures, each diagram in its own horizontal scroller. */
+  :root {
+    --bg: #f3f6f7;
+    --fg: #1b2830;
+    --muted: #586a74;
+    --line: #34444d;
+    --node: #ffffff;
+    --dec: #e7edf0;
+    --term: #dfe7eb;
+    --accent: #0a6d8a;
+    --newfill: #dcf0f6;
+    --grp: #e9eff2;
+    --grpline: #c4d1d8;
+    --rule: #d3dde2;
+    --rk1: #d08a1e; --rk2: #23907f; --rk3: #7a59b0; --rk4: #3d78c2; --rk5: #6f9a3a; --rk6: #b25d8f;
+    --code: #9a3c1c; --codebg: #e7edf0;
+    --warn: #b06a00; --warnfill: #fbefd9;
+    --rk0: #8b9aa2; --bad: #d23340; --pair: #8a9aa3; --molbond: #9aa9b1; --refbond: #45545c;
+    --display: "IBM Plex Sans Condensed", "Arial Narrow", sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", Helvetica, Arial, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #10171b; --fg: #dbe5ea; --muted: #93a6b0; --line: #8fa2ac;
+      --node: #172126; --dec: #1d2a31; --term: #22313a; --accent: #5ec3e2;
+      --newfill: #0f3442; --grp: #141e23; --grpline: #2c3c45; --rule: #26343c;
+      --rk1: #f0b456; --rk2: #4cc2ae; --rk3: #a98ce0; --rk4: #6fa6ea; --rk5: #9cc76a; --rk6: #e08bbd;
+      --code: #f2a27c; --codebg: #1f2b32;
+      --warn: #f0b456; --warnfill: #33280f;
+      --rk0: #6d7e87; --bad: #ff6b72; --pair: #6f8590; --molbond: #5f727c; --refbond: #b4c3ca;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #10171b; --fg: #dbe5ea; --muted: #93a6b0; --line: #8fa2ac;
+    --node: #172126; --dec: #1d2a31; --term: #22313a; --accent: #5ec3e2;
+    --newfill: #0f3442; --grp: #141e23; --grpline: #2c3c45; --rule: #26343c;
+    --rk1: #f0b456; --rk2: #4cc2ae; --rk3: #a98ce0; --rk4: #6fa6ea; --rk5: #9cc76a; --rk6: #e08bbd;
+    --code: #f2a27c; --codebg: #1f2b32;
+    --warn: #f0b456; --warnfill: #33280f;
+    --rk0: #6d7e87; --bad: #ff6b72; --pair: #6f8590; --molbond: #5f727c; --refbond: #b4c3ca;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--body);
+    font-size: 15px; line-height: 1.55;
+  }
+  .page {
+    max-width: 1020px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 64px;
+    display: grid; gap: 40px;
+  }
+  header { display: grid; gap: 10px; }
+  h1 {
+    font-family: var(--display); font-weight: 600; font-size: 2.1rem;
+    line-height: 1.1; margin: 0; letter-spacing: 0.01em; text-wrap: balance;
+  }
+  h2 {
+    font-family: var(--display); font-weight: 600; font-size: 1.35rem;
+    margin: 0; text-wrap: balance;
+  }
+  .sub { color: var(--muted); max-width: 68ch; margin: 0; }
+  code { font-family: var(--mono); font-size: 0.88em; color: var(--code); background: var(--codebg);
+         padding: 0.08em 0.36em; border-radius: 4px; white-space: nowrap; }
+  h2 code { font-size: 0.9em; }
+  strong.st { font-weight: 600; }
+  a { color: var(--accent); }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+    font-size: 13px; color: var(--muted); padding-top: 6px;
+  }
+  .legend span { display: inline-flex; gap: 8px; align-items: center; }
+  .legend svg { width: 34px; height: 20px; }
+  section { display: grid; gap: 14px; border-top: 1px solid var(--rule); padding-top: 22px; }
+  section p { margin: 0; max-width: 72ch; }
+  figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .scroll svg { width: 100%; min-width: 760px; height: auto; display: block; }
+  figcaption { font-size: 13.5px; color: var(--muted); max-width: 72ch; }
+  table { border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 5px 14px 5px 0; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; color: var(--muted); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .tablewrap { overflow-x: auto; }
+
+  /* diagram marks */
+  svg .proc { fill: var(--node); stroke: var(--line); stroke-width: 1.1; }
+  svg .dec { fill: var(--dec); stroke: var(--line); stroke-width: 1.1; }
+  svg .term { fill: var(--term); stroke: var(--line); stroke-width: 1.1; }
+  svg .new { fill: var(--newfill); stroke: var(--accent); stroke-width: 1.5; }
+  svg .t { fill: var(--fg); font-family: var(--body); font-size: 12.5px; }
+  svg .mono, svg .code { font-family: var(--mono); font-size: 12px; }
+  svg .code { fill: var(--code); }
+  svg .b { font-weight: 600; }
+  svg .lbl .code { font-size: 11px; }
+  svg .e { fill: none; stroke: var(--muted); stroke-width: 1.3; }
+  svg .dash { stroke-dasharray: 4 3; }
+  svg .ah { fill: var(--muted); }
+  svg .lbl { fill: var(--muted); font-family: var(--body); font-size: 11.5px; }
+  svg .grp { fill: var(--grp); stroke: var(--grpline); stroke-width: 1; }
+  /* worked-example players */
+  .exlegend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); align-items: center; }
+  .exlegend span { display: inline-flex; gap: 6px; align-items: center; }
+  .exlegend svg { width: 22px; height: 18px; }
+  .exlegend svg[viewBox="0 0 30 20"] { width: 30px; }
+  .lg-ref { fill: color-mix(in srgb, var(--rk2) 30%, var(--bg)); stroke: var(--rk2); stroke-width: 2; }
+  .lg-mol { fill: var(--bg); stroke: var(--rk2); stroke-width: 2.5; }
+  .lg-pair { stroke: var(--pair); stroke-width: 1.5; }
+  .lg-bad { stroke: var(--bad); stroke-width: 3; }
+  .lg-cur { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 2; }
+  .players { display: grid; gap: 34px; }
+  .player { display: grid; gap: 10px; min-width: 0; }
+  .phead { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; justify-content: space-between; }
+  .phead h3 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 1.1rem; }
+  .pstage { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .pstagebox { background: var(--node); border: 1px solid var(--rule); border-radius: 8px; overflow: hidden;
+               display: grid; grid-template-columns: minmax(0, 1fr); }
+  .pdraw { min-width: 0; display: flex; align-items: center; }
+  .pstagebox svg { display: block; width: 100%; height: auto; max-height: 440px; }
+  .ppanel { background: var(--grp); border-top: 1px solid var(--rule); padding: 16px 18px;
+            display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .plabel { font-family: var(--body); font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--accent); }
+  @media (min-width: 760px) {
+    .pstagebox { grid-template-columns: minmax(0, 1fr) 290px; }
+    .ppanel { border-top: 0; border-left: 1px solid var(--rule); }
+  }
+  .pctrl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .pbtn { font: 500 13px var(--body); color: var(--fg); background: var(--dec); border: 1px solid var(--grpline);
+          border-radius: 6px; padding: 6px 14px; cursor: pointer; min-width: 64px; }
+  .pbtn.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .pbtn:disabled { opacity: 0.45; cursor: default; }
+  .pbtn:focus-visible, .pdot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .pdots { display: flex; flex-wrap: wrap; gap: 5px; margin-left: 6px; }
+  .pdot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--muted); background: transparent;
+          padding: 0; cursor: pointer; }
+  .pdot[aria-current="step"] { background: var(--accent); border-color: var(--accent); }
+  .pcap { margin: 0; font-size: 14.5px; line-height: 1.5; }
+  .pmet { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: auto; padding-top: 6px; }
+  .pmet:empty { display: none; }
+  .pm { display: inline-flex; gap: 6px; align-items: baseline; font-variant-numeric: tabular-nums; }
+  .pmk { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .pmv { font-family: var(--mono); font-size: 14px; }
+  .player svg .axis { stroke: var(--grpline); stroke-width: 0.04; stroke-dasharray: 0.2 0.15; }
+  .player svg .rbond { stroke: var(--refbond); stroke-width: 0.13; stroke-linecap: round; }
+  .player svg .rbond.bad { stroke: var(--bad); stroke-width: 0.2; }
+  .player svg .mbond { stroke: var(--molbond); stroke-width: 0.08; stroke-dasharray: 0.18 0.1; }
+  .player svg .pair { stroke: var(--pair); stroke-width: 0.045; }
+  .player svg .pair.bad { stroke: var(--bad); stroke-width: 0.07; }
+  .player svg .pair.try { stroke: var(--accent); stroke-width: 0.07; stroke-dasharray: 0.15 0.1; }
+  .player svg .ratom { stroke-width: 0.07; }
+  .player svg .matom { fill: var(--node); stroke-width: 0.1; }
+  .player svg .ratom.rk0 { fill: color-mix(in srgb, var(--rk0) 25%, var(--node)); stroke: var(--rk0); }
+  .player svg .matom.rk0 { stroke: var(--rk0); }
+  .player svg .ratom.rk1 { fill: color-mix(in srgb, var(--rk1) 30%, var(--node)); stroke: var(--rk1); }
+  .player svg .ratom.rk2 { fill: color-mix(in srgb, var(--rk2) 30%, var(--node)); stroke: var(--rk2); }
+  .player svg .ratom.rk3 { fill: color-mix(in srgb, var(--rk3) 30%, var(--node)); stroke: var(--rk3); }
+  .player svg .ratom.rk4 { fill: color-mix(in srgb, var(--rk4) 30%, var(--node)); stroke: var(--rk4); }
+  .player svg .ratom.rk5 { fill: color-mix(in srgb, var(--rk5) 30%, var(--node)); stroke: var(--rk5); }
+  .player svg .ratom.rk6 { fill: color-mix(in srgb, var(--rk6) 30%, var(--node)); stroke: var(--rk6); }
+  .player svg .matom.rk1 { stroke: var(--rk1); } .player svg .matom.rk2 { stroke: var(--rk2); }
+  .player svg .matom.rk3 { stroke: var(--rk3); } .player svg .matom.rk4 { stroke: var(--rk4); }
+  .player svg .matom.rk5 { stroke: var(--rk5); } .player svg .matom.rk6 { stroke: var(--rk6); }
+  .player svg .cur, .player svg .cand { fill: none; stroke: var(--accent); stroke-width: 0.06; stroke-dasharray: 0.14 0.09; }
+  .player svg .rlabel { fill: var(--fg); font-family: var(--body); font-size: 0.34px; font-weight: 600; }
+  .player svg .mlabel { fill: var(--muted); font-family: var(--body); font-size: 0.3px; }
+  .player svg .dlabel { fill: var(--accent); font-family: var(--mono); font-size: 0.28px; }
+  svg .mk { fill: var(--warnfill); stroke: var(--warn); stroke-width: 1.5; }
+  svg .mkt { fill: var(--warn); font-family: var(--body); font-size: 11.5px; font-weight: 600; }
+  .heur { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 8px; max-width: 76ch; }
+  .heur li { display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: baseline; }
+  .heur .n { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+             border: 1.5px solid var(--warn); color: var(--warn); background: var(--warnfill);
+             font-size: 12px; font-weight: 600; }
+  /* in-page links on flowchart nodes */
+  svg .lnk { cursor: pointer; }
+  svg .lnk:hover rect, svg .lnk:hover polygon { stroke: var(--accent); stroke-width: 2.4; }
+  svg .lnk:focus { outline: none; }
+  svg .lnk:focus-visible rect, svg .lnk:focus-visible polygon { stroke: var(--accent); stroke-width: 3; }
+  svg .lkb, .lkb-l { fill: var(--accent); }
+  .lka-l { fill: none; stroke: var(--bg); stroke-width: 1.6; stroke-linecap: round; }
+  svg .lka { fill: none; stroke: var(--bg); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .flash { animation: flash 1.6s ease-out; }
+  @keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+  .backbtn { position: fixed; z-index: 20;
+             right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+             font: 500 13px var(--body); color: var(--bg); background: var(--accent); border: 0;
+             border-radius: 18px; padding: 8px 16px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.18); }
+  .backbtn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  .plink { font-size: 13px; }
+  .phead { justify-content: flex-start; }
+  .pstage { margin-left: auto; }
+  @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+  svg .grpt { fill: var(--muted); font-family: var(--body); font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <h1>iRMSD matching pipeline</h1>
+    <p class="sub">How one pairwise comparison in <code>get_irmsd</code> gets from two sets of coordinates to an atom assignment and an RMSD: rank setup, <code>min_rmsd</code>, and the bond-preserving selection added on top of it.</p>
+    <div class="legend" aria-label="Legend">
+      <span><svg viewBox="0 0 34 20" aria-hidden="true"><rect class="proc" x="2" y="3" width="30" height="14" rx="3"/></svg>step</span>
+      <span><svg viewBox="0 0 34 20" aria-hidden="true"><polygon class="dec" points="7,3 27,3 32,10 27,17 7,17 2,10"/></svg>decision</span>
+      <span><svg viewBox="0 0 34 20" aria-hidden="true"><rect class="term" x="2" y="3" width="30" height="14" rx="7"/></svg>start / result</span>
+      <span><svg viewBox="0 0 34 20" aria-hidden="true"><rect class="new" x="2" y="3" width="30" height="14" rx="3"/></svg>new since version 0.1.2 (rank setup, bond check, walk)</span>
+      <span><svg viewBox="0 0 34 20" aria-hidden="true"><line x1="2" y1="10" x2="32" y2="10" class="e dash"/></svg>loop back / reference</span>
+      <span><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" class="lkb-l"/><path d="M6.5,8.5 L10,12 L13.5,8.5" class="lka-l"/></svg>click: jump to that algorithm or example</span>
+    </div>
+    <p class="sub"><a href="#examples">Animated worked examples</a> at the end step through a chain, its walk, and a local-search case.</p>
+  </header>
+
+  <section id="call">
+    <h2>0. What a <code>get_irmsd</code> call decides</h2>
+    <p>Users pass two structures and nothing else. The only setting, <code>iinversion</code>, defaults to auto everywhere (API, ASE and RDKit wrappers, CLI). Every branch below is decided by the code from the structures themselves.</p>
+    <figure>
+      <div class="scroll">{{FIG0}}</div>
+      <figcaption>Default path of one pairwise call. The walk is not a fallback for broken bonds: it runs for every covalent system, because a bond-preserving <code>min_rmsd</code> result can still sit in the wrong symmetry class (ibuprofen pair 4: 1.947 instead of 1.659).</figcaption>
+    </figure>
+    <ol class="heur" aria-label="Heuristics in the default path">
+      <li><span class="n">1</span><span><strong>Cluster rule.</strong> A small solute in many waters counts as a cluster, so the walk is skipped and the solute can keep a bond-breaking LSAP mapping. Walking each sizeable fragment and leaving only small identical ones to the LSAP would close this.</span></li>
+      <li><span class="n">2</span><span><strong>Bonds from coordination numbers.</strong> Stretched geometries (transition states, weakly bound metal complexes) can give the two structures different bond graphs. The ranks then do not reconcile, and the call drops to element types or a plain RMSD with only a warning.</span></li>
+      <li><span class="n">3</span><span><strong>Mirror decision from the reference.</strong> Auto mode tries the mirror image only when the reference has no stereocentre, which is the CREST convention for comparing conformers.</span></li>
+    </ol>
+  </section>
+
+  <section id="pipeline">
+    <h2>1. One comparison end to end</h2>
+    <p>The ranks decide which atoms may be swapped at all; <code>min_rmsd</code> finds an orientation and an assignment within those ranks; <code>refine_assignment</code> makes sure the final assignment keeps every bond and is as low as the walk can get it.</p>
+    <figure>
+      <div class="scroll">{{FIG1}}</div>
+      <figcaption>Pairwise path in <code>get_irmsd_fortran</code>. The sorters run the same <code>min_rmsd</code> plus <code>refine_assignment</code> per pair and only differ in how often ranks are computed.</figcaption>
+    </figure>
+  </section>
+
+  <section id="ranks">
+    <h2>2. Atom ranks</h2>
+    <p>Two atoms may only be exchanged if they share a rank. Ranks come from user-supplied IDs or from the canonical sorter; a second structure with the same element order and bonds simply copies the first one's ranks.</p>
+    <figure>
+      <div class="scroll">{{FIG2}}</div>
+      <figcaption><code>setup_irmsd_ranks</code> and, on the right, what the canonical sorter does for one structure. The stereo flag comes from the reference only: without a stereocentre, the mirror image is tried in <code>min_rmsd</code> (auto mode).</figcaption>
+    </figure>
+  </section>
+
+  <section id="min-rmsd">
+    <h2>3. <code>min_rmsd</code></h2>
+    <p>The branch point is the number of atoms with a unique rank. Three or more of them pin the orientation directly; otherwise the principal axes of inertia do, with up to 32 candidate orientations because the axes carry sign and degeneracy ambiguities. In both branches each rank group is assigned by an LSAP on squared distances, independently of bonds.</p>
+    <figure>
+      <div class="scroll">{{FIG3}}</div>
+      <figcaption>Decision tree of <code>min_rmsd</code> (<code>crest_mods/irmsd_module.f90</code>). The total LSAP cost picks the orientation; the RMSD itself is computed once at the end.</figcaption>
+    </figure>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Distinct moments</th><th>Case</th><th>Orientations tried</th><th>With mirror</th></tr></thead>
+        <tbody>
+          <tr><td>all three</td><td>0</td><td>4: identity and 180 deg about x, y, z</td><td>8</td></tr>
+          <tr><td>only A (long axis)</td><td>1</td><td>8: the 4 above, again after a 90 deg tilt about x</td><td>16</td></tr>
+          <tr><td>only C (short axis)</td><td>2</td><td>8: the 4 above, again after a 90 deg tilt about z</td><td>16</td></tr>
+          <tr><td>none (spherical top)</td><td>3</td><td>16: the 4 above in 4 tilted frames</td><td>32</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="refine">
+    <h2>4. Bond-preserving selection</h2>
+    <p><code>min_rmsd</code> can return an assignment that maps a bonded pair onto a non-bonded one, which makes the RMSD look lower than any real correspondence. The selection compares it with the centre walk and keeps the lowest RMSD among candidates that preserve every bond. Bonds are checked after the terminal-atom refinement, because that step repairs H atoms swapped between parents.</p>
+    <figure>
+      <div class="scroll">{{FIG4}}</div>
+      <figcaption><code>refine_assignment</code> in <code>fmods/irmsd_refine.f90</code>. Clusters (water, LJ) skip the walk; for them matching whole molecules is an assignment problem the LSAP already solves.</figcaption>
+    </figure>
+  </section>
+
+  <section id="walk">
+    <h2>5. Centre walk</h2>
+    <p>The walk builds a correspondence that preserves bonds by construction: it only ever extends along a bond. Choices are made by distance as soon as the matched atoms fix a frame; before that, every possibility is enumerated. Each complete start is polished by alternating a Kabsch fit with a re-walk in that frame, and the best start gets a local search over single choices, which is what finds ring flips and methyl swaps whose benefit only shows in the total RMSD.</p>
+    <figure>
+      <div class="scroll">{{FIG5}}</div>
+      <figcaption><code>walk_assignment</code> in <code>fmods/irmsd_walk.f90</code>. Dead ends backtrack to the most recent choice with untried candidates; the walk gives up after 50 steps per atom plus 10,000, and the selection then keeps the <code>min_rmsd</code> result.</figcaption>
+    </figure>
+  </section>
+
+  <section id="examples">
+    <h2>6. Worked examples</h2>
+    <p>Flat toy molecules run through a Python transcription of the same steps, so every number shown is computed for these coordinates. Because the molecules are flat, the mirror test changes nothing and the four 180-degree turns of <code>min_rmsd</code> become flips in the plane. H atoms are left out.</p>
+    <div class="exlegend" aria-label="Legend for the examples">
+      <span><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" class="lg-ref"/></svg>reference atom</span>
+      <span><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="5" class="lg-mol"/></svg>second structure</span>
+      <span><svg viewBox="0 0 30 20" aria-hidden="true"><line x1="2" y1="10" x2="28" y2="10" class="lg-pair"/></svg>matched pair</span>
+      <span><svg viewBox="0 0 30 20" aria-hidden="true"><line x1="2" y1="10" x2="28" y2="10" class="lg-bad"/></svg>broken bond</span>
+      <span><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" class="lg-cur"/></svg>atom being matched / candidates</span>
+      <span>colours = rank</span>
+    </div>
+    <div id="players" class="players"></div>
+  </section>
+</div>
+
+<script type="application/json" id="examples-data">{{EXAMPLES}}</script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("examples-data").textContent);
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+  var STEP_MS = 3200;
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function h(tag, cls, parent, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  var TOKEN = /`[^`]+`|[A-Za-z_][A-Za-z0-9_]*\((?!s\))[^()]*\)|\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b|\b(?:molatomsort|checkranks|fallbackranks|iinversion|nunique|rinv)\b|\b(?:ref|mol)\b/g;
+  function richText(node, str) {
+    node.textContent = "";
+    var pos = 0, m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(str)) !== null) {
+      if (m.index > pos) node.appendChild(document.createTextNode(str.slice(pos, m.index)));
+      var t = m[0];
+      if (t === "ref" || t === "mol") { h("strong", "st", node, t); }
+      else { h("code", null, node, t.charAt(0) === "`" ? t.slice(1, -1) : t); }
+      pos = m.index + t.length;
+    }
+    if (pos < str.length) node.appendChild(document.createTextNode(str.slice(pos)));
+  }
+
+  function Player(ex, idx, root) {
+    var wrap = h("article", "player", root);
+    wrap.setAttribute("aria-label", ex.title);
+    wrap.id = "ex-" + String.fromCharCode(97 + idx);
+    var head = h("div", "phead", wrap);
+    h("h3", null, head, String.fromCharCode(65 + idx) + ". " + ex.title);
+    var back = [["min-rmsd", "figure 3"], ["walk", "figure 5"], ["walk", "figure 5"]][idx];
+    if (back) {
+      var a = h("a", "plink", head, "Flowchart: " + back[1]);
+      a.href = "#" + back[0];
+      a.setAttribute("data-target", back[0]);
+    }
+    var stageLbl = h("span", "pstage", head);
+
+    // bounds over all frames (y flipped)
+    var xs = [], ys = [];
+    ex.ref.forEach(function (p) { xs.push(p[0]); ys.push(-p[1]); });
+    ex.frames.forEach(function (f) { f.mol.forEach(function (p) { xs.push(p[0]); ys.push(-p[1]); }); });
+    var pad = 0.9;
+    var x0 = Math.min.apply(null, xs) - pad, x1 = Math.max.apply(null, xs) + pad;
+    var y0 = Math.min.apply(null, ys) - pad, y1 = Math.max.apply(null, ys) + pad;
+    // same minimum extent for every example, so atoms keep one size
+    var wmin = 20, hmin = 8.6, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    if (x1 - x0 < wmin) { x0 = cx - wmin / 2; x1 = cx + wmin / 2; }
+    if (y1 - y0 < hmin) { y0 = cy - hmin / 2; y1 = cy + hmin / 2; }
+
+    var box = h("div", "pstagebox", wrap);
+    var draw0 = h("div", "pdraw", box);
+    var svg = el("svg", { viewBox: [x0, y0, x1 - x0, y1 - y0].join(" "), role: "img",
+                          "aria-label": "Animation: " + ex.title }, draw0);
+    var panel = h("div", "ppanel", box);
+    var plabel = h("div", "plabel", panel);
+    var cap = h("p", "pcap", panel);
+    cap.setAttribute("aria-live", "polite");
+    var met = h("div", "pmet", panel);
+    var gAxis = el("g", {}, svg), gBonds = el("g", {}, svg), gPairs = el("g", {}, svg),
+        gAtoms = el("g", {}, svg), gText = el("g", {}, svg);
+
+    var ctrl = h("div", "pctrl", wrap);
+    var bPrev = h("button", "pbtn", ctrl, "Back");
+    var bPlay = h("button", "pbtn primary", ctrl, "Play");
+    var bNext = h("button", "pbtn", ctrl, "Next");
+    [bPrev, bPlay, bNext].forEach(function (b, k) { b.type = "button"; b.id = "ex" + idx + "-btn" + k; });
+    var dots = h("div", "pdots", ctrl);
+    var dotEls = ex.frames.map(function (f, k) {
+      var d = h("button", "pdot", dots);
+      d.type = "button";
+      d.id = "ex" + idx + "-dot" + k;
+      d.setAttribute("aria-label", "Step " + (k + 1) + ": " + f.stage);
+      d.addEventListener("click", function () { stop(); go(k); });
+      return d;
+    });
+
+    var cur = 0, shown = ex.frames[0].mol.map(function (p) { return p.slice(); });
+    var anim = null, timer = null;
+
+    function rankClass(r) { return "rk" + (((r - 1) % 6) + 1); }
+
+    function draw(f, pos) {
+      [gAxis, gBonds, gPairs, gAtoms, gText].forEach(function (g) { g.textContent = ""; });
+      var P = function (p) { return [p[0], -p[1]]; };
+      if (f.axis) el("line", { x1: x0, y1: 0, x2: x1, y2: 0, "class": "axis" }, gAxis);
+      var bad = {};
+      (f.badBonds || []).forEach(function (b) { bad[b[0] + "-" + b[1]] = 1; });
+      ex.refBonds.forEach(function (b) {
+        var a = P(ex.ref[b[0]]), c = P(ex.ref[b[1]]);
+        el("line", { x1: a[0], y1: a[1], x2: c[0], y2: c[1],
+                     "class": bad[b[0] + "-" + b[1]] ? "rbond bad" : "rbond" }, gBonds);
+      });
+      ex.molBonds.forEach(function (b) {
+        var a = P(pos[b[0]]), c = P(pos[b[1]]);
+        el("line", { x1: a[0], y1: a[1], x2: c[0], y2: c[1], "class": "mbond" }, gBonds);
+      });
+      (f.pairs || []).forEach(function (pr) {
+        var a = P(ex.ref[pr[0]]), c = P(pos[pr[1]]);
+        el("line", { x1: a[0], y1: a[1], x2: c[0], y2: c[1], "class": "pair " + pr[2] }, gPairs);
+      });
+      var lab = f.labels;
+      ex.ref.forEach(function (p, i) {
+        var q = P(p);
+        var cls = "ratom " + (f.showRanks ? rankClass(ex.rankRef[i]) : "rk0");
+        el("circle", { cx: q[0], cy: q[1], r: 0.36, "class": cls }, gAtoms);
+        if (f.current === i) el("circle", { cx: q[0], cy: q[1], r: 0.55, "class": "cur" }, gAtoms);
+        var t = f.refOrder ? (f.refOrder[i] || "") : (lab === "elem" ? ex.elem[i] : String(i + 1));
+        var tx = el("text", { x: q[0], y: q[1] + 0.13, "class": "rlabel", "text-anchor": "middle" }, gText);
+        tx.textContent = t;
+      });
+      var cand = {};
+      (f.candidates || []).forEach(function (c) { cand[c] = 1; });
+      pos.forEach(function (p, j) {
+        var q = P(p);
+        var cls = "matom " + (f.showRanks ? rankClass(ex.rankMol[j]) : "rk0");
+        el("circle", { cx: q[0], cy: q[1], r: 0.22, "class": cls }, gAtoms);
+        if (cand[j]) el("circle", { cx: q[0], cy: q[1], r: 0.42, "class": "cand" }, gAtoms);
+        var t = lab === "elem" ? ex.elem[j] : String(ex.molLabels[j]);
+        var tx = el("text", { x: q[0] + 0.3, y: q[1] - 0.3, "class": "mlabel" }, gText);
+        tx.textContent = t;
+        if (f.dist && f.dist[j] != null) {
+          var td = el("text", { x: q[0] + 0.3, y: q[1] + 0.62, "class": "dlabel" }, gText);
+          td.textContent = "d = " + f.dist[j].toFixed(2);
+        }
+      });
+    }
+
+    function show(k, from) {
+      var f = ex.frames[k];
+      stageLbl.textContent = "Step " + (k + 1) + " of " + ex.frames.length;
+      plabel.textContent = f.stage;
+      richText(cap, f.caption);
+      met.textContent = "";
+      if (f.metrics) {
+        Object.keys(f.metrics).forEach(function (key) {
+          var m = h("span", "pm", met);
+          h("span", "pmk", m, key);
+          var v = f.metrics[key];
+          h("span", "pmv", m, typeof v === "number" ? (key === "broken bonds" ? String(v) : v.toFixed(2)) : v);
+        });
+      }
+      dotEls.forEach(function (d, i) { d.setAttribute("aria-current", i === k ? "step" : "false"); });
+      bPrev.disabled = k === 0;
+      bNext.disabled = k === ex.frames.length - 1;
+      if (anim) cancelAnimationFrame(anim);
+      var target = f.mol;
+      if (reduce || !from) { shown = target.map(function (p) { return p.slice(); }); draw(f, shown); return; }
+      var start = null, dur = 750;
+      var src = shown.map(function (p) { return p.slice(); });
+      function tick(t) {
+        if (start === null) start = t;
+        var u = Math.min(1, (t - start) / dur);
+        var e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+        shown = src.map(function (p, i) { return [p[0] + (target[i][0] - p[0]) * e, p[1] + (target[i][1] - p[1]) * e]; });
+        draw(f, shown);
+        if (u < 1) anim = requestAnimationFrame(tick);
+      }
+      anim = requestAnimationFrame(tick);
+    }
+    function go(k) { var from = cur; cur = k; show(k, from !== k); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } bPlay.textContent = "Play"; }
+    function play() {
+      if (cur === ex.frames.length - 1) go(0);
+      bPlay.textContent = "Pause";
+      timer = setInterval(function () {
+        if (cur >= ex.frames.length - 1) { stop(); return; }
+        go(cur + 1);
+      }, STEP_MS);
+    }
+    bPrev.addEventListener("click", function () { stop(); if (cur > 0) go(cur - 1); });
+    bNext.addEventListener("click", function () { stop(); if (cur < ex.frames.length - 1) go(cur + 1); });
+    bPlay.addEventListener("click", function () { if (timer) stop(); else play(); });
+    show(0, false);
+  }
+
+  var root = document.getElementById("players");
+  data.forEach(function (ex, i) { Player(ex, i, root); });
+
+  // in-page navigation: smooth scroll, highlight the target, remember where we came from
+  var trail = [];
+  var backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.id = "back-btn";
+  backBtn.className = "backbtn";
+  backBtn.textContent = "Back";
+  backBtn.hidden = true;
+  document.body.appendChild(backBtn);
+  function scrollToY(y) { window.scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" }); }
+  function jump(id) {
+    var t = document.getElementById(id);
+    if (!t) return;
+    trail.push(window.scrollY);
+    backBtn.hidden = false;
+    backBtn.textContent = "Back (" + trail.length + ")";
+    var y = t.getBoundingClientRect().top + window.scrollY - 16;
+    scrollToY(y);
+    var box = t.querySelector(".scroll, .pstagebox") || t;
+    box.classList.remove("flash");
+    void box.offsetWidth;
+    box.classList.add("flash");
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest ? e.target.closest("[data-target]") : null;
+    if (!a) return;
+    e.preventDefault();
+    jump(a.getAttribute("data-target"));
+  });
+  backBtn.addEventListener("click", function () {
+    if (!trail.length) return;
+    scrollToY(trail.pop());
+    backBtn.textContent = "Back (" + trail.length + ")";
+    if (!trail.length) backBtn.hidden = true;
+  });
+})();
+</script>
+</body>
+</html>

@@ -37,6 +37,7 @@ try:
         get_point_group_ase,
         get_rmsd_ase,
         molecule_to_ase,
+        prune_ase,
         sorter_irmsd_ase,
     )
 except Exception:
@@ -51,6 +52,7 @@ try:
         get_point_group_rdkit,
         get_rmsd_rdkit,
         molecule_to_rdkit,
+        prune_rdkit,
         rdkit_to_molecule,
         sorter_irmsd_rdkit,
     )
