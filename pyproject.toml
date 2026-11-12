@@ -16,7 +16,7 @@ dependencies = ["numpy>=2.0"]
 ase = ["ase>=3.22.1"]
 rdkit = ["rdkit>=2025.9.2"]
 dev = ["pytest", "pytest-cov"]
-docs = ["sphinx>=8.2.3", "shibuya", "myst-parser"]
+docs = ["sphinx>=8.2.3", "shibuya", "myst-parser", "sphinx-argparse"]
 
 [project.urls]
 Homepage = "https://github.com/pprcht/irmsd"
@@ -60,4 +60,14 @@ environment = { FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON
 
 [tool.cibuildwheel.macos]
 environment = { FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON" }
+
+# MinGW gfortran/gcc, installed on the runner by the workflow (setup-fortran).
+# libgfortran and libgcc are linked statically; libgomp stays a DLL, which
+# delvewheel bundles into the wheel (--analyze-existing since the library is
+# loaded with ctypes, not imported). MinGW names it libirmsd_fortran.dll.
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair --analyze-existing -w {dest_dir} {wheel}"
+environment = { CMAKE_GENERATOR = "Ninja", CC = "gcc", FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON;CMAKE_SHARED_LINKER_FLAGS=-static -static-libgcc -static-libgfortran" }
 

@@ -20,3 +20,8 @@ compile_commands.json
 *.so
 *.dylib
 .DS_Store
+
+# Sphinx output
+docs/_build/
+docs/generated/
+docs/flowchart/irmsd-flowchart.html
