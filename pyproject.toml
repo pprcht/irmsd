@@ -61,3 +61,13 @@ environment = { FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON
 [tool.cibuildwheel.macos]
 environment = { FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON" }
 
+# MinGW gfortran/gcc, installed on the runner by the workflow (setup-fortran).
+# libgfortran and libgcc are linked statically; libgomp stays a DLL, which
+# delvewheel bundles into the wheel (--analyze-existing since the library is
+# loaded with ctypes, not imported). MinGW names it libirmsd_fortran.dll.
+[tool.cibuildwheel.windows]
+archs = ["AMD64"]
+before-build = "pip install delvewheel"
+repair-wheel-command = "delvewheel repair --analyze-existing -w {dest_dir} {wheel}"
+environment = { CMAKE_GENERATOR = "Ninja", CC = "gcc", FC = "gfortran", SKBUILD_CMAKE_DEFINE = "IRMSD_REQUIRE_OPENMP=ON;CMAKE_SHARED_LINKER_FLAGS=-static -static-libgcc -static-libgfortran" }
+
