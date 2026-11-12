@@ -42,10 +42,10 @@ iRMSD is available via **PyPI**. <!-- both **PyPI** and **conda-forge**. -->
 pip install irmsd
 ```
 
-Prebuilt wheels are available for Linux (`manylinux`) and macOS (`arm64`), so installation is typically straightforward. On macOS, wheel compatibility follows the version of the `macos-latest` runner
+Prebuilt wheels are available for Linux (`manylinux`), macOS (`arm64`), and Windows (`win_amd64`), so installation is typically straightforward. On macOS, wheel compatibility follows the version of the `macos-latest` runner
 used by GitHub Actions. 
 
-We currently do not provide prebuilt wheels for Windows. On Windows, `pip install irmsd` will build the package *from source*. This requires: **1**) Python 3.10 or newer, **2**) A C/C++ compiler (e.g. Visual Studio Build Tools), **3**) A Fortran compiler (e.g. Intel oneAPI Fortran, or MinGW gfortran configured for CMake). If you don’t have a Fortran toolchain available, the installation will likely fail. As an alternative, you can use WSL (Linux subsystem) and install the Linux wheels there.
+On other platforms (e.g. Windows on ARM), `pip install irmsd` will build the package *from source*. This requires: **1**) Python 3.10 or newer, **2**) A C compiler, **3**) A Fortran compiler (e.g. gfortran, or MinGW gfortran on Windows) that CMake can find. If you don’t have a Fortran toolchain available, the installation will likely fail.
 
 <!--
 **Conda:**

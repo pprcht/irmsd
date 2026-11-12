@@ -25,7 +25,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +41,15 @@ jobs:
           MAJOR=$(sw_vers -productVersion | cut -d. -f1)
           echo "Detected macOS major version: $MAJOR"
           echo "MACOSX_DEPLOYMENT_TARGET=${MAJOR}.0" >> $GITHUB_ENV
+
+      # Windows: MinGW gfortran/gcc for cibuildwheel; the build settings are in
+      # [tool.cibuildwheel.windows] in pyproject.toml
+      - name: Set up Fortran compiler (Windows)
+        if: runner.os == 'Windows'
+        uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: gcc
+          version: 13
 
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v3.3.0
