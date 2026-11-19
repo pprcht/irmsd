@@ -23,6 +23,10 @@ version: "0.2.0"
 date-released: "2026-11-19"
 repository-code: "https://github.com/pprcht/irmsd"
 license: LGPL-3.0-or-later
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24374114
+    description: "Zenodo archive, all versions"
 keywords:
   - RMSD
   - conformer ensembles

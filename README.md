@@ -6,6 +6,7 @@
 
 [![Latest Version](https://img.shields.io/github/v/release/pprcht/irmsd?color=khaki)](https://github.com/pprcht/irmsd/releases/latest)
 [![DOI](https://img.shields.io/badge/DOI-10.1021%2Facs.jcim.4c02143%20-blue)](http://dx.doi.org/10.1021/acs.jcim.4c02143)
+[![Zenodo](https://img.shields.io/badge/Zenodo-10.5281%2Fzenodo.24374114-blue)](https://doi.org/10.5281/zenodo.24374114)
 [![License: LGPL v3](https://img.shields.io/badge/license-LGPL_v3-coral.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Documentation](https://img.shields.io/badge/docs-pprcht.github.io%2Firmsd-blue.svg)](https://pprcht.github.io/irmsd/) <br>
 [![Wheels Build](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml/badge.svg)](https://github.com/pprcht/irmsd/actions/workflows/wheels.yml)
