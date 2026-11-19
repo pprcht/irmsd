@@ -1,18 +1,32 @@
 cff-version: 1.2.0
-message: "If you use this work, please cite the following paper."
-title: "Conformational Pruning via the Permutation Invariant Root-Mean-Square Deviation of Atomic Positions"
+message: "If you use this software, please cite the paper given under preferred-citation."
+type: software
+title: "iRMSD"
+abstract: >
+  Python and Fortran package for the permutation-invariant root-mean-square
+  deviation (iRMSD) of atomic positions, with bond-preserving atom matching
+  and parallel sorting and pruning of conformer ensembles.
 authors:
   - family-names: "Pracht"
     given-names: "Philipp"
     orcid: "https://orcid.org/0000-0002-8495-9504"
-abstract: >
-  The Cartesian root-mean-square deviation (RMSD) of atomic coordinates is a fundamental metric
-  for comparing three-dimensional molecular structures. This work introduces the permutation-
-  invariant RMSD (iRMSD) to handle molecular symmetry and atom-permutations more robustly,
-  enabling efficient conformational pruning in automated computational chemistry workflows.
-date-released: "2025-05-12"
-url: "https://doi.org/10.1021/acs.jcim.4c02143"
-doi: "10.1021/acs.jcim.4c02143"
+  - family-names: "Kaczun"
+    given-names: "Tobias"
+    orcid: "https://orcid.org/0009-0003-5703-6565"
+  - family-names: "Teeuwen"
+    given-names: "Paula"
+    orcid: "https://orcid.org/0000-0002-2571-8161"
+  - family-names: "Rindt"
+    given-names: "Lukas"
+    orcid: "https://orcid.org/0009-0008-4474-4534"
+version: "0.2.0"
+date-released: "2026-11-19"
+repository-code: "https://github.com/pprcht/irmsd"
+license: LGPL-3.0-or-later
+keywords:
+  - RMSD
+  - conformer ensembles
+  - computational chemistry
 preferred-citation:
   type: article
   authors:
